@@ -477,6 +477,32 @@ def main():
             verifica("redirect preserva a query string",
                      e4.headers.get("Location") == "/candidato?token=abc")
 
+        print("\n== Conexão keep-alive (sem desync) ==")
+        import socket as _sock
+        corpo = b'{"login":"x","senha":"y"}'
+        req1 = (b"POST /api/gestor/candidatos HTTP/1.1\r\nHost: x\r\n"
+                b"Content-Type: application/json\r\nContent-Length: %d\r\n\r\n" % len(corpo)) + corpo
+        req2 = b"GET /api/locais HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n"
+        cx = _sock.create_connection(("localhost", PORTA), timeout=5)
+        cx.sendall(req1 + req2)
+        time.sleep(0.4)
+        cx.settimeout(2)
+        bruto = b""
+        try:
+            while True:
+                ped = cx.recv(4096)
+                if not ped:
+                    break
+                bruto += ped
+        except _sock.timeout:
+            pass
+        cx.close()
+        resp = bruto.decode("latin-1")
+        verifica("resposta antes de ler o corpo não desincroniza a conexão",
+                 "501" not in resp and "Unsupported method" not in resp)
+        verifica("requisição seguinte na mesma conexão é atendida",
+                 '"locais"' in resp)
+
         print("\n== Segurança básica ==")
         _, code = req("/api/candidato/me", headers={"X-Token": "falso"})
         verifica("token falso de candidato é rejeitado", code == 401)

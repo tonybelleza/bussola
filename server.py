@@ -1297,11 +1297,28 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _ler_corpo(self):
+        """Lê o corpo inteiro uma única vez, logo no início da requisição.
+        Essencial com keep-alive (HTTP/1.1): se uma rota responde antes de ler o
+        corpo, os bytes sobram na conexão e a requisição seguinte é lida
+        embaralhada (erro 501 'Unsupported method'). Drenar aqui evita isso."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        self._raw = self.rfile.read(length) if length > 0 else b""
+
     def _body(self):
-        length = int(self.headers.get("Content-Length") or 0)
-        if length == 0:
+        raw = getattr(self, "_raw", None)
+        if raw is None:  # fallback defensivo, caso _ler_corpo não tenha rodado
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length) if length > 0 else b""
+            self._raw = raw
+        if not raw:
             return {}
-        raw = self.rfile.read(length)
         try:
             return json.loads(raw.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
@@ -1338,6 +1355,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self._corpo_grande_demais():
             return None
+        self._ler_corpo()  # drena o corpo sempre (mantém a conexão em sincronia)
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("POST", path)
@@ -1346,6 +1364,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         if self._corpo_grande_demais():
             return None
+        self._ler_corpo()
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("DELETE", path)
