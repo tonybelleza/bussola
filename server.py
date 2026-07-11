@@ -626,15 +626,37 @@ def config_set(conn, chave, valor):
 
 
 def montar_email_html(assunto, corpo_texto):
-    """Envolve o texto do e-mail num layout com a marca Bússola. Linhas que são
-    só um link viram botão; parágrafos separados por linha em branco."""
+    """Envolve o texto do e-mail num layout moderno com a marca Bússola.
+    Linhas que são só um link viram botão; parágrafos separados por linha em
+    branco. O 'herói' do topo (ícone + título + cor) muda conforme o tipo de
+    e-mail, inferido pelo assunto. Animações são progressivas: onde o cliente
+    não suporta (Gmail, Outlook), o e-mail continua bonito e estático."""
+    HEROIS = [
+        ("bem-vind", "🧭", "Bem-vindo(a) à sua avaliação", "#3B67CA"),
+        ("confirmad", "🧭", "Inscrição confirmada", "#3B67CA"),
+        ("inscri", "🧭", "Inscrição confirmada", "#3B67CA"),
+        ("falta pouco", "⏳", "Falta pouco para concluir", "#C79A3E"),
+        ("lembr", "⏳", "Um lembrete rápido", "#C79A3E"),
+        ("completa", "✅", "Avaliação concluída", "#2E9E6A"),
+        ("novo candidato", "👤", "Novo candidato", "#3B67CA"),
+        ("senha", "🔒", "Redefinição de senha", "#5E7086"),
+        ("teste", "✉️", "E-mail de teste", "#3B67CA"),
+        ("etapa", "📌", "Atualização do processo", "#3B67CA"),
+    ]
+    alvo = (assunto or "").lower()
+    icone_h, titulo_h, cor_h = "🧭", "", "#3B67CA"
+    for chave, ic, tit, cor in HEROIS:
+        if chave in alvo:
+            icone_h, titulo_h, cor_h = ic, tit, cor
+            break
+
     blocos = []
     paragrafo = []
 
     def fecha():
         if paragrafo:
             blocos.append(
-                '<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#2b3648">'
+                '<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#2b3648">'
                 + "<br>".join(_html.escape(x) for x in paragrafo) + "</p>"
             )
             paragrafo.clear()
@@ -644,10 +666,12 @@ def montar_email_html(assunto, corpo_texto):
         if s.startswith("http://") or s.startswith("https://"):
             fecha()
             blocos.append(
-                '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px">'
-                '<tr><td style="border-radius:10px;background:#3258AB">'
-                '<a href="%s" style="display:inline-block;padding:13px 30px;font-size:15px;'
-                'font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">Acessar</a>'
+                '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px">'
+                '<tr><td class="cta" style="border-radius:12px;'
+                'background:linear-gradient(135deg,#3258AB,#3B67CA 60%%,#5B84DB);'
+                'box-shadow:0 6px 18px rgba(50,88,171,.35)">'
+                '<a href="%s" style="display:inline-block;padding:14px 34px;font-size:15px;'
+                'font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px">Acessar &#8594;</a>'
                 '</td></tr></table>'
                 '<p style="margin:0 0 16px;font-size:12px;color:#8a97a8">'
                 'Se o botão não funcionar, copie e cole no navegador:<br>'
@@ -660,21 +684,59 @@ def montar_email_html(assunto, corpo_texto):
             paragrafo.append(linha)
     fecha()
     corpo_html = "\n".join(blocos)
+
+    hero_html = ""
+    if titulo_h:
+        hero_html = (
+            '<tr><td style="padding:26px 34px 0;text-align:center">'
+            '<div class="hero-icone" style="display:inline-block;width:64px;height:64px;'
+            'line-height:64px;border-radius:50%;font-size:30px;'
+            'background:' + cor_h + '1f;border:1px solid ' + cor_h + '33">' + icone_h + '</div>'
+            '<div style="font-size:19px;font-weight:700;color:#101B37;margin-top:14px">'
+            + _html.escape(titulo_h) + '</div></td></tr>'
+        )
+
+    estilo = (
+        '<style>'
+        '@keyframes brilho{0%{background-position:-260px 0}100%{background-position:260px 0}}'
+        '@keyframes pulso{0%,100%{box-shadow:0 6px 18px rgba(50,88,171,.35)}'
+        '50%{box-shadow:0 8px 26px rgba(91,132,219,.6)}}'
+        '@keyframes flutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}'
+        '.faixa{background:linear-gradient(90deg,#3258AB,#5B84DB,#9BB9DD,#5B84DB,#3258AB);'
+        'background-size:260px 100%;animation:brilho 2.6s linear infinite}'
+        '.cta{animation:pulso 2.6s ease-in-out infinite}'
+        '.hero-icone{animation:flutua 3s ease-in-out infinite}'
+        '</style>'
+    )
     modelo = (
         '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        + estilo +
+        '</head>'
         '<body style="margin:0;padding:0;background:#eef1f6;'
         '-webkit-font-smoothing:antialiased;font-family:Arial,Helvetica,sans-serif">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f6">'
         '<tr><td align="center" style="padding:28px 12px">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
-        'style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;'
-        'box-shadow:0 8px 30px rgba(16,27,55,.08)">'
-        '<tr><td style="background:#101B37;padding:26px 34px">'
-        '<div style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.3px">Bússola</div>'
-        '<div style="font-size:12px;color:#9BB9DD;letter-spacing:2px;text-transform:uppercase;margin-top:4px">'
-        'Recrutamento e Seleção</div></td></tr>'
-        '<tr><td style="padding:32px 34px 12px">__CORPO__</td></tr>'
+        'style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;'
+        'box-shadow:0 10px 34px rgba(16,27,55,.10)">'
+        # cabeçalho navy com selo da bússola
+        '<tr><td style="background:linear-gradient(135deg,#101B37,#182B54);padding:26px 34px">'
+        '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        '<td style="width:40px;height:40px;background:#3B67CA;border-radius:10px;'
+        'text-align:center;font-size:22px;line-height:40px">🧭</td>'
+        '<td style="padding-left:14px">'
+        '<div style="font-size:21px;font-weight:700;color:#ffffff;letter-spacing:.3px">Bússola</div>'
+        '<div style="font-size:11px;color:#9BB9DD;letter-spacing:2px;text-transform:uppercase">'
+        'Recrutamento e Seleção</div></td></tr></table></td></tr>'
+        # faixa animada
+        '<tr><td class="faixa" style="height:4px;font-size:0;line-height:0;'
+        'background:linear-gradient(90deg,#3258AB,#5B84DB,#9BB9DD)">&nbsp;</td></tr>'
+        # herói opcional
+        '__HERO__'
+        # corpo
+        '<tr><td style="padding:26px 34px 12px">__CORPO__</td></tr>'
+        # rodapé
         '<tr><td style="padding:18px 34px 30px;border-top:1px solid #eef1f6">'
         '<div style="font-size:12px;color:#8a97a8;line-height:1.5">'
         'Bússola · metodologia B.A.S.E. e curadoria Tony Belleza<br>'
@@ -682,7 +744,7 @@ def montar_email_html(assunto, corpo_texto):
         '</div></td></tr>'
         '</table></td></tr></table></body></html>'
     )
-    return modelo.replace("__CORPO__", corpo_html)
+    return modelo.replace("__HERO__", hero_html).replace("__CORPO__", corpo_html)
 
 
 def enviar_email(conn, para, assunto, corpo):
