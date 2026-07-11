@@ -28,11 +28,11 @@ já com 4 cargos de exemplo da área de GTI.
 | Perfil | Acesso | O que vê |
 |---|---|---|
 | **Landing page** | `http://localhost:8080/` | Página do produto com todos os acessos |
-| **Candidato** | `/candidato.html` | Apenas os próprios testes e resultados; acesso pelo link pessoal (reenvio por e-mail em "Já tem cadastro?") |
-| **Gestor** | `/gestor.html` | Painel completo (login e senha próprios) |
-| **Vagas gerais** | `/vagas.html` | Todas as vagas abertas |
-| **Página do gestor** | `/vagas.html?g=LOGIN` | Só as vagas do local daquele gestor; quem se candidata por ela entra direto no processo dele (link pronto em Configurações) |
-| **Painel do dono** | `/dono.html` | Exclusivo do proprietário do software (senha mestra própria): todas as contas, entrar em qualquer conta para suporte, redefinir senhas, saúde do sistema (versão, banco, backups, log) e controle de clientes/cobrança por local |
+| **Candidato** | `/candidato` | Apenas os próprios testes e resultados; acesso pelo link pessoal (reenvio por e-mail em "Já tem cadastro?") |
+| **Gestor** | `/gestor` | Painel completo (login e senha próprios) |
+| **Vagas gerais** | `/vagas` | Todas as vagas abertas |
+| **Página do gestor** | `/vagas?g=LOGIN` | Só as vagas do local daquele gestor; quem se candidata por ela entra direto no processo dele (link pronto em Configurações) |
+| **Painel do dono** | `/dono` | Exclusivo do proprietário do software (senha mestra própria): todas as contas, entrar em qualquer conta para suporte, redefinir senhas, saúde do sistema (versão, banco, backups, log) e controle de clientes/cobrança por local |
 
 ### Colaboradores internos (caso da instituição pública)
 
@@ -64,9 +64,12 @@ senha padrão. Depois disso, o administrador cria as contas dos demais gestores.
 parece com ele. Gera perfil nas 4 dimensões (Dominância, Influência, Estabilidade,
 Conformidade) com pontos fortes, pontos de desenvolvimento e estilo de trabalho.
 
-### 2. Teste B.A.S.E. (formato do teste original de tonybelleza.com/base)
-6 rodadas de 4 cartas ordenadas da que mais combina para a que menos combina.
-Gera o código de personalidade: 🧭 Bússola · ⚡ Atuante · 💛 Sensível · 📊 Estudioso.
+### 2. Teste B.A.S.E. (o teste original de tonybelleza.com/base)
+8 rodadas de 4 cartas ordenadas da que mais combina para a que menos combina
+(1º vale 4 pontos, 2º vale 3, 3º vale 2, 4º vale 1). Gera o código completo de
+personalidade (a ordem das 4 letras: Bússola, Atuante, Sensível, Estudioso) com
+o relatório original: perfil, pontos fortes, leitura das 4 posições do código,
+gatilhos e dicas de comunicação com os outros perfis.
 
 ### Match geral candidato × cargo
 
@@ -83,7 +86,7 @@ pipeline das vagas e na matriz consolidada, sempre ordenado do maior para o meno
 ### Recrutamento e seleção (ATS)
 
 - **Vagas e portal público**: o gestor abre vagas na aba Vagas; os candidatos
-  se inscrevem pelo portal `/vagas.html` (link "Trabalhe conosco").
+  se inscrevem pelo portal `/vagas` (link "Trabalhe conosco").
 - **Pipeline Kanban**: cada vaga tem um quadro com as etapas Inscrito,
   Avaliações, Entrevista, Proposta, Contratado e Reprovado. Arraste os cartões
   para mover candidatos; cada mudança pode notificar o candidato por e-mail.
@@ -187,7 +190,7 @@ Para editar as perguntas dos testes ou os textos dos perfis, basta alterar
   servidor e substitua `rh.db` pela cópia desejada.
 - **Exportar planilha**: na aba Candidatos há um botão "Exportar planilha (CSV)"
   que baixa todos os candidatos com perfis, match e status (abre no Excel).
-- **Testes automatizados**: `python3 teste_sistema.py` roda 32 verificações do
+- **Testes automatizados**: `python3 teste_sistema.py` roda 78 verificações do
   sistema inteiro (acessos, vagas, pipeline, match, isolamento por local,
   segurança) num banco temporário, sem tocar nos dados reais.
 - **Celular**: todas as telas são responsivas; os candidatos podem responder

@@ -55,7 +55,26 @@
       "WebFetch(domain:recruitcrm.io)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git -c 'user.name=Tony Belleza' -c user.email=tb@tonybelleza.com commit -m 'Bússola: plataforma de recrutamento e seleção \\(Tony Belleza\\) *)"
+      "Bash(git -c 'user.name=Tony Belleza' -c user.email=tb@tonybelleza.com commit -m 'Bússola: plataforma de recrutamento e seleção \\(Tony Belleza\\) *)",
+      "Bash(mkdir -p ~/.ssh)",
+      "Bash(chmod 700 ~/.ssh)",
+      "Bash(ssh-keygen -t ed25519 -f ~/.ssh/bussola_oracle -N \"\" -C \"bussola-tony\" -q)",
+      "Read(//Users/tonybelleza/.ssh/**)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude-in-chrome__switch_browser",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__computer",
+      "mcp__claude-in-chrome__find",
+      "mcp__claude-in-chrome__read_page",
+      "Bash(ssh -i ~/.ssh/bussola_oracle -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 ubuntu@159.54.181.125 \"echo CONECTADO && uname -a && python3 --version\")",
+      "Bash(rsync -az -e 'ssh -i ~/.ssh/bussola_oracle' --exclude .git --exclude rh.db --exclude backups --exclude uploads --exclude __pycache__ --exclude *.pyc ./ ubuntu@159.54.181.125:/home/ubuntu/bussola/)",
+      "Bash(ssh -i ~/.ssh/bussola_oracle ubuntu@159.54.181.125 \"ls /home/ubuntu/bussola/ | head\")",
+      "mcp__claude-in-chrome__browser_batch",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 15 http://159.54.181.125/)",
+      "Bash(curl -s --max-time 15 http://159.54.181.125/api/gestor/setup)",
+      "Bash(ssh -i ~/.ssh/bussola_oracle -o StrictHostKeyChecking=accept-new ubuntu@159.54.181.125 'cd /home/ubuntu/bussola && sqlite3 rh.db \"INSERT INTO config\\(chave,valor\\) VALUES\\(\\\\\"url_publica\\\\\",\\\\\"http://159.54.181.125\\\\\"\\) ON CONFLICT\\(chave\\) DO UPDATE SET valor=excluded.valor; SELECT chave,valor FROM config WHERE chave=\\\\\"url_publica\\\\\";\"')",
+      "Bash(curl -s --max-time 15 http://159.54.181.125/)",
+      "Bash(ssh -i ~/.ssh/bussola_oracle ubuntu@159.54.181.125 'cd /home/ubuntu/bussola && python3 -c \" *)"
     ]
   }
 }

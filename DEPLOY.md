@@ -61,13 +61,13 @@ Pronto: https://rh.tonybelleza.com no ar com certificado.
 
 ## 3. Depois de publicar
 
-1. Acesse `/gestor.html`, crie a conta do administrador.
-2. Acesse `/dono.html`, crie a senha do dono (seu painel de proprietário).
+1. Acesse `/gestor`, crie a conta do administrador.
+2. Acesse `/dono`, crie a senha do dono (seu painel de proprietário).
 3. Em Configurações → Integrações, preencha:
    - **Endereço público**: `https://rh.tonybelleza.com` (links dos e-mails)
    - SMTP e chave da IA quando quiser ativar.
-4. Compartilhe: vagas em `/vagas.html` e a página de cada gestor em
-   `/vagas.html?g=LOGIN`.
+4. Compartilhe: vagas em `/vagas` e a página de cada gestor em
+   `/vagas?g=LOGIN`.
 
 ## 4. Alternativa sem VPS (se você só tem a hospedagem compartilhada)
 

@@ -282,9 +282,9 @@ function abaGuia(el) {
       ${tituloIcone("bussola", "Teste B.A.S.E.")}
       <p class="desc">Código de personalidade em 4 arquétipos: Bússola, Atuante, Sensível e Estudioso. Metodologia de Tony Belleza que revela o que realmente impulsiona as decisões da pessoa.</p>
       <h3>Como o candidato responde</h3>
-      <p>São 6 rodadas com 4 cartas cada. Em cada rodada, a pessoa clica nas cartas em ordem, da que mais combina com ela (1º) até a que menos combina (4º). Leva menos de 3 minutos.</p>
+      <p>São 8 rodadas com 4 cartas cada, no formato do teste original de tonybelleza.com/base. Em cada rodada, a pessoa clica nas cartas em ordem, da que mais combina com ela (1º) até a que menos combina (4º). Cada posição vale pontos (1º vale 4, 2º vale 3, 3º vale 2 e 4º vale 1) e o resultado é o código completo: a ordem das 4 letras por pontuação. Leva menos de 3 minutos.</p>
       <h3>Como interpretar</h3>
-      <p>O arquétipo dominante mostra a motivação central da pessoa e o secundário complementa a leitura. Enquanto o DISC descreve o comportamento observável, o B.A.S.E. revela o motor interno das decisões. Os dois juntos dão uma visão completa.</p>
+      <p>O código se lê por posição: a 1ª letra é o motor principal da pessoa, a 2ª é a influência secundária, a 3ª é o modo ativado sob estresse e a 4ª mostra os valores menos prioritários. O relatório traz ainda os gatilhos (o que impulsiona e o que incomoda) e dicas de comunicação com os outros perfis, úteis para conduzir a entrevista. Enquanto o DISC descreve o comportamento observável, o B.A.S.E. revela o motor interno das decisões. Os dois juntos dão uma visão completa.</p>
       <div class="grid cols-2 mt">
         ${["B", "A", "S", "E"].map((k) => cartaoPerfil(BASE_PERFIS[k])).join("")}
       </div>
@@ -386,7 +386,7 @@ async function abaVagas(el, vagaAberta) {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div>
           <h2 class="icone-titulo">${icone("pasta")}<span>Vagas</span></h2>
-          <p class="desc" style="margin:0">Abra vagas vinculadas aos cargos mapeados e acompanhe o processo seletivo no pipeline. O link público para candidatos é <strong>/vagas.html</strong>.</p>
+          <p class="desc" style="margin:0">Abra vagas vinculadas aos cargos mapeados e acompanhe o processo seletivo no pipeline. O link público para candidatos é <strong>/vagas</strong>.</p>
         </div>
         <button class="btn" id="nova-vaga">+ Nova vaga</button>
       </div>
@@ -1395,14 +1395,14 @@ function abaMatriz(el) {
 
 // ------------------------------------------------ configurações
 async function abaConfig(el) {
-  const linkCandidato = location.origin + "/candidato.html";
+  const linkCandidato = location.origin + "/candidato";
   const info = infoGestor();
   el.innerHTML = `
     <div class="grid cols-2">
       <div class="card">
         <h2 class="icone-titulo">${icone("link")}<span>Seus links públicos</span></h2>
         <p class="desc"><strong style="color:var(--text)">Sua página de vagas</strong>: mostra apenas as vagas do seu local${info.local ? " (" + esc(info.local) + ")" : " (sem local definido: mostra todas)"}. Quem se candidatar por ela entra direto no seu processo:</p>
-        <input type="text" readonly value="${esc(location.origin + "/vagas.html?g=" + (info.login || ""))}" id="cfg-link-vagas">
+        <input type="text" readonly value="${esc(location.origin + "/vagas?g=" + (info.login || ""))}" id="cfg-link-vagas">
         <button class="btn secondary small mt" id="cfg-copiar-vagas">Copiar página de vagas</button>
         <p class="desc" style="margin-top:16px"><strong style="color:var(--text)">Cadastro direto</strong> (sem vaga específica):</p>
         <input type="text" readonly value="${esc(linkCandidato)}" id="cfg-link">

@@ -245,7 +245,7 @@ function telaPainel() {
     </div>`;
   document.getElementById("copiar-link").addEventListener("click", () => {
     navigator.clipboard.writeText(
-      location.origin + "/candidato.html?token=" + localStorage.getItem("cand_token")
+      location.origin + "/candidato?token=" + localStorage.getItem("cand_token")
     );
     document.getElementById("link-copiado").classList.remove("oculto");
   });
@@ -348,9 +348,21 @@ function telaBase() {
   let rodada = 0;
   const escolhas = []; // por rodada: ['B','A',...]
   let ordemAtual = [];
+  let cartasRodada = null; // cartas da rodada atual, embaralhadas uma vez
+
+  function embaralhar(lista) {
+    // Fisher-Yates, evita viés de posição das cartas
+    const a = lista.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
   function desenhar() {
     const r = BASE_RODADAS[rodada];
+    if (!cartasRodada) cartasRodada = embaralhar(r.cartas);
     app.innerHTML = `
       <div class="card">
         <h2 class="icone-titulo">${icone("bussola")}<span>Teste B.A.S.E. · rodada ${rodada + 1} de ${BASE_RODADAS.length}</span></h2>
@@ -358,7 +370,7 @@ function telaBase() {
         <h3 style="margin-top:0">${esc(r.pergunta)}</h3>
         <p class="desc">Clique nas 4 cartas em ordem: da que <strong>MAIS</strong> combina com você (1º) até a que <strong>MENOS</strong> combina (4º).</p>
         <div class="base-cartas">
-          ${r.cartas.map((c) => {
+          ${cartasRodada.map((c) => {
             const pos = ordemAtual.indexOf(c.p);
             return `
               <div class="base-carta ${pos >= 0 ? "escolhida" : ""}" data-p="${c.p}">
@@ -392,6 +404,7 @@ function telaBase() {
     document.getElementById("base-avancar").addEventListener("click", async () => {
       escolhas[rodada] = ordemAtual.slice();
       ordemAtual = [];
+      cartasRodada = null;
       if (rodada < BASE_RODADAS.length - 1) {
         rodada++;
         desenhar();

@@ -182,7 +182,7 @@ async function abaContas(el) {
       localStorage.setItem("gestor_info", JSON.stringify({
         nome: r2.nome, login: r2.login, local: r2.local, admin: r2.admin,
       }));
-      window.open("gestor.html", "_blank");
+      window.open("/gestor", "_blank");
     })
   );
   el.querySelectorAll("[data-senha]").forEach((b) =>

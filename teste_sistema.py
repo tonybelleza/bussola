@@ -310,6 +310,30 @@ def main():
                  any(c["local"] == "Unidade A" and c["plano"] == "mensal"
                      for c in bl["clientes"]))
 
+        print("\n== Endereços limpos ==")
+        for pagina in ("/", "/candidato", "/gestor", "/vagas", "/dono"):
+            resp = urllib.request.urlopen(BASE + pagina, timeout=5)
+            verifica("página %s responde em endereço limpo" % pagina,
+                     resp.status == 200 and
+                     "text/html" in resp.headers.get("Content-Type", ""))
+
+        class SemRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *args, **kwargs):
+                return None
+        abridor = urllib.request.build_opener(SemRedirect)
+        try:
+            abridor.open(BASE + "/gestor.html", timeout=5)
+            verifica("link antigo .html redireciona", False)
+        except urllib.error.HTTPError as e3:
+            verifica("link antigo .html redireciona",
+                     e3.code == 301 and e3.headers.get("Location") == "/gestor")
+        try:
+            abridor.open(BASE + "/candidato.html?token=abc", timeout=5)
+            verifica("redirect preserva a query string", False)
+        except urllib.error.HTTPError as e4:
+            verifica("redirect preserva a query string",
+                     e4.headers.get("Location") == "/candidato?token=abc")
+
         print("\n== Segurança básica ==")
         _, code = req("/api/candidato/me", headers={"X-Token": "falso"})
         verifica("token falso de candidato é rejeitado", code == 401)

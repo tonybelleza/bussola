@@ -31,18 +31,24 @@ function calcularDisc(respostas) {
 
 // ------------------------------------------------ pontuação BASE
 function calcularBase(rodadas) {
-  // rodadas: [['B','A','S','E'], ...] — ordem escolhida (1º ao 4º)
+  // rodadas: [['B','A','S','E'], ...] com a ordem escolhida (1º ao 4º).
+  // Pontuação do teste original: 1º = 4, 2º = 3, 3º = 2, 4º = 1.
   const pontos = { B: 0, A: 0, S: 0, E: 0 };
+  const primeiros = { B: 0, A: 0, S: 0, E: 0 };
   rodadas.forEach((ordem) => {
     ordem.forEach((p, i) => { pontos[p] += 4 - i; });
+    primeiros[ordem[0]]++;
   });
   const n = rodadas.length;
   const pct = {};
   ["B", "A", "S", "E"].forEach((k) => {
+    // normaliza a faixa possível (n a 4n pontos) para 0 a 100
     pct[k] = Math.round(((pontos[k] - n) / (3 * n)) * 100);
   });
-  const ordem = ["B", "A", "S", "E"].sort((a, b) => pontos[b] - pontos[a]);
-  return { pontos, pct, dominante: ordem[0], secundario: ordem[1] };
+  // desempate: quem teve mais primeiros lugares vem antes
+  const ordem = ["B", "A", "S", "E"].sort((a, b) =>
+    (pontos[b] - pontos[a]) || (primeiros[b] - primeiros[a]));
+  return { pontos, pct, ordem, codigo: ordem.join(""), dominante: ordem[0], secundario: ordem[1] };
 }
 
 // ------------------------------------------------ blocos de resultado
@@ -86,17 +92,51 @@ function htmlResultadoDisc(payload) {
 }
 
 function htmlResultadoBase(payload) {
-  const p = BASE_PERFIS[payload.dominante];
-  const sec = BASE_PERFIS[payload.secundario];
+  // resultados antigos (antes do formato original) não têm "ordem"
+  const ordem = payload.ordem ||
+    ["B", "A", "S", "E"].sort((a, b) => payload.pct[b] - payload.pct[a]);
+  const p = BASE_PERFIS[ordem[0]];
+  const outros = ordem.slice(1);
+  const posicoes = ordem.map((letra, i) => `
+    <div class="passo">
+      <div class="icone">${icone(BASE_PERFIS[letra].ic)}</div>
+      <div class="info">
+        <div class="titulo">${esc(BASE_POSICOES[i])}: ${esc(BASE_PERFIS[letra].nome)}</div>
+        <p class="desc" style="margin:4px 0 0">${esc(BASE_PERFIS[letra].posicoes[i])}</p>
+      </div>
+    </div>`).join("");
+  const comunicacao = outros.map((letra) => `
+    <div>
+      <h3 class="icone-titulo" style="font-size:.95rem">${icone(BASE_PERFIS[letra].ic)}<span>Com o perfil ${esc(BASE_PERFIS[letra].nome)}</span></h3>
+      <ul class="lista-simples">${(p.comunicacao[letra] || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+    </div>`).join("");
   return `
     ${tituloIcone("bussola", "Código de Personalidade B.A.S.E.")}
-    ${htmlBarras(payload.pct, BASE_PERFIS, ["B", "A", "S", "E"])}
     <div class="perfil-destaque">
-      <div class="titulo icone-titulo">${icone(p.ic)}<span>Arquétipo dominante: ${esc(p.nome)}</span></div>
-      <div>Arquétipo secundário: ${esc(sec.nome)}</div>
+      <div class="titulo icone-titulo">${icone(p.ic)}<span>Seu código: ${esc(ordem.join(" · "))}</span></div>
+      <div>Arquétipo dominante: <strong>${esc(p.nome)}</strong>, ${esc(p.titulo || "")}</div>
     </div>
+    ${htmlBarras(payload.pct, BASE_PERFIS, ["B", "A", "S", "E"])}
+    ${p.tagline ? `<p><em>${esc(p.tagline)}</em></p>` : ""}
     <p>${esc(p.resumo)}</p>
-    ${htmlFortesDesenvolvimento(p)}`;
+    <h3>Pontos fortes</h3>
+    <ul class="lista-simples grid cols-2" style="gap:4px 22px">${p.fortes.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+    ${p.posicoes ? `<h3>Como interpretar o código completo</h3>
+    <p class="desc">Cada posição do código revela algo diferente sobre como a pessoa funciona.</p>
+    ${posicoes}` : ""}
+    ${p.gatilhos ? `<h3>Gatilhos e pontos de atenção</h3>
+    <div class="grid cols-2 mt">
+      <div>
+        <h3 style="font-size:.95rem">O que impulsiona</h3>
+        <ul class="lista-simples">${p.gatilhos.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      </div>
+      <div>
+        <h3 style="font-size:.95rem">O que incomoda</h3>
+        <ul class="lista-simples">${p.repulsores.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      </div>
+    </div>` : ""}
+    ${p.comunicacao ? `<h3>Como se comunicar com os outros perfis</h3>
+    <div class="grid cols-3 mt">${comunicacao}</div>` : ""}`;
 }
 
 function htmlMatch(match, nomeCargo) {

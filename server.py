@@ -581,7 +581,7 @@ def variaveis_candidato(conn, cand, host_header=None):
         "nome": cand["nome"],
         "local": cand["local"] or "",
         "vaga": nome_vaga,
-        "link": "%s/candidato.html?token=%s" % (url_publica(conn, host_header), cand["token"]),
+        "link": "%s/candidato?token=%s" % (url_publica(conn, host_header), cand["token"]),
     }
 
 
@@ -1110,9 +1110,29 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(404, {"erro": "Não encontrado"})
 
     # ---------- estáticos ----------
+    PAGINAS = {
+        "/": "index.html",
+        "/candidato": "candidato.html",
+        "/gestor": "gestor.html",
+        "/vagas": "vagas.html",
+        "/dono": "dono.html",
+    }
+
     def static(self, path):
-        if path == "/":
-            path = "/index.html"
+        # endereços limpos: /gestor serve gestor.html etc.
+        if path in self.PAGINAS:
+            path = "/" + self.PAGINAS[path]
+        elif path.endswith(".html") and path.lstrip("/") in self.PAGINAS.values():
+            # links antigos com .html redirecionam para o endereço limpo
+            limpo = path[:-len(".html")]
+            if limpo == "/index":
+                limpo = "/"
+            query = urlparse(self.path).query
+            self.send_response(301)
+            self.send_header("Location", limpo + ("?" + query if query else ""))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         # normaliza e impede path traversal
         safe = os.path.normpath(path).lstrip("/").replace("..", "")
         full = os.path.join(PUBLIC_DIR, safe)

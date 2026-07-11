@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="actions">
-        <a class="btn on-dark small" href="index.html">Início</a>
+        <a class="btn on-dark small" href="/">Início</a>
       </div>
     </div>
   </div>
@@ -61,7 +61,7 @@
             <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}</div>
             ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
           </div>
-          <a class="btn" href="candidato.html?vaga=${v.id}">Candidatar-se</a>
+          <a class="btn" href="/candidato?vaga=${v.id}">Candidatar-se</a>
         </div>`).join("");
     }).catch(() => {
       document.getElementById("lista-vagas").innerHTML =
