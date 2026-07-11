@@ -314,6 +314,44 @@ def main():
                  any(c["local"] == "Unidade A" and c["plano"] == "mensal"
                      for c in bl["clientes"]))
 
+        print("\n== Módulo Diagnóstico de Competências ==")
+        _, code = req("/api/gestor/diagnostico", headers=G)
+        verifica("módulo bloqueado antes de o dono liberar", code == 403)
+        gl2, _ = req("/api/gestor/gestores", headers=G)
+        id_admin = [g["id"] for g in gl2["gestores"] if g["login"] == "admin.t"][0]
+        _, code = req("/api/dono/modulos", {"gestor_id": id_admin,
+                                            "modulo": "diagnostico", "ativo": True}, D)
+        verifica("dono libera o módulo para o gestor", code == 200)
+        _, code = req("/api/dono/modulos", {"gestor_id": id_admin,
+                                            "modulo": "inexistente", "ativo": True}, D)
+        verifica("módulo desconhecido é rejeitado", code == 400)
+        dg, code = req("/api/gestor/diagnostico", headers=G)
+        verifica("módulo liberado responde com projeto vazio",
+                 code == 200 and dg["stats"]["total"] == 0)
+        s1, code = req("/api/gestor/diagnostico/sessao", {
+            "colaborador": "Colab GTI", "cargo": "Analista de Sistemas",
+            "unidade": "DITAS", "status": "rascunho",
+            "dados": {"a1": {"nome": "Colab GTI"}, "b6": {"nivel_global": "Táctico"}}}, G)
+        verifica("sessão de levantamento criada", code == 200 and s1.get("id"))
+        _, code = req("/api/gestor/diagnostico/sessao", {
+            "id": s1["id"], "colaborador": "Colab GTI", "cargo": "Analista",
+            "unidade": "DITAS", "status": "concluida",
+            "dados": {"a1": {"nome": "Colab GTI"}, "b6": {"nivel_global": "Táctico"}}}, G)
+        verifica("sessão atualizada para concluída", code == 200)
+        dg2, _ = req("/api/gestor/diagnostico", headers=G)
+        verifica("estatísticas contam a sessão concluída",
+                 dg2["stats"]["total"] == 1 and dg2["stats"]["concluidas"] == 1
+                 and dg2["stats"]["por_unidade"].get("DITAS") == 1)
+        sd, _ = req("/api/gestor/diagnostico/sessao/%d" % s1["id"], headers=G)
+        verifica("sessão devolve os dados completos",
+                 sd["sessao"]["dados"]["b6"]["nivel_global"] == "Táctico")
+        _, code = req("/api/gestor/diagnostico/arquivo/nao-existe.pdf", headers=G)
+        verifica("arquivo fora da lista é bloqueado", code == 404)
+        ml2, _ = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
+        verifica("login informa os módulos da conta", ml2.get("modulos") == [])
+        _, code = req("/api/gestor/diagnostico", headers={"X-Gestor-Token": ml2["token"]})
+        verifica("gestora sem módulo continua bloqueada", code == 403)
+
         print("\n== Endereços limpos ==")
         for pagina in ("/", "/candidato", "/gestor", "/vagas", "/dono"):
             resp = urllib.request.urlopen(BASE + pagina, timeout=5)

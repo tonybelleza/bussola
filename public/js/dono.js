@@ -158,7 +158,7 @@ async function abaContas(el) {
       <p class="desc">Entre em qualquer conta para dar suporte (troubleshooting) ou redefina a senha de quem perdeu o acesso. Cada acesso seu abre o painel exatamente como o gestor o vê.</p>
       <div class="tabela-wrap"><table class="tabela">
         <thead><tr><th>Nome</th><th>Login</th><th>Local</th><th class="num">Perfil</th>
-          <th class="num">Candidatos visíveis</th><th></th></tr></thead>
+          <th class="num">Candidatos visíveis</th><th class="num">Módulo Diagnóstico</th><th></th></tr></thead>
         <tbody>${r.gestores.map((g) => `
           <tr>
             <td><strong>${esc(g.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${esc(g.email || "sem e-mail")}</span></td>
@@ -166,13 +166,26 @@ async function abaContas(el) {
             <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">todos</span>'}</td>
             <td class="num">${g.admin ? '<span class="badge neutral">Admin</span>' : '<span class="badge tipo">Gestor</span>'}</td>
             <td class="num">${g.candidatos_visiveis}</td>
+            <td class="num">${(g.modulos || []).includes("diagnostico")
+              ? `<span class="badge ok">Liberado</span><br><button class="btn ghost small" data-modulo="${g.id}" data-ativo="0" style="margin-top:6px">Retirar</button>`
+              : `<button class="btn secondary small" data-modulo="${g.id}" data-ativo="1">Liberar</button>`}</td>
             <td class="num">
               <button class="btn secondary small" data-entrar="${g.id}">Entrar na conta</button>
               <button class="btn ghost small" data-senha="${g.id}">Redefinir senha</button>
             </td>
-          </tr>`).join("") || '<tr><td colspan="6" style="color:var(--muted)">Nenhuma conta criada ainda.</td></tr>'}</tbody>
+          </tr>`).join("") || '<tr><td colspan="7" style="color:var(--muted)">Nenhuma conta criada ainda.</td></tr>'}</tbody>
       </table></div>
     </div>`;
+  el.querySelectorAll("[data-modulo]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      await api("/api/dono/modulos", {
+        method: "POST",
+        body: { gestor_id: Number(b.dataset.modulo), modulo: "diagnostico",
+                ativo: b.dataset.ativo === "1" },
+      });
+      abaContas(el);
+    })
+  );
   el.querySelectorAll("[data-entrar]").forEach((b) =>
     b.addEventListener("click", async () => {
       const r2 = await api("/api/dono/entrar-como", {
@@ -181,6 +194,7 @@ async function abaContas(el) {
       localStorage.setItem("gestor_token", r2.token);
       localStorage.setItem("gestor_info", JSON.stringify({
         nome: r2.nome, login: r2.login, local: r2.local, admin: r2.admin,
+        modulos: r2.modulos || [],
       }));
       window.open("/gestor", "_blank");
     })

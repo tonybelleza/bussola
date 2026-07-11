@@ -64,6 +64,7 @@ function telaLogin() {
       localStorage.setItem("gestor_token", r.token);
       localStorage.setItem("gestor_info", JSON.stringify({
         nome: r.nome, login: r.login, local: r.local, admin: r.admin,
+        modulos: r.modulos || [],
       }));
       iniciarPainel();
     } catch (e) {
@@ -161,18 +162,22 @@ async function iniciarPainel() {
 }
 
 function desenharPainel() {
+  const abas = [
+    ["visao", "Visão geral"],
+    ["vagas", "Vagas"],
+    ["candidatos", "Candidatos"],
+    ["cargos", "Cargos e funções"],
+    ["matriz", "Matriz de gaps"],
+    ["relatorios", "Relatórios"],
+    ["guia", "Guia"],
+    ["config", "Configurações"],
+  ];
+  if ((infoGestor().modulos || []).includes("diagnostico")) {
+    abas.splice(6, 0, ["diagnostico", "Diagnóstico"]);
+  }
   app.innerHTML = `
     <div class="tabs">
-      ${[
-        ["visao", "Visão geral"],
-        ["vagas", "Vagas"],
-        ["candidatos", "Candidatos"],
-        ["cargos", "Cargos e funções"],
-        ["matriz", "Matriz de gaps"],
-        ["relatorios", "Relatórios"],
-        ["guia", "Guia"],
-        ["config", "Configurações"],
-      ].map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
+      ${abas.map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
     </div>
     <div id="conteudo"></div>`;
   app.querySelectorAll(".tab").forEach((t) =>
@@ -189,6 +194,7 @@ function desenharPainel() {
   if (abaAtiva === "matriz") abaMatriz(conteudo);
   if (abaAtiva === "relatorios") abaRelatorios(conteudo);
   if (abaAtiva === "guia") abaGuia(conteudo);
+  if (abaAtiva === "diagnostico") abaDiagnostico(conteudo);
   if (abaAtiva === "config") abaConfig(conteudo);
 }
 

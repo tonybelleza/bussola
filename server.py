@@ -19,6 +19,7 @@ from urllib.parse import urlparse, parse_qs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+DOCS_DIR = os.path.join(BASE_DIR, "docs")
 BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 DB_PATH = os.path.join(BASE_DIR, "rh.db")
 
@@ -33,6 +34,25 @@ def db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+MODULOS_DISPONIVEIS = {"diagnostico": "Diagnóstico de Competências"}
+
+# arquivos de referência do módulo Diagnóstico (servidos só a gestores com o módulo)
+ARQUIVOS_DIAGNOSTICO = {
+    "cronograma-p2.pptx": "Cronograma do projecto (P2, v2)",
+    "instrumento-levantamento-funcional.docx": "Instrumento de Levantamento Funcional (A, B e C)",
+    "estatuto-organico-inss.pdf": "Estatuto Orgânico do INSS (DP-232-21)",
+    "regulamento-inss-gti.pdf": "Regulamento dos Serviços Centrais e Locais do INSS (Deliberação 5/2022)",
+}
+
+
+def modulos_do_gestor(gestor):
+    try:
+        m = json.loads(gestor["modulos"] or "[]")
+        return m if isinstance(m, list) else []
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def hash_senha(senha):
@@ -191,6 +211,21 @@ def init_db():
     colunas_vagas = {r[1] for r in c.execute("PRAGMA table_info(vagas)").fetchall()}
     if "pais" not in colunas_vagas:
         c.execute("ALTER TABLE vagas ADD COLUMN pais TEXT DEFAULT ''")
+    colunas_gest = {r[1] for r in c.execute("PRAGMA table_info(gestores)").fetchall()}
+    if "modulos" not in colunas_gest:
+        c.execute("ALTER TABLE gestores ADD COLUMN modulos TEXT DEFAULT '[]'")
+    c.execute(
+        "CREATE TABLE IF NOT EXISTS sessoes_diagnostico ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " gestor_id INTEGER NOT NULL REFERENCES gestores(id) ON DELETE CASCADE,"
+        " colaborador TEXT NOT NULL,"
+        " cargo TEXT DEFAULT '',"
+        " unidade TEXT DEFAULT '',"
+        " status TEXT NOT NULL DEFAULT 'rascunho',"
+        " dados TEXT DEFAULT '{}',"
+        " criado_em TEXT DEFAULT (datetime('now')),"
+        " atualizado_em TEXT DEFAULT (datetime('now')))"
+    )
     c.execute(
         "CREATE TABLE IF NOT EXISTS sessoes_dono ("
         " token TEXT PRIMARY KEY, criado_em TEXT DEFAULT (datetime('now')))"
@@ -1547,6 +1582,7 @@ class Handler(BaseHTTPRequestHandler):
                     "email": g["email"], "local": g["local"],
                     "admin": bool(g["is_admin"]), "criado_em": g["criado_em"],
                     "candidatos_visiveis": cand_count,
+                    "modulos": modulos_do_gestor(g),
                 })
             locais = {}
             for r in conn.execute("SELECT local, tipo FROM candidatos").fetchall():
@@ -1609,7 +1645,30 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {
                 "token": token, "nome": g["nome"], "login": g["login"],
                 "local": g["local"], "admin": bool(g["is_admin"]),
+                "modulos": modulos_do_gestor(g),
             })
+
+        if method == "POST" and path == "/api/dono/modulos":
+            d = self._body()
+            modulo = d.get("modulo")
+            if modulo not in MODULOS_DISPONIVEIS:
+                return self._json(400, {"erro": "Módulo desconhecido"})
+            g = conn.execute(
+                "SELECT * FROM gestores WHERE id=?", (d.get("gestor_id"),)
+            ).fetchone()
+            if not g:
+                return self._json(404, {"erro": "Gestor não encontrado"})
+            mods = set(modulos_do_gestor(g))
+            if d.get("ativo"):
+                mods.add(modulo)
+            else:
+                mods.discard(modulo)
+            conn.execute(
+                "UPDATE gestores SET modulos=? WHERE id=?",
+                (json.dumps(sorted(mods)), g["id"]),
+            )
+            conn.commit()
+            return self._json(200, {"ok": True, "modulos": sorted(mods)})
 
         if method == "POST" and path == "/api/dono/gestor-senha":
             d = self._body()
@@ -1737,6 +1796,7 @@ class Handler(BaseHTTPRequestHandler):
                 "nome": gestor_row["nome"],
                 "login": gestor_row["login"],
                 "local": gestor_row["local"],
+                "modulos": modulos_do_gestor(gestor_row),
                 "admin": bool(gestor_row["is_admin"]),
             })
 
@@ -1760,6 +1820,107 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
+        # -- módulo Diagnóstico de Competências (liberado pelo dono) --
+        if path.startswith("/api/gestor/diagnostico"):
+            if "diagnostico" not in modulos_do_gestor(gestor):
+                return self._json(403, {"erro": "Módulo não liberado para esta conta. Fale com o administrador do sistema."})
+
+            if method == "GET" and path == "/api/gestor/diagnostico":
+                conteudo = None
+                caminho_conteudo = os.path.join(DOCS_DIR, "diagnostico-conteudo.json")
+                if os.path.isfile(caminho_conteudo):
+                    with open(caminho_conteudo, encoding="utf-8") as f:
+                        conteudo = json.load(f)
+                sessoes = []
+                for s in conn.execute(
+                    "SELECT id, colaborador, cargo, unidade, status,"
+                    " criado_em, atualizado_em FROM sessoes_diagnostico"
+                    " ORDER BY atualizado_em DESC"
+                ).fetchall():
+                    sessoes.append(dict(s))
+                por_unidade = {}
+                concluidas = 0
+                for s in sessoes:
+                    chave = s["unidade"] or "(sem unidade)"
+                    por_unidade[chave] = por_unidade.get(chave, 0) + 1
+                    if s["status"] == "concluida":
+                        concluidas += 1
+                return self._json(200, {
+                    "sessoes": sessoes,
+                    "conteudo": conteudo,
+                    "stats": {"total": len(sessoes), "concluidas": concluidas,
+                              "por_unidade": por_unidade},
+                    "arquivos": [
+                        {"nome": n, "titulo": t} for n, t in ARQUIVOS_DIAGNOSTICO.items()
+                        if os.path.isfile(os.path.join(DOCS_DIR, n))
+                    ],
+                })
+
+            m = re.match(r"^/api/gestor/diagnostico/sessao/(\d+)$", path)
+            if m and method == "GET":
+                s = conn.execute(
+                    "SELECT * FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
+                ).fetchone()
+                if not s:
+                    return self._json(404, {"erro": "Sessão não encontrada"})
+                d = dict(s)
+                d["dados"] = json.loads(d["dados"] or "{}")
+                return self._json(200, {"sessao": d})
+
+            if m and method == "DELETE":
+                conn.execute("DELETE FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),))
+                conn.commit()
+                return self._json(200, {"ok": True})
+
+            if method == "POST" and path == "/api/gestor/diagnostico/sessao":
+                d = self._body()
+                colaborador = (d.get("colaborador") or "").strip()
+                if not colaborador:
+                    return self._json(400, {"erro": "Informe o nome do colaborador"})
+                status = d.get("status") if d.get("status") in ("rascunho", "concluida") else "rascunho"
+                dados = json.dumps(d.get("dados") or {})
+                if d.get("id"):
+                    conn.execute(
+                        "UPDATE sessoes_diagnostico SET colaborador=?, cargo=?,"
+                        " unidade=?, status=?, dados=?, atualizado_em=datetime('now')"
+                        " WHERE id=?",
+                        (colaborador, (d.get("cargo") or "").strip(),
+                         (d.get("unidade") or "").strip(), status, dados, d["id"]),
+                    )
+                    sessao_id = d["id"]
+                else:
+                    cur = conn.execute(
+                        "INSERT INTO sessoes_diagnostico"
+                        " (gestor_id, colaborador, cargo, unidade, status, dados)"
+                        " VALUES (?,?,?,?,?,?)",
+                        (gestor["id"], colaborador, (d.get("cargo") or "").strip(),
+                         (d.get("unidade") or "").strip(), status, dados),
+                    )
+                    sessao_id = cur.lastrowid
+                conn.commit()
+                return self._json(200, {"ok": True, "id": sessao_id})
+
+            m = re.match(r"^/api/gestor/diagnostico/arquivo/([\w.\-]+)$", path)
+            if m and method == "GET":
+                nome = m.group(1)
+                if nome not in ARQUIVOS_DIAGNOSTICO:
+                    return self._json(404, {"erro": "Arquivo não encontrado"})
+                caminho = os.path.join(DOCS_DIR, nome)
+                if not os.path.isfile(caminho):
+                    return self._json(404, {"erro": "Arquivo não disponível no servidor"})
+                with open(caminho, "rb") as f:
+                    corpo = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Disposition",
+                                 'attachment; filename="%s"' % nome)
+                self.send_header("Content-Length", str(len(corpo)))
+                self.end_headers()
+                self.wfile.write(corpo)
+                return None
+
+            return self._json(404, {"erro": "Não encontrado"})
+
         # -- gestão de contas de gestor (somente administrador) --
         if path.startswith("/api/gestor/gestores"):
             if not gestor["is_admin"]:
@@ -1768,7 +1929,8 @@ class Handler(BaseHTTPRequestHandler):
                 lista = [
                     {"id": g["id"], "login": g["login"], "nome": g["nome"],
                      "email": g["email"], "local": g["local"],
-                     "admin": bool(g["is_admin"])}
+                     "admin": bool(g["is_admin"]),
+                     "modulos": modulos_do_gestor(g)}
                     for g in conn.execute("SELECT * FROM gestores ORDER BY nome").fetchall()
                 ]
                 return self._json(200, {"gestores": lista})
