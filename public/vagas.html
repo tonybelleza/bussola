@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bússola · Vagas Abertas</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="inner">
+      <div class="brand">
+        <img src="img/logo-white.svg" alt="Tony Belleza">
+        <div class="sep"></div>
+        <div>
+          <h1>Bússola</h1>
+          <div class="sub" id="sub-vagas">Vagas abertas</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn on-dark small" href="index.html">Início</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container narrow">
+    <div class="hero" style="padding-bottom:24px">
+      <h2>Vagas abertas</h2>
+      <p>Candidate-se a uma vaga e faça a avaliação completa: testes comportamentais,
+        competências e teste de conhecimento.</p>
+    </div>
+    <div id="lista-vagas">
+      <div class="card texto-centro"><p>Carregando vagas…</p></div>
+    </div>
+  </div>
+
+  <script src="js/render.js"></script>
+  <script>
+    const gestorPagina = new URLSearchParams(location.search).get("g") || "";
+    fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina) : ""))
+      .then((r) => r.json()).then((d) => {
+      const el = document.getElementById("lista-vagas");
+      if (d.erro) {
+        el.innerHTML = '<div class="card texto-centro"><p class="desc">' + esc(d.erro) + "</p></div>";
+        return;
+      }
+      if (d.pagina) {
+        document.getElementById("sub-vagas").textContent =
+          "Vagas de " + d.pagina.gestor_nome + (d.pagina.local ? " · " + d.pagina.local : "");
+        document.querySelector(".hero h2").textContent =
+          d.pagina.local ? "Vagas abertas · " + d.pagina.local : "Vagas abertas";
+      }
+      if (!d.vagas.length) {
+        el.innerHTML = '<div class="card texto-centro"><p class="desc">Nenhuma vaga aberta no momento. Volte em breve.</p></div>';
+        return;
+      }
+      el.innerHTML = d.vagas.map((v) => `
+        <div class="vaga-card">
+          <div class="info-vaga">
+            <h2>${esc(v.titulo)}</h2>
+            <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}</div>
+            ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
+          </div>
+          <a class="btn" href="candidato.html?vaga=${v.id}">Candidatar-se</a>
+        </div>`).join("");
+    }).catch(() => {
+      document.getElementById("lista-vagas").innerHTML =
+        '<div class="card"><p class="form-erro">Erro ao carregar as vagas.</p></div>';
+    });
+  </script>
+</body>
+</html>

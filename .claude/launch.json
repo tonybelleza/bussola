@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rh-system",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["/Users/tonybelleza/Documents/RH system/server.py", "8080"],
+      "port": 8080
+    }
+  ]
+}

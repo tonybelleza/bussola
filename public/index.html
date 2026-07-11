@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Bússola: plataforma de recrutamento, seleção e desenvolvimento com testes DISC e B.A.S.E., match inteligente e pipeline de vagas. Por Tony Belleza.">
+  <title>Bússola · Recrutamento e Seleção · Tony Belleza</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="inner">
+      <div class="brand">
+        <img src="img/logo-white.svg" alt="Tony Belleza">
+        <div class="sep"></div>
+        <div>
+          <h1>Bússola</h1>
+          <div class="sub">Recrutamento e Seleção</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn on-dark small" href="vagas.html">Vagas</a>
+        <a class="btn on-dark small" href="candidato.html">Candidato</a>
+        <a class="btn on-dark small" href="gestor.html">Gestor</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <img class="simbolo" src="img/logo-symbol-white.svg" alt="">
+      <h2>Talento na direção&nbsp;certa</h2>
+      <p>A Bússola une avaliação comportamental, competências e processo seletivo
+        num só lugar: da vaga aberta à decisão de contratação, com um match que
+        mede a pessoa inteira, não só o currículo.</p>
+      <div class="linha-acoes" style="justify-content:center;margin-top:28px">
+        <a class="btn" href="vagas.html">Ver vagas abertas</a>
+        <a class="btn secondary" href="gestor.html">Acessar painel do gestor</a>
+      </div>
+    </div>
+
+    <div class="grid cols-3" id="recursos"></div>
+
+    <div class="card" style="margin-top:22px">
+      <h2>Como funciona</h2>
+      <div class="grid cols-2 mt">
+        <div>
+          <h3>Para o candidato</h3>
+          <ol class="lista-simples">
+            <li>Escolha uma vaga e faça um cadastro rápido.</li>
+            <li>Responda o DISC, o B.A.S.E., a autoavaliação de competências e o teste de conhecimento, pelo celular ou computador.</li>
+            <li>Receba seu link pessoal por e-mail e acompanhe seus resultados e o status da candidatura.</li>
+          </ol>
+        </div>
+        <div>
+          <h3>Para o gestor</h3>
+          <ol class="lista-simples">
+            <li>Mapeie os cargos com competências e perfis desejados.</li>
+            <li>Abra vagas e compartilhe a sua página pública de vagas.</li>
+            <li>Acompanhe o pipeline, compare candidatos pelo match e decida com dados: matriz de gaps, entrevista estruturada e relatórios.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-3">
+      <div class="card texto-centro" style="padding:36px 26px">
+        <h2 style="font-size:1.1rem">Sou candidato</h2>
+        <p class="desc">Inicie sua avaliação ou continue de onde parou com o seu link pessoal.</p>
+        <a class="btn block" href="candidato.html">Entrar como candidato</a>
+      </div>
+      <div class="card texto-centro" style="padding:36px 26px">
+        <h2 style="font-size:1.1rem">Sou gestor</h2>
+        <p class="desc">Painel completo: vagas, pipeline, banco de talentos e relatórios.</p>
+        <a class="btn secondary block" href="gestor.html">Entrar como gestor</a>
+      </div>
+      <div class="card texto-centro" style="padding:36px 26px">
+        <h2 style="font-size:1.1rem">Vagas abertas</h2>
+        <p class="desc">Confira as oportunidades disponíveis e candidate-se em minutos.</p>
+        <a class="btn secondary block" href="vagas.html">Ver vagas</a>
+      </div>
+    </div>
+
+    <p class="texto-centro" style="color:var(--muted);font-size:.8rem;margin-top:34px">
+      Bússola · metodologia B.A.S.E. e curadoria Tony Belleza ·
+      <a href="dono.html" style="color:inherit">administração</a>
+    </p>
+  </div>
+
+  <script src="js/icons.js"></script>
+  <script>
+    const recursos = [
+      ["camadas", "DISC + B.A.S.E.", "Perfil comportamental em 4 dimensões e o código de personalidade exclusivo da metodologia Tony Belleza."],
+      ["alvo", "Match de 5 dimensões", "Competências, comportamento, conhecimento e entrevista num único índice de compatibilidade com o cargo."],
+      ["pasta", "Vagas e pipeline", "Quadro visual da seleção, da inscrição à contratação, com notificações por e-mail em cada etapa."],
+      ["bussola", "Radar de talentos", "Ao abrir uma vaga, o banco inteiro é varrido e os melhores matches aparecem na hora."],
+      ["matriz", "Matriz de gaps", "O que falta para cada pessoa exercer ou subir de cargo, com plano de desenvolvimento priorizado."],
+      ["grafico", "Relatórios", "Funil de conversão, tempo de contratação e a distribuição de perfis do seu banco de talentos."],
+    ];
+    document.getElementById("recursos").innerHTML = recursos.map(([ic, titulo, texto]) => `
+      <div class="card" style="margin-bottom:0">
+        <div class="passo" style="border:none;background:none;padding:0;margin:0 0 10px">
+          <div class="icone">${icone(ic)}</div>
+          <div class="info"><div class="titulo">${titulo}</div></div>
+        </div>
+        <p class="desc" style="margin:0">${texto}</p>
+      </div>`).join("");
+  </script>
+</body>
+</html>
