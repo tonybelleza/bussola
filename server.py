@@ -7,6 +7,7 @@ Uso:  python3 server.py [porta]   (padrão: 8080)
 """
 import base64
 import hashlib
+import html as _html
 import json
 import os
 import re
@@ -624,23 +625,87 @@ def config_set(conn, chave, valor):
     )
 
 
+def montar_email_html(assunto, corpo_texto):
+    """Envolve o texto do e-mail num layout com a marca Bússola. Linhas que são
+    só um link viram botão; parágrafos separados por linha em branco."""
+    blocos = []
+    paragrafo = []
+
+    def fecha():
+        if paragrafo:
+            blocos.append(
+                '<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#2b3648">'
+                + "<br>".join(_html.escape(x) for x in paragrafo) + "</p>"
+            )
+            paragrafo.clear()
+
+    for linha in corpo_texto.split("\n"):
+        s = linha.strip()
+        if s.startswith("http://") or s.startswith("https://"):
+            fecha()
+            blocos.append(
+                '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px">'
+                '<tr><td style="border-radius:10px;background:#3258AB">'
+                '<a href="%s" style="display:inline-block;padding:13px 30px;font-size:15px;'
+                'font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">Acessar</a>'
+                '</td></tr></table>'
+                '<p style="margin:0 0 16px;font-size:12px;color:#8a97a8">'
+                'Se o botão não funcionar, copie e cole no navegador:<br>'
+                '<a href="%s" style="color:#3258AB;word-break:break-all">%s</a></p>'
+                % (_html.escape(s, quote=True), _html.escape(s, quote=True), _html.escape(s))
+            )
+        elif s == "":
+            fecha()
+        else:
+            paragrafo.append(linha)
+    fecha()
+    corpo_html = "\n".join(blocos)
+    modelo = (
+        '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        '<body style="margin:0;padding:0;background:#eef1f6;'
+        '-webkit-font-smoothing:antialiased;font-family:Arial,Helvetica,sans-serif">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f6">'
+        '<tr><td align="center" style="padding:28px 12px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;'
+        'box-shadow:0 8px 30px rgba(16,27,55,.08)">'
+        '<tr><td style="background:#101B37;padding:26px 34px">'
+        '<div style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.3px">Bússola</div>'
+        '<div style="font-size:12px;color:#9BB9DD;letter-spacing:2px;text-transform:uppercase;margin-top:4px">'
+        'Recrutamento e Seleção</div></td></tr>'
+        '<tr><td style="padding:32px 34px 12px">__CORPO__</td></tr>'
+        '<tr><td style="padding:18px 34px 30px;border-top:1px solid #eef1f6">'
+        '<div style="font-size:12px;color:#8a97a8;line-height:1.5">'
+        'Bússola · metodologia B.A.S.E. e curadoria Tony Belleza<br>'
+        '<a href="https://rh.tonybelleza.com" style="color:#5E7086;text-decoration:none">rh.tonybelleza.com</a>'
+        '</div></td></tr>'
+        '</table></td></tr></table></body></html>'
+    )
+    return modelo.replace("__CORPO__", corpo_html)
+
+
 def enviar_email(conn, para, assunto, corpo):
-    """Envia e-mail via SMTP configurado. Retorna (ok, mensagem)."""
+    """Envia e-mail via SMTP configurado (HTML com a marca + texto). Retorna (ok, mensagem)."""
     host = config_get(conn, "smtp_host")
     if not host:
         return False, "SMTP não configurado"
     import smtplib
     from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
 
     try:
         porta = int(config_get(conn, "smtp_porta") or 587)
         usuario = config_get(conn, "smtp_usuario")
         senha = config_get(conn, "smtp_senha")
         remetente = config_get(conn, "smtp_remetente") or usuario
-        msg = MIMEText(corpo, "plain", "utf-8")
+        msg = MIMEMultipart("alternative")
         msg["Subject"] = assunto
         msg["From"] = remetente
         msg["To"] = para
+        # texto puro primeiro (fallback), depois o HTML da marca
+        msg.attach(MIMEText(corpo, "plain", "utf-8"))
+        msg.attach(MIMEText(montar_email_html(assunto, corpo), "html", "utf-8"))
         # porta 465 usa SSL direto; 587 (e demais) usam STARTTLS
         if porta == 465:
             with smtplib.SMTP_SSL(host, porta, timeout=20) as servidor:
