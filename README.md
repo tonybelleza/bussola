@@ -165,6 +165,23 @@ O candidato pode enviar o currículo (PDF, até 8 MB) e informar **LinkedIn e
 Instagram** no cadastro. O gestor baixa o currículo e abre os perfis com um
 clique no relatório do candidato, para cruzar com as respostas da avaliação.
 
+### 5. Módulo Diagnóstico de Competências (liberado pelo dono)
+Módulo opcional para projetos de levantamento funcional e diagnóstico de
+competências. O **dono** libera conta a conta no painel `/dono` → Contas. Quem
+recebe o módulo passa a ver a aba **Diagnóstico** no painel, com o perfil do
+projeto (cronograma, entregáveis, governança e documentos) e as **sessões de
+levantamento funcional** (instrumentos A, B e C). O conteúdo confidencial do
+projeto fica em `docs/` (fora do repositório) e as sessões são escopadas por
+local, como os candidatos.
+
+## Aparência e idiomas
+
+- **Tema claro e escuro**: botão de sol/lua na barra superior de todas as
+  páginas; a escolha fica salva no navegador.
+- **Landing em 4 idiomas** (português, inglês, espanhol e francês): bandeiras na
+  página inicial trocam todo o conteúdo. As áreas internas seguem em português.
+- **País nas vagas**: cada vaga informa o país; o portal público filtra por país.
+
 ## Estrutura dos arquivos
 
 ```
@@ -190,18 +207,32 @@ Para editar as perguntas dos testes ou os textos dos perfis, basta alterar
   servidor e substitua `rh.db` pela cópia desejada.
 - **Exportar planilha**: na aba Candidatos há um botão "Exportar planilha (CSV)"
   que baixa todos os candidatos com perfis, match e status (abre no Excel).
-- **Testes automatizados**: `python3 teste_sistema.py` roda 78 verificações do
+- **Testes automatizados**: `python3 teste_sistema.py` roda 105 verificações do
   sistema inteiro (acessos, vagas, pipeline, match, isolamento por local,
-  segurança) num banco temporário, sem tocar nos dados reais.
+  módulo Diagnóstico, blindagem de entradas, força bruta, segurança) num banco
+  temporário, sem tocar nos dados reais.
 - **Celular**: todas as telas são responsivas; os candidatos podem responder
   tudo pelo telefone.
 
+## Segurança
+
+- As notas dos testes DISC e B.A.S.E. são **recalculadas no servidor** a partir
+  das respostas; o cliente não consegue forjar um match.
+- **Senhas** guardadas com PBKDF2-HMAC-SHA256 e sal (hashes antigos migram
+  sozinhos no próximo login).
+- **Limite de tentativas** de login por IP (freia força bruta) e **limite de
+  tamanho** de envio (12 MB).
+- **Escopo por local**: gestor vinculado a um local só vê candidatos e sessões
+  de diagnóstico daquele local; só o administrador altera cargos e avaliações.
+
 ## Publicar na internet
 
-O sistema precisa de um servidor com Python 3 (não funciona em hospedagem
-estática como a do teste /base). Opções simples e baratas:
+O sistema **já está publicado** em https://rh.tonybelleza.com (Oracle Cloud
+Always Free + Caddy com HTTPS automático + systemd). Para atualizar ou publicar
+em outro servidor, veja o **DEPLOY.md**. Precisa de um servidor com Python 3
+(não funciona em hospedagem estática):
 
-- **VPS** (Hostinger, DigitalOcean, Oracle Cloud Free): copie a pasta e rode
+- **VPS / Oracle Cloud Free**: copie a pasta e rode
   `python3 server.py 80` (ideal com HTTPS via Caddy ou Nginx na frente).
 - **Render.com / Railway / Fly.io**: deploy direto da pasta.
 - Depois é só apontar um subdomínio, ex.: `rh.tonybelleza.com`.

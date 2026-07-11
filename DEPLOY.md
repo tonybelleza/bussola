@@ -1,46 +1,64 @@
-# Publicar a Bússola em rh.tonybelleza.com (GoDaddy)
+# Publicação da Bússola
 
-O sistema é um servidor Python que precisa ficar rodando continuamente.
-O que dá e o que não dá para fazer no GoDaddy:
+O sistema **está no ar** em **https://rh.tonybelleza.com**.
 
-## 1. Descubra qual servidor você tem no GoDaddy
+## Infraestrutura atual
 
-- **Hospedagem compartilhada / cPanel / Web Hosting** (a mesma do site
-  tonybelleza.com): serve arquivos e PHP, mas **não mantém um servidor Python
-  rodando**. A Bússola NÃO funciona nesse plano.
-- **VPS ou Servidor Dedicado GoDaddy**: funciona perfeitamente. É um Linux
-  completo com acesso SSH.
+- **Servidor**: Oracle Cloud Always Free (Ubuntu, VM.Standard.E2.1.Micro),
+  região us-sanjose-1, IP público `159.54.181.125`.
+- **Aplicação**: `python3 server.py 8080` rodando como serviço systemd
+  (`/etc/systemd/system/bussola.service`), reinicia sozinho.
+- **HTTPS**: Caddy na frente (portas 80/443), certificado Let's Encrypt
+  automático. `Caddyfile`:
+  ```
+  rh.tonybelleza.com {
+      reverse_proxy localhost:8080
+  }
+  ```
+- **DNS**: registro A `rh` → `159.54.181.125` no painel do domínio.
+- **Dados**: `rh.db` (SQLite), `uploads/`, `backups/` e `docs/` ficam só no
+  servidor, fora do Git.
 
-> Como verificar: no painel do GoDaddy, em "Meus produtos", veja se aparece
-> "Web Hosting" (compartilhada) ou "VPS/Servidor". Se tiver só a compartilhada,
-> as opções são: contratar o menor VPS do GoDaddy, ou usar um serviço como
-> Render/Railway (a partir de US$ 0-7/mês) apontando o subdomínio para ele.
-
-## 2. Publicação no VPS GoDaddy (passo a passo)
-
-No painel DNS do domínio tonybelleza.com, crie um registro:
-
-```
-Tipo A · Nome: rh · Valor: IP-DO-SEU-VPS · TTL: 1 hora
-```
-
-Conecte no VPS por SSH e rode:
+## Atualizar o sistema (a partir do Mac)
 
 ```bash
-# 1. dependências (uma vez)
+# 1. envia o código (não sobrescreve banco, uploads, backups nem docs)
+rsync -az --delete \
+  --exclude rh.db --exclude uploads --exclude backups \
+  --exclude __pycache__ --exclude .git --exclude nohup.out --exclude .DS_Store \
+  -e "ssh -i ~/.ssh/bussola_oracle" \
+  "/Users/tonybelleza/Documents/RH system/" ubuntu@159.54.181.125:/home/ubuntu/bussola/
+
+# 2. reinicia o serviço
+ssh -i ~/.ssh/bussola_oracle ubuntu@159.54.181.125 'sudo systemctl restart bussola'
+```
+
+> O conteúdo confidencial do módulo Diagnóstico (`docs/`) **não** vai ao GitHub
+> (está no `.gitignore`), mas **vai** pelo rsync acima, porque não está na lista
+> de exclusões. Se recriar o servidor do zero, reenvie a pasta `docs/`.
+
+## Primeiro acesso (num servidor novo)
+
+1. Acesse `/gestor` e crie a conta do administrador.
+2. Acesse `/dono` e crie a senha do dono (painel de proprietário).
+3. Em Configurações → Integrações, preencha:
+   - **Endereço público**: `https://rh.tonybelleza.com` (usado nos links dos e-mails)
+   - SMTP e chave da IA quando quiser ativar.
+4. Compartilhe: vagas em `/vagas` e a página de cada gestor em `/vagas?g=LOGIN`.
+
+## Recriar a infraestrutura (referência)
+
+```bash
 sudo apt update && sudo apt install -y python3 python3-pip caddy
-pip3 install anthropic   # para a análise de currículo por IA
+pip3 install --user anthropic   # opcional, para a análise de currículo por IA
 
-# 2. envie a pasta do sistema (do seu Mac)
-#    rsync -av --exclude rh.db "/Users/tonybelleza/Documents/RH system/" usuario@IP:/opt/bussola/
-
-# 3. serviço para manter o sistema no ar (systemd)
 sudo tee /etc/systemd/system/bussola.service > /dev/null <<'EOF'
 [Unit]
-Description=Bussola RH
+Description=Bussola RH (Tony Belleza)
 After=network.target
 [Service]
-WorkingDirectory=/opt/bussola
+User=ubuntu
+WorkingDirectory=/home/ubuntu/bussola
 ExecStart=/usr/bin/python3 server.py 8080
 Restart=always
 [Install]
@@ -48,7 +66,6 @@ WantedBy=multi-user.target
 EOF
 sudo systemctl enable --now bussola
 
-# 4. HTTPS automático com Caddy (certificado gratuito)
 sudo tee /etc/caddy/Caddyfile > /dev/null <<'EOF'
 rh.tonybelleza.com {
     reverse_proxy localhost:8080
@@ -56,24 +73,3 @@ rh.tonybelleza.com {
 EOF
 sudo systemctl reload caddy
 ```
-
-Pronto: https://rh.tonybelleza.com no ar com certificado.
-
-## 3. Depois de publicar
-
-1. Acesse `/gestor`, crie a conta do administrador.
-2. Acesse `/dono`, crie a senha do dono (seu painel de proprietário).
-3. Em Configurações → Integrações, preencha:
-   - **Endereço público**: `https://rh.tonybelleza.com` (links dos e-mails)
-   - SMTP e chave da IA quando quiser ativar.
-4. Compartilhe: vagas em `/vagas` e a página de cada gestor em
-   `/vagas?g=LOGIN`.
-
-## 4. Alternativa sem VPS (se você só tem a hospedagem compartilhada)
-
-Render.com (plano Starter) ou Railway rodam o sistema a partir desta pasta;
-depois é só criar no GoDaddy um registro `CNAME rh` apontando para o endereço
-que eles fornecem. Me avise qual caminho prefere que eu te guio ao vivo.
-
-> Importante: a publicação exige entrar na sua conta GoDaddy e, talvez,
-> contratar um plano. Esses passos são seus; eu preparo tudo e acompanho.

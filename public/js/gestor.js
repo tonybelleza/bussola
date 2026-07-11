@@ -639,7 +639,13 @@ async function telaPipeline(el, vagaId, modo) {
       ev.preventDefault();
       col.classList.remove("arrastando");
       const id = Number(ev.dataTransfer.getData("text/plain"));
-      if (id) mover(id, col.dataset.etapa);
+      if (!id) return;
+      // ignora quando o cartão é solto na mesma coluna de origem
+      const cartao = el.querySelector(`.kanban-card[data-candidatura="${id}"]`);
+      const etapaOrigem = cartao && cartao.closest(".kanban-col") &&
+        cartao.closest(".kanban-col").dataset.etapa;
+      if (etapaOrigem === col.dataset.etapa) return;
+      mover(id, col.dataset.etapa);
     });
   });
 }
@@ -1250,7 +1256,7 @@ function modalForm(titulo, corpo, aoSalvar) {
   fundo.innerHTML = `
     <div class="modal" style="max-width:560px">
       <button class="btn ghost small fechar" id="mf-fechar">${icone("fechar")}</button>
-      <h2>${titulo}</h2>
+      <h2>${esc(titulo)}</h2>
       <div class="mt">${corpo}</div>
       <div class="form-erro" id="mf-erro"></div>
       <button class="btn block" id="mf-salvar">Salvar</button>

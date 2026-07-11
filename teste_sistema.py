@@ -352,6 +352,65 @@ def main():
         _, code = req("/api/gestor/diagnostico", headers={"X-Gestor-Token": ml2["token"]})
         verifica("gestora sem módulo continua bloqueada", code == 403)
 
+        print("\n== Isolamento do módulo Diagnóstico por local ==")
+        id_maria = [g["id"] for g in gl2["gestores"] if g["login"] == "maria"][0]
+        req("/api/dono/modulos", {"gestor_id": id_maria, "modulo": "diagnostico", "ativo": True}, D)
+        sm, code = req("/api/gestor/diagnostico/sessao",
+                       {"colaborador": "Colab A", "unidade": "AIE",
+                        "dados": {"a1": {"nome": "Colab A"}}}, M)
+        verifica("gestora cria sessão no seu local", code == 200 and sm.get("id"))
+        req("/api/gestor/gestores", {"nome": "Carlos", "login": "carlos",
+                                     "senha": "senha123", "local": "Unidade B"}, G)
+        gl3, _ = req("/api/gestor/gestores", headers=G)
+        id_carlos = [g["id"] for g in gl3["gestores"] if g["login"] == "carlos"][0]
+        req("/api/dono/modulos", {"gestor_id": id_carlos, "modulo": "diagnostico", "ativo": True}, D)
+        cl, _ = req("/api/gestor/login", {"login": "carlos", "senha": "senha123"})
+        C2 = {"X-Gestor-Token": cl["token"]}
+        dgc, _ = req("/api/gestor/diagnostico", headers=C2)
+        verifica("gestor de outro local não vê a sessão alheia",
+                 all(s["id"] != sm["id"] for s in dgc["sessoes"]))
+        _, code = req("/api/gestor/diagnostico/sessao/%d" % sm["id"], headers=C2)
+        verifica("gestor de outro local recebe 404 na sessão alheia", code == 404)
+        _, code = req("/api/gestor/diagnostico/sessao/%d" % sm["id"], headers=C2, metodo="DELETE")
+        verifica("gestor de outro local não apaga sessão alheia", code == 404)
+        dga, _ = req("/api/gestor/diagnostico", headers=G)
+        verifica("admin (sem local) enxerga sessões de todos",
+                 any(s["id"] == sm["id"] for s in dga["sessoes"]))
+
+        print("\n== Blindagem de entradas ==")
+        cadx, _ = req("/api/candidato/cadastro",
+                      {"nome": "Fraude", "email": "fraude@x.com", "local": "Unidade A",
+                       "consentimento": True, "tipo": "interno", "cargo_desejado_id": 2})
+        FX = {"X-Token": cadx["token"]}
+        _, code = req("/api/candidato/teste",
+                      {"tipo": "disc", "payload": {"pct": {"D": "abc", "I": 1, "S": 1, "C": 1}}}, FX)
+        verifica("nota de teste inválida é rejeitada, não quebra", code == 400)
+        _, code = req("/api/gestor/candidatos", headers=G)
+        verifica("painel de candidatos abre após nota suspeita", code == 200)
+        _, code = req("/api/candidato/teste", {"tipo": "base", "respostas": [["B", "A", "S", "E"]] * 8}, FX)
+        verifica("B.A.S.E. recalculado no servidor a partir das respostas", code == 200)
+        _, code = req("/api/candidato/quiz", {"respostas": {"1": "xyz"}}, FX)
+        verifica("quiz com resposta inválida não dá 500", code in (200, 400))
+        _, code = req("/api/candidato/autoavaliacao",
+                      {"respostas": [{"competencia_id": "x", "nivel": "y"}]}, FX)
+        verifica("autoavaliação com lixo não dá 500", code == 200)
+
+        print("\n== Escopo de administrador em cargos ==")
+        _, code = req("/api/gestor/cargo", {"nome": "Cargo Proibido", "area": "X"}, M)
+        verifica("gestor comum não cria cargo", code == 403)
+        _, code = req("/api/gestor/cargo/1", headers=M, metodo="DELETE")
+        verifica("gestor comum não apaga cargo", code == 403)
+        _, code = req("/api/gestor/cargo", {"nome": "Cargo do Admin", "area": "X"}, G)
+        verifica("admin cria cargo normalmente", code == 200)
+
+        print("\n== Login e força bruta ==")
+        FAKE = {"X-Forwarded-For": "203.0.113.7"}
+        for _ in range(9):
+            _, code = req("/api/gestor/login", {"login": "maria", "senha": "errada"}, FAKE)
+        verifica("login trava após tentativas repetidas (429)", code == 429)
+        bom, code = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
+        verifica("login legítimo de outro IP não é afetado pelo bloqueio", code == 200)
+
         print("\n== Endereços limpos ==")
         for pagina in ("/", "/candidato", "/gestor", "/vagas", "/dono"):
             resp = urllib.request.urlopen(BASE + pagina, timeout=5)

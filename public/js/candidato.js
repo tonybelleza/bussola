@@ -228,7 +228,7 @@ function telaPainel() {
       ${candidatura ? `<p class="desc" style="margin-bottom:0">Vaga: <strong style="color:var(--text)">${esc(candidatura.vaga_titulo)}</strong> · Status da candidatura: ${badgeEtapa}</p>` : ""}
     </div>
     ${passo("camadas", "Teste DISC", "24 blocos · escolha a palavra que MAIS e a que MENOS se parece com você", feitoDisc, feitoDisc ? "Refazer" : "Iniciar", "disc")}
-    ${passo("bussola", "Teste B.A.S.E.", "6 rodadas · ordene as cartas da que mais combina com você para a que menos combina", feitoBase, feitoBase ? "Refazer" : "Iniciar", "base")}
+    ${passo("bussola", "Teste B.A.S.E.", "8 rodadas · ordene as cartas da que mais combina com você para a que menos combina", feitoBase, feitoBase ? "Refazer" : "Iniciar", "base")}
     ${cargoSel ? passo("barras", "Autoavaliação de competências", `Avalie seu nível em cada competência exigida por: ${esc(cargoSel.nome)}`, feitoAuto, feitoAuto ? "Revisar" : "Iniciar", "auto") : ""}
     ${quizQuestoes ? passo("bloco", "Teste de conhecimento", `${quizQuestoes.length} questões de múltipla escolha sobre o cargo`, feitoQuiz, feitoQuiz ? "Refazer" : "Iniciar", "quiz") : ""}
     ${passo("anexo", "Currículo (opcional)", me.candidato.curriculo ? "Currículo enviado" : "Envie seu currículo em PDF para enriquecer a análise", me.candidato.curriculo, me.candidato.curriculo ? "Substituir" : "Enviar", "cv")}
@@ -327,8 +327,7 @@ function telaDisc() {
         indice++;
         desenhar();
       } else {
-        const payload = calcularDisc(respostas);
-        await api("/api/candidato/teste", { method: "POST", body: { tipo: "disc", payload } });
+        await api("/api/candidato/teste", { method: "POST", body: { tipo: "disc", respostas } });
         await recarregarMe();
         app.innerHTML = `<div class="card texto-centro">
           <div class="selo-final">${icone("check")}</div>
@@ -409,8 +408,7 @@ function telaBase() {
         rodada++;
         desenhar();
       } else {
-        const payload = calcularBase(escolhas);
-        await api("/api/candidato/teste", { method: "POST", body: { tipo: "base", payload } });
+        await api("/api/candidato/teste", { method: "POST", body: { tipo: "base", respostas: escolhas } });
         await recarregarMe();
         app.innerHTML = `<div class="card texto-centro">
           <div class="selo-final">${icone("check")}</div>

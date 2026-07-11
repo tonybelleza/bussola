@@ -13,6 +13,8 @@ import re
 import secrets
 import sqlite3
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -55,8 +57,38 @@ def modulos_do_gestor(gestor):
         return []
 
 
-def hash_senha(senha):
+def _sha256_hex(senha):
     return hashlib.sha256(senha.encode("utf-8")).hexdigest()
+
+
+def hash_senha(senha):
+    """Gera hash PBKDF2-HMAC-SHA256 com sal aleatório: pbkdf2$iteracoes$sal$hash."""
+    iteracoes = 200000
+    sal = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", senha.encode("utf-8"), bytes.fromhex(sal), iteracoes)
+    return "pbkdf2$%d$%s$%s" % (iteracoes, sal, dk.hex())
+
+
+def senha_confere(senha, armazenado):
+    """Confere a senha, aceitando o hash antigo (SHA-256 puro) e o novo (PBKDF2)."""
+    if not armazenado:
+        return False
+    if armazenado.startswith("pbkdf2$"):
+        try:
+            _, it, sal, esperado = armazenado.split("$", 3)
+            dk = hashlib.pbkdf2_hmac("sha256", senha.encode("utf-8"),
+                                     bytes.fromhex(sal), int(it))
+            return secrets.compare_digest(dk.hex(), esperado)
+        except (ValueError, TypeError):
+            return False
+    return secrets.compare_digest(_sha256_hex(senha), armazenado)
+
+
+def migrar_hash_se_preciso(senha, armazenado):
+    """Devolve um hash PBKDF2 novo se o guardado ainda for o formato antigo."""
+    if armazenado and not armazenado.startswith("pbkdf2$"):
+        return hash_senha(senha)
+    return None
 
 
 def init_db():
@@ -223,9 +255,18 @@ def init_db():
         " unidade TEXT DEFAULT '',"
         " status TEXT NOT NULL DEFAULT 'rascunho',"
         " dados TEXT DEFAULT '{}',"
+        " local TEXT DEFAULT '',"
         " criado_em TEXT DEFAULT (datetime('now')),"
         " atualizado_em TEXT DEFAULT (datetime('now')))"
     )
+    colunas_diag = {r[1] for r in c.execute("PRAGMA table_info(sessoes_diagnostico)").fetchall()}
+    if "local" not in colunas_diag:
+        c.execute("ALTER TABLE sessoes_diagnostico ADD COLUMN local TEXT DEFAULT ''")
+        # herda o local do gestor que criou cada sessão existente
+        c.execute(
+            "UPDATE sessoes_diagnostico SET local = COALESCE("
+            "(SELECT local FROM gestores WHERE gestores.id = sessoes_diagnostico.gestor_id), '')"
+        )
     c.execute(
         "CREATE TABLE IF NOT EXISTS sessoes_dono ("
         " token TEXT PRIMARY KEY, criado_em TEXT DEFAULT (datetime('now')))"
@@ -271,7 +312,7 @@ def init_db():
     # exige o cadastro real do administrador (tela de configuração inicial)
     c.execute(
         "DELETE FROM gestores WHERE login='admin' AND nome='Administrador' AND senha=?",
-        (hash_senha(SENHA_GESTOR_PADRAO),),
+        (_sha256_hex(SENHA_GESTOR_PADRAO),),
     )
     if not c.execute("SELECT 1 FROM cargos LIMIT 1").fetchone():
         seed_cargos(c)
@@ -457,6 +498,92 @@ PESOS_MATCH = {
     "conhecimento": 0.20,
     "entrevista": 0.20,
 }
+
+def _num_valido(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _para_int(v, padrao=None):
+    """Converte para int sem estourar (entradas do usuário chegam como texto)."""
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return padrao
+
+
+def calcular_disc_payload(respostas):
+    """Recalcula o DISC no servidor a partir das respostas cruas [{mais, menos}].
+    Não confia em nota vinda do cliente: garante que o match nunca quebre nem
+    seja fraudado. Retorna None se não houver respostas válidas."""
+    letras = ["D", "I", "S", "C"]
+    mais = {k: 0 for k in letras}
+    menos = {k: 0 for k in letras}
+    n = 0
+    for r in (respostas or []):
+        if not isinstance(r, dict):
+            continue
+        m, mn = r.get("mais"), r.get("menos")
+        if m in mais and mn in menos:
+            mais[m] += 1
+            menos[mn] += 1
+            n += 1
+    if n == 0:
+        return None
+    scores, pct = {}, {}
+    for k in letras:
+        scores[k] = mais[k] - menos[k]
+        pct[k] = int(((scores[k] + n) / (2 * n)) * 100 + 0.5)
+    ordem = sorted(letras, key=lambda k: -scores[k])
+    return {"mais": mais, "menos": menos, "scores": scores, "pct": pct,
+            "dominante": ordem[0], "secundario": ordem[1]}
+
+
+def calcular_base_payload(rodadas):
+    """Recalcula o B.A.S.E. no servidor a partir das ordens cruas
+    [['B','A','S','E'], ...]. Cada rodada precisa conter exatamente as 4 letras."""
+    letras = ["B", "A", "S", "E"]
+    pontos = {k: 0 for k in letras}
+    primeiros = {k: 0 for k in letras}
+    n = 0
+    for ordem in (rodadas or []):
+        if not isinstance(ordem, list) or sorted(ordem) != sorted(letras):
+            continue
+        for i, p in enumerate(ordem):
+            pontos[p] += 4 - i
+        primeiros[ordem[0]] += 1
+        n += 1
+    if n == 0:
+        return None
+    pct = {}
+    for k in letras:
+        pct[k] = int(((pontos[k] - n) / (3 * n)) * 100 + 0.5)
+    ordem = sorted(letras, key=lambda k: (-pontos[k], -primeiros[k]))
+    return {"pontos": pontos, "primeiros": primeiros, "pct": pct, "ordem": ordem,
+            "codigo": "".join(ordem), "dominante": ordem[0], "secundario": ordem[1]}
+
+
+def sanitizar_payload_teste(tipo, payload):
+    """Defesa para chamadas diretas à API que mandam a nota pronta: aceita só
+    números de 0 a 100 nas chaves conhecidas, para o match jamais quebrar."""
+    if not isinstance(payload, dict):
+        return None
+    letras = ["D", "I", "S", "C"] if tipo == "disc" else ["B", "A", "S", "E"]
+    pct_in = payload.get("pct")
+    if not isinstance(pct_in, dict):
+        return None
+    pct = {}
+    for k in letras:
+        v = pct_in.get(k)
+        if not _num_valido(v):
+            return None
+        pct[k] = max(0, min(100, int(v)))
+    ordem = sorted(letras, key=lambda k: -pct[k])
+    saida = {"pct": pct, "dominante": ordem[0], "secundario": ordem[1]}
+    if tipo == "base":
+        saida["ordem"] = ordem
+        saida["codigo"] = "".join(ordem)
+    return saida
+
 
 ETAPAS_PIPELINE = ["inscrito", "avaliacoes", "entrevista", "proposta", "contratado", "reprovado"]
 
@@ -1044,6 +1171,8 @@ def rotina_automatica():
                 for cand in pendentes:
                     variaveis = variaveis_candidato(conn, cand)
                     modelo = templates_email(conn)["lembrete"]
+                    # envia o e-mail (I/O de rede) ANTES de qualquer escrita, para
+                    # não segurar o lock do SQLite durante o SMTP.
                     ok, _ = enviar_email(
                         conn, cand["email"],
                         renderizar(modelo["assunto"], variaveis),
@@ -1058,7 +1187,7 @@ def rotina_automatica():
                             conn, cand["id"], "email",
                             "Lembrete de avaliação incompleta enviado",
                         )
-                conn.commit()
+                        conn.commit()  # libera o lock antes do próximo e-mail
             # retenção de dados (LGPD)
             meses = int(config_get(conn, "retencao_meses") or 0)
             if meses > 0:
@@ -1069,7 +1198,7 @@ def rotina_automatica():
                 ).fetchall()
                 for cand in antigos:
                     anonimizar_candidato(conn, cand)
-                conn.commit()
+                    conn.commit()
             conn.close()
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write("Rotina automática falhou: %r\n" % exc)
@@ -1083,10 +1212,68 @@ def gestor_ve_candidato(gestor, cand):
     return (cand["local"] or "").strip().lower() == gestor["local"].strip().lower()
 
 
+def gestor_ve_local(gestor, local):
+    """Mesma regra de escopo por local, aplicada a um valor de local avulso
+    (usada nas sessões do módulo Diagnóstico)."""
+    if gestor["is_admin"] or not (gestor["local"] or "").strip():
+        return True
+    return (local or "").strip().lower() == gestor["local"].strip().lower()
+
+
 # ------------------------------------------------------------ servidor
+
+MAX_BODY = 12 * 1024 * 1024  # 12 MB: cobre currículo de 8 MB em base64 com folga
+
+# limite de tentativas de login por IP (freia força bruta)
+_LOGIN_JANELA = 900      # 15 minutos
+_LOGIN_LIMITE = 8        # tentativas falhas na janela
+_login_falhas = {}
+_login_lock = threading.Lock()
+
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+
+    def _ip_cliente(self):
+        encaminhado = self.headers.get("X-Forwarded-For", "")
+        if encaminhado:
+            return encaminhado.split(",")[0].strip()
+        return self.client_address[0] if self.client_address else "?"
+
+    def _login_bloqueado(self, escopo):
+        chave = escopo + ":" + self._ip_cliente()
+        agora = time.time()
+        with _login_lock:
+            recentes = [t for t in _login_falhas.get(chave, []) if agora - t < _LOGIN_JANELA]
+            _login_falhas[chave] = recentes
+            return len(recentes) >= _LOGIN_LIMITE
+
+    def _registrar_falha_login(self, escopo):
+        chave = escopo + ":" + self._ip_cliente()
+        with _login_lock:
+            _login_falhas.setdefault(chave, []).append(time.time())
+
+    def _limpar_falhas_login(self, escopo):
+        chave = escopo + ":" + self._ip_cliente()
+        with _login_lock:
+            _login_falhas.pop(chave, None)
+
+    def _corpo_grande_demais(self):
+        """Rejeita corpos acima do limite antes de ler tudo na memória (DoS)."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length > MAX_BODY:
+            body = json.dumps({"erro": "Envio grande demais"}).encode("utf-8")
+            self.send_response(413)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+        return False
 
     # ---------- utilitários ----------
     def _json(self, status, data):
@@ -1137,12 +1324,16 @@ class Handler(BaseHTTPRequestHandler):
         return self.static(path)
 
     def do_POST(self):
+        if self._corpo_grande_demais():
+            return None
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("POST", path)
         return self._json(404, {"erro": "Não encontrado"})
 
     def do_DELETE(self):
+        if self._corpo_grande_demais():
+            return None
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("DELETE", path)
@@ -1423,11 +1614,23 @@ class Handler(BaseHTTPRequestHandler):
             tipo = d.get("tipo")
             if tipo not in ("disc", "base"):
                 return self._json(400, {"erro": "Tipo de teste inválido"})
+            # o servidor recalcula a nota a partir das respostas cruas (não confia
+            # no que o cliente mandou pronto); se vierem só a nota, sanitiza.
+            respostas = d.get("respostas")
+            if isinstance(respostas, list):
+                payload = (calcular_disc_payload(respostas) if tipo == "disc"
+                           else calcular_base_payload(respostas))
+            else:
+                payload = None
+            if not payload:
+                payload = sanitizar_payload_teste(tipo, d.get("payload"))
+            if not payload:
+                return self._json(400, {"erro": "Respostas do teste inválidas ou incompletas"})
             conn.execute(
                 "INSERT INTO resultados_teste (candidato_id, tipo, payload) VALUES (?,?,?)"
                 " ON CONFLICT(candidato_id, tipo) DO UPDATE SET"
                 " payload=excluded.payload, criado_em=datetime('now')",
-                (cand["id"], tipo, json.dumps(d.get("payload") or {}, ensure_ascii=False)),
+                (cand["id"], tipo, json.dumps(payload, ensure_ascii=False)),
             )
             registrar_evento(
                 conn, cand["id"], "teste",
@@ -1462,10 +1665,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"erro": "Este cargo não possui teste de conhecimento"})
             acertos = 0
             detalhe = {}
+            if not isinstance(respostas, dict):
+                respostas = {}
             for q in questoes:
-                marcada = respostas.get(str(q["id"]))
-                certa = marcada is not None and int(marcada) == q["correta"]
-                if certa:
+                marcada = _para_int(respostas.get(str(q["id"])))
+                if marcada is not None and marcada == q["correta"]:
                     acertos += 1
                 detalhe[str(q["id"])] = {"marcada": marcada, "correta": q["correta"]}
             conn.execute(
@@ -1489,9 +1693,22 @@ class Handler(BaseHTTPRequestHandler):
         if method == "POST" and path == "/api/candidato/autoavaliacao":
             d = self._body()
             respostas = d.get("respostas") or []
+            if not isinstance(respostas, list):
+                respostas = []
+            # só aceita competências do cargo de interesse do candidato
+            validas = {
+                row["id"] for row in conn.execute(
+                    "SELECT id FROM competencias WHERE cargo_id=?",
+                    (cand["cargo_desejado_id"],),
+                ).fetchall()
+            }
             for r in respostas:
-                comp_id = r.get("competencia_id")
-                nivel = max(0, min(5, int(r.get("nivel", 0))))
+                if not isinstance(r, dict):
+                    continue
+                comp_id = _para_int(r.get("competencia_id"))
+                if comp_id not in validas:
+                    continue
+                nivel = max(0, min(5, _para_int(r.get("nivel"), 0)))
                 conn.execute(
                     "INSERT INTO autoavaliacoes (candidato_id, competencia_id, nivel_atual)"
                     " VALUES (?,?,?)"
@@ -1552,10 +1769,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"token": token})
 
         if method == "POST" and path == "/api/dono/login":
+            if self._login_bloqueado("dono"):
+                return self._json(429, {"erro": "Muitas tentativas. Aguarde alguns minutos e tente de novo."})
             d = self._body()
             salva = config_get(conn, "senha_dono")
-            if not salva or hash_senha(d.get("senha") or "") != salva:
+            if not senha_confere(d.get("senha") or "", salva):
+                self._registrar_falha_login("dono")
                 return self._json(401, {"erro": "Senha incorreta"})
+            self._limpar_falhas_login("dono")
+            novo_hash = migrar_hash_se_preciso(d.get("senha") or "", salva)
+            if novo_hash:
+                config_set(conn, "senha_dono", novo_hash)
             token = secrets.token_urlsafe(24)
             conn.execute("INSERT INTO sessoes_dono (token) VALUES (?)", (token,))
             conn.commit()
@@ -1690,7 +1914,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if method == "POST" and path == "/api/dono/senha":
             d = self._body()
-            if hash_senha(d.get("atual") or "") != config_get(conn, "senha_dono"):
+            if not senha_confere(d.get("atual") or "", config_get(conn, "senha_dono")):
                 return self._json(400, {"erro": "Senha atual incorreta"})
             nova = d.get("nova") or ""
             if len(nova) < 8:
@@ -1780,13 +2004,22 @@ class Handler(BaseHTTPRequestHandler):
 
         # ---- gestor ----
         if method == "POST" and path == "/api/gestor/login":
+            if self._login_bloqueado("gestor"):
+                return self._json(429, {"erro": "Muitas tentativas. Aguarde alguns minutos e tente de novo."})
             d = self._body()
             gestor_row = conn.execute(
                 "SELECT * FROM gestores WHERE lower(login)=lower(?)",
                 ((d.get("login") or "").strip(),),
             ).fetchone()
-            if not gestor_row or hash_senha(d.get("senha") or "") != gestor_row["senha"]:
+            senha_ok = gestor_row and senha_confere(d.get("senha") or "", gestor_row["senha"])
+            if not senha_ok:
+                self._registrar_falha_login("gestor")
                 return self._json(401, {"erro": "Login ou senha incorretos"})
+            self._limpar_falhas_login("gestor")
+            # atualiza o hash para o formato novo (PBKDF2), se ainda for o antigo
+            novo_hash = migrar_hash_se_preciso(d.get("senha") or "", gestor_row["senha"])
+            if novo_hash:
+                conn.execute("UPDATE gestores SET senha=? WHERE id=?", (novo_hash, gestor_row["id"]))
             token = secrets.token_urlsafe(24)
             conn.execute(
                 "INSERT INTO sessoes_gestor (token, gestor_id) VALUES (?,?)",
@@ -1808,9 +2041,19 @@ class Handler(BaseHTTPRequestHandler):
             if not gestor:
                 return self._json(401, {"erro": "Acesso restrito ao gestor"})
 
+        # objetos globais de configuração: só o administrador cria, edita ou
+        # remove cargos, competências e avaliações (evita dano em cascata).
+        CONFIG_GLOBAL = ("/api/gestor/cargo", "/api/gestor/competencia",
+                         "/api/gestor/questao", "/api/gestor/pergunta-entrevista")
+        if gestor and method in ("POST", "DELETE") and any(
+            path == p or path.startswith(p + "/") for p in CONFIG_GLOBAL
+        ):
+            if not gestor["is_admin"]:
+                return self._json(403, {"erro": "Apenas o administrador altera cargos e avaliações"})
+
         if method == "POST" and path == "/api/gestor/senha":
             d = self._body()
-            if hash_senha(d.get("atual") or "") != gestor["senha"]:
+            if not senha_confere(d.get("atual") or "", gestor["senha"]):
                 return self._json(400, {"erro": "Senha atual incorreta"})
             nova = d.get("nova") or ""
             if len(nova) < 6:
@@ -1835,11 +2078,12 @@ class Handler(BaseHTTPRequestHandler):
                         conteudo = json.load(f)
                 sessoes = []
                 for s in conn.execute(
-                    "SELECT id, colaborador, cargo, unidade, status,"
+                    "SELECT id, colaborador, cargo, unidade, status, local,"
                     " criado_em, atualizado_em FROM sessoes_diagnostico"
                     " ORDER BY atualizado_em DESC"
                 ).fetchall():
-                    sessoes.append(dict(s))
+                    if gestor_ve_local(gestor, s["local"]):
+                        sessoes.append(dict(s))
                 por_unidade = {}
                 concluidas = 0
                 for s in sessoes:
@@ -1863,13 +2107,18 @@ class Handler(BaseHTTPRequestHandler):
                 s = conn.execute(
                     "SELECT * FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
                 ).fetchone()
-                if not s:
+                if not s or not gestor_ve_local(gestor, s["local"]):
                     return self._json(404, {"erro": "Sessão não encontrada"})
                 d = dict(s)
                 d["dados"] = json.loads(d["dados"] or "{}")
                 return self._json(200, {"sessao": d})
 
             if m and method == "DELETE":
+                s = conn.execute(
+                    "SELECT local FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
+                ).fetchone()
+                if not s or not gestor_ve_local(gestor, s["local"]):
+                    return self._json(404, {"erro": "Sessão não encontrada"})
                 conn.execute("DELETE FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),))
                 conn.commit()
                 return self._json(200, {"ok": True})
@@ -1882,6 +2131,11 @@ class Handler(BaseHTTPRequestHandler):
                 status = d.get("status") if d.get("status") in ("rascunho", "concluida") else "rascunho"
                 dados = json.dumps(d.get("dados") or {})
                 if d.get("id"):
+                    atual = conn.execute(
+                        "SELECT local FROM sessoes_diagnostico WHERE id=?", (d["id"],)
+                    ).fetchone()
+                    if not atual or not gestor_ve_local(gestor, atual["local"]):
+                        return self._json(404, {"erro": "Sessão não encontrada"})
                     conn.execute(
                         "UPDATE sessoes_diagnostico SET colaborador=?, cargo=?,"
                         " unidade=?, status=?, dados=?, atualizado_em=datetime('now')"
@@ -1893,10 +2147,11 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     cur = conn.execute(
                         "INSERT INTO sessoes_diagnostico"
-                        " (gestor_id, colaborador, cargo, unidade, status, dados)"
-                        " VALUES (?,?,?,?,?,?)",
+                        " (gestor_id, colaborador, cargo, unidade, status, dados, local)"
+                        " VALUES (?,?,?,?,?,?,?)",
                         (gestor["id"], colaborador, (d.get("cargo") or "").strip(),
-                         (d.get("unidade") or "").strip(), status, dados),
+                         (d.get("unidade") or "").strip(), status, dados,
+                         (gestor["local"] or "").strip()),
                     )
                     sessao_id = cur.lastrowid
                 conn.commit()
