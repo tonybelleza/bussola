@@ -400,7 +400,7 @@ async function abaVagas(el, vagaAberta) {
                 : v.status === "pausada" ? '<span class="badge warn">Pausada</span>'
                 : '<span class="badge tipo">Encerrada</span>'}
             </h2>
-            <p class="desc" style="margin:0">${esc(v.cargo_nome)}${v.local ? " · " + esc(v.local) : ""}
+            <p class="desc" style="margin:0">${esc(v.cargo_nome)}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(v.pais) : ""}
               · ${v.total} candidato(s) · Entrevista: ${v.etapas.entrevista} · Contratados: ${v.etapas.contratado}</p>
           </div>
           <div class="linha-acoes" style="margin:0">
@@ -442,6 +442,12 @@ function formVaga(v) {
     <label class="field">Local <span class="hint">(sugerido no cadastro do candidato)</span>
       <input type="text" id="fv-local" value="${v ? esc(v.local) : ""}" placeholder="Ex.: Secretaria de GTI">
     </label>
+    <label class="field">País
+      <select id="fv-pais">
+        <option value="">Selecione o país</option>
+        ${PAISES.map((pa) => `<option value="${pa}" ${v && v.pais === pa ? "selected" : ""}>${pa}</option>`).join("")}
+      </select>
+    </label>
     <label class="field">Descrição
       <textarea id="fv-desc" rows="3">${v ? esc(v.descricao) : ""}</textarea>
     </label>
@@ -459,6 +465,7 @@ function formVaga(v) {
           titulo: f.querySelector("#fv-titulo").value.trim(),
           cargo_id: Number(f.querySelector("#fv-cargo").value),
           local: f.querySelector("#fv-local").value.trim(),
+          pais: f.querySelector("#fv-pais").value,
           descricao: f.querySelector("#fv-desc").value.trim(),
           status: f.querySelector("#fv-status").value,
         },

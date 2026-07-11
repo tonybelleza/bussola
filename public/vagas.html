@@ -29,14 +29,45 @@
       <p>Candidate-se a uma vaga e faça a avaliação completa: testes comportamentais,
         competências e teste de conhecimento.</p>
     </div>
+    <div class="card" id="filtro-paises-card" style="display:none;padding:16px 24px">
+      <div class="linha-acoes" style="margin:0;align-items:center">
+        <span class="desc" style="margin:0">País:</span>
+        <select id="filtro-pais" style="max-width:260px;margin:0"></select>
+      </div>
+    </div>
     <div id="lista-vagas">
       <div class="card texto-centro"><p>Carregando vagas…</p></div>
     </div>
   </div>
 
+  <script src="js/data.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/render.js"></script>
   <script>
     const gestorPagina = new URLSearchParams(location.search).get("g") || "";
+    let todasVagas = [];
+
+    function desenharVagas() {
+      const el = document.getElementById("lista-vagas");
+      const pais = document.getElementById("filtro-pais").value;
+      const vagas = pais ? todasVagas.filter((v) => v.pais === pais) : todasVagas;
+      if (!vagas.length) {
+        el.innerHTML = '<div class="card texto-centro"><p class="desc">' +
+          (pais ? "Nenhuma vaga aberta neste país no momento." : "Nenhuma vaga aberta no momento. Volte em breve.") +
+          "</p></div>";
+        return;
+      }
+      el.innerHTML = vagas.map((v) => `
+        <div class="vaga-card">
+          <div class="info-vaga">
+            <h2>${esc(v.titulo)}</h2>
+            <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(v.pais) : ""}</div>
+            ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
+          </div>
+          <a class="btn" href="/candidato?vaga=${v.id}">Candidatar-se</a>
+        </div>`).join("");
+    }
+
     fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina) : ""))
       .then((r) => r.json()).then((d) => {
       const el = document.getElementById("lista-vagas");
@@ -50,19 +81,13 @@
         document.querySelector(".hero h2").textContent =
           d.pagina.local ? "Vagas abertas · " + d.pagina.local : "Vagas abertas";
       }
-      if (!d.vagas.length) {
-        el.innerHTML = '<div class="card texto-centro"><p class="desc">Nenhuma vaga aberta no momento. Volte em breve.</p></div>';
-        return;
-      }
-      el.innerHTML = d.vagas.map((v) => `
-        <div class="vaga-card">
-          <div class="info-vaga">
-            <h2>${esc(v.titulo)}</h2>
-            <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}</div>
-            ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
-          </div>
-          <a class="btn" href="/candidato?vaga=${v.id}">Candidatar-se</a>
-        </div>`).join("");
+      todasVagas = d.vagas;
+      const filtro = document.getElementById("filtro-pais");
+      filtro.innerHTML = '<option value="">Todos os países</option>' +
+        PAISES.map((p) => `<option value="${p}">${p}</option>`).join("");
+      filtro.addEventListener("change", desenharVagas);
+      if (todasVagas.length) document.getElementById("filtro-paises-card").style.display = "";
+      desenharVagas();
     }).catch(() => {
       document.getElementById("lista-vagas").innerHTML =
         '<div class="card"><p class="form-erro">Erro ao carregar as vagas.</p></div>';

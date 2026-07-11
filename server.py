@@ -113,6 +113,7 @@ def init_db():
             cargo_id INTEGER NOT NULL REFERENCES cargos(id) ON DELETE CASCADE,
             titulo TEXT NOT NULL,
             local TEXT DEFAULT '',
+            pais TEXT DEFAULT '',
             descricao TEXT DEFAULT '',
             status TEXT NOT NULL DEFAULT 'aberta',
             criado_em TEXT DEFAULT (datetime('now'))
@@ -187,6 +188,9 @@ def init_db():
         c.execute("ALTER TABLE candidatos ADD COLUMN anonimizado INTEGER DEFAULT 0")
     if "tipo" not in colunas_cand:
         c.execute("ALTER TABLE candidatos ADD COLUMN tipo TEXT DEFAULT 'externo'")
+    colunas_vagas = {r[1] for r in c.execute("PRAGMA table_info(vagas)").fetchall()}
+    if "pais" not in colunas_vagas:
+        c.execute("ALTER TABLE vagas ADD COLUMN pais TEXT DEFAULT ''")
     c.execute(
         "CREATE TABLE IF NOT EXISTS sessoes_dono ("
         " token TEXT PRIMARY KEY, criado_em TEXT DEFAULT (datetime('now')))"
@@ -1328,6 +1332,7 @@ class Handler(BaseHTTPRequestHandler):
                     continue
                 vagas.append({
                     "id": r["id"], "titulo": r["titulo"], "local": r["local"],
+                    "pais": r["pais"] or "",
                     "descricao": r["descricao"], "cargo_id": r["cargo_id"],
                     "cargo_nome": r["nome"], "nivel": r["nivel"], "area": r["area"],
                 })
@@ -1832,6 +1837,7 @@ class Handler(BaseHTTPRequestHandler):
                         contagem[r["etapa"]] = contagem.get(r["etapa"], 0) + 1
                 vagas.append({
                     "id": v["id"], "titulo": v["titulo"], "local": v["local"],
+                    "pais": v["pais"] or "",
                     "descricao": v["descricao"], "status": v["status"],
                     "cargo_id": v["cargo_id"], "cargo_nome": v["cargo_nome"],
                     "criado_em": v["criado_em"], "etapas": contagem,
@@ -1847,16 +1853,18 @@ class Handler(BaseHTTPRequestHandler):
             status = d.get("status") if d.get("status") in ("aberta", "pausada", "encerrada") else "aberta"
             if d.get("id"):
                 conn.execute(
-                    "UPDATE vagas SET titulo=?, cargo_id=?, local=?, descricao=?, status=?"
-                    " WHERE id=?",
+                    "UPDATE vagas SET titulo=?, cargo_id=?, local=?, pais=?, descricao=?,"
+                    " status=? WHERE id=?",
                     (titulo, d["cargo_id"], (d.get("local") or "").strip(),
+                     (d.get("pais") or "").strip(),
                      (d.get("descricao") or "").strip(), status, d["id"]),
                 )
             else:
                 conn.execute(
-                    "INSERT INTO vagas (titulo, cargo_id, local, descricao, status)"
-                    " VALUES (?,?,?,?,?)",
+                    "INSERT INTO vagas (titulo, cargo_id, local, pais, descricao, status)"
+                    " VALUES (?,?,?,?,?,?)",
                     (titulo, d["cargo_id"], (d.get("local") or "").strip(),
+                     (d.get("pais") or "").strip(),
                      (d.get("descricao") or "").strip(), status),
                 )
             conn.commit()

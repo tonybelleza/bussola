@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Bússola: plataforma de recrutamento, seleção e desenvolvimento com testes DISC e B.A.S.E., match inteligente e pipeline de vagas. Por Tony Belleza.">
+  <meta property="og:title" content="Bússola · Talento na direção certa">
+  <meta property="og:description" content="Avaliação comportamental, competências e processo seletivo num só lugar, com um match que mede a pessoa inteira.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rh.tonybelleza.com/">
+  <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
   <title>Bússola · Recrutamento e Seleção · Tony Belleza</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="landing">
   <div class="topbar">
     <div class="inner">
       <div class="brand">
@@ -21,68 +26,120 @@
       <div class="actions">
         <a class="btn on-dark small" href="/vagas">Vagas</a>
         <a class="btn on-dark small" href="/candidato">Candidato</a>
-        <a class="btn on-dark small" href="/gestor">Gestor</a>
+        <a class="btn small" href="/gestor">Entrar</a>
       </div>
     </div>
   </div>
 
+  <div class="ld-glow ld-glow-1"></div>
+  <div class="ld-glow ld-glow-2"></div>
+
   <div class="container">
-    <div class="hero">
-      <img class="simbolo" src="img/logo-symbol-white.svg" alt="">
-      <h2>Talento na direção&nbsp;certa</h2>
-      <p>A Bússola une avaliação comportamental, competências e processo seletivo
-        num só lugar: da vaga aberta à decisão de contratação, com um match que
-        mede a pessoa inteira, não só o currículo.</p>
-      <div class="linha-acoes" style="justify-content:center;margin-top:28px">
-        <a class="btn" href="/vagas">Ver vagas abertas</a>
-        <a class="btn secondary" href="/gestor">Acessar painel do gestor</a>
+    <div class="ld-hero revela">
+      <div class="ld-eyebrow">Metodologia B.A.S.E. + DISC · por Tony Belleza</div>
+      <h2>Talento na <span class="ld-grad">direção certa</span></h2>
+      <p>Da vaga aberta à decisão de contratação: avaliação comportamental, competências,
+        entrevista estruturada e um match que mede a pessoa inteira, não só o currículo.</p>
+      <div class="linha-acoes ld-cta">
+        <a class="btn big" href="/vagas">Ver vagas abertas</a>
+        <a class="btn ghost big" href="/gestor">Painel do gestor</a>
       </div>
     </div>
 
-    <div class="grid cols-3" id="recursos"></div>
+    <div class="ld-mock revela">
+      <div class="ld-mock-janela">
+        <div class="ld-mock-topo"><span></span><span></span><span></span></div>
+        <div class="ld-mock-corpo">
+          <div class="ld-mock-col">
+            <div class="ld-mock-rot">Match geral</div>
+            <div class="ld-mock-match">92%</div>
+            <div class="ld-mock-barra"><i style="width:92%"></i></div>
+            <div class="ld-mock-linha"><span>Competências</span><i><b style="width:88%"></b></i></div>
+            <div class="ld-mock-linha"><span>DISC</span><i><b style="width:95%"></b></i></div>
+            <div class="ld-mock-linha"><span>B.A.S.E.</span><i><b style="width:90%"></b></i></div>
+            <div class="ld-mock-linha"><span>Conhecimento</span><i><b style="width:96%"></b></i></div>
+            <div class="ld-mock-linha"><span>Entrevista</span><i><b style="width:91%"></b></i></div>
+          </div>
+          <div class="ld-mock-col">
+            <div class="ld-mock-rot">Pipeline · Analista GTI</div>
+            <div class="ld-mock-etapa"><span>Inscritos</span><b>14</b></div>
+            <div class="ld-mock-etapa"><span>Avaliações</span><b>9</b></div>
+            <div class="ld-mock-etapa ativo"><span>Entrevista</span><b>4</b></div>
+            <div class="ld-mock-etapa"><span>Proposta</span><b>1</b></div>
+            <div class="ld-mock-rot" style="margin-top:14px">Código B.A.S.E.</div>
+            <div class="ld-mock-codigo"><span style="background:#2EA87B">S</span><span style="background:#8B5CF6">E</span><span style="background:#3B67CA">B</span><span style="background:#E05C2E">A</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <div class="card" style="margin-top:22px">
-      <h2>Como funciona</h2>
+    <div class="ld-stats revela">
+      <div><b>5</b><span>dimensões num único match</span></div>
+      <div><b>2</b><span>testes comportamentais completos</span></div>
+      <div><b>3 min</b><span>por teste, direto do celular</span></div>
+      <div><b>100%</b><span>LGPD: consentimento e anonimização</span></div>
+    </div>
+
+    <div class="ld-secao revela">
+      <div class="ld-eyebrow">Tudo num só lugar</div>
+      <h2 class="ld-titulo">O processo seletivo inteiro, sem planilhas</h2>
+      <div class="grid cols-3" id="recursos"></div>
+    </div>
+
+    <div class="ld-secao revela">
+      <div class="ld-eyebrow">Como funciona</div>
+      <h2 class="ld-titulo">Simples para quem se candidata, poderoso para quem decide</h2>
       <div class="grid cols-2 mt">
-        <div>
+        <div class="card ld-passos">
           <h3>Para o candidato</h3>
-          <ol class="lista-simples">
-            <li>Escolha uma vaga e faça um cadastro rápido.</li>
-            <li>Responda o DISC, o B.A.S.E., a autoavaliação de competências e o teste de conhecimento, pelo celular ou computador.</li>
-            <li>Receba seu link pessoal por e-mail e acompanhe seus resultados e o status da candidatura.</li>
-          </ol>
+          <div class="ld-passo"><span>1</span>Escolha uma vaga e faça um cadastro rápido.</div>
+          <div class="ld-passo"><span>2</span>Responda o DISC, o B.A.S.E., a autoavaliação e o teste de conhecimento, pelo celular ou computador.</div>
+          <div class="ld-passo"><span>3</span>Receba seu link pessoal por e-mail e acompanhe seus resultados e o status da candidatura.</div>
         </div>
-        <div>
+        <div class="card ld-passos">
           <h3>Para o gestor</h3>
-          <ol class="lista-simples">
-            <li>Mapeie os cargos com competências e perfis desejados.</li>
-            <li>Abra vagas e compartilhe a sua página pública de vagas.</li>
-            <li>Acompanhe o pipeline, compare candidatos pelo match e decida com dados: matriz de gaps, entrevista estruturada e relatórios.</li>
-          </ol>
+          <div class="ld-passo"><span>1</span>Mapeie os cargos com competências e perfis desejados.</div>
+          <div class="ld-passo"><span>2</span>Abra vagas e compartilhe a sua página pública de vagas.</div>
+          <div class="ld-passo"><span>3</span>Acompanhe o pipeline, compare candidatos pelo match e decida com dados: matriz de gaps, entrevista estruturada e relatórios.</div>
         </div>
       </div>
     </div>
 
-    <div class="grid cols-3">
-      <div class="card texto-centro" style="padding:36px 26px">
-        <h2 style="font-size:1.1rem">Sou candidato</h2>
-        <p class="desc">Inicie sua avaliação ou continue de onde parou com o seu link pessoal.</p>
-        <a class="btn block" href="/candidato">Entrar como candidato</a>
-      </div>
-      <div class="card texto-centro" style="padding:36px 26px">
-        <h2 style="font-size:1.1rem">Sou gestor</h2>
-        <p class="desc">Painel completo: vagas, pipeline, banco de talentos e relatórios.</p>
-        <a class="btn secondary block" href="/gestor">Entrar como gestor</a>
-      </div>
-      <div class="card texto-centro" style="padding:36px 26px">
-        <h2 style="font-size:1.1rem">Vagas abertas</h2>
-        <p class="desc">Confira as oportunidades disponíveis e candidate-se em minutos.</p>
-        <a class="btn secondary block" href="/vagas">Ver vagas</a>
+    <div class="ld-secao revela">
+      <div class="grid cols-3">
+        <div class="card texto-centro ld-acesso">
+          <div class="ld-acesso-icone" id="ic-cand"></div>
+          <h2 style="font-size:1.1rem">Sou candidato</h2>
+          <p class="desc">Inicie sua avaliação ou continue de onde parou com o seu link pessoal.</p>
+          <a class="btn block" href="/candidato">Entrar como candidato</a>
+        </div>
+        <div class="card texto-centro ld-acesso">
+          <div class="ld-acesso-icone" id="ic-gestor"></div>
+          <h2 style="font-size:1.1rem">Sou gestor</h2>
+          <p class="desc">Painel completo: vagas, pipeline, banco de talentos e relatórios.</p>
+          <a class="btn secondary block" href="/gestor">Entrar como gestor</a>
+        </div>
+        <div class="card texto-centro ld-acesso">
+          <div class="ld-acesso-icone" id="ic-vagas"></div>
+          <h2 style="font-size:1.1rem">Vagas abertas</h2>
+          <p class="desc">Confira as oportunidades disponíveis e candidate-se em minutos.</p>
+          <a class="btn secondary block" href="/vagas">Ver vagas</a>
+        </div>
       </div>
     </div>
 
-    <p class="texto-centro" style="color:var(--muted);font-size:.8rem;margin-top:34px">
+    <div class="ld-final revela">
+      <img class="simbolo" src="img/logo-symbol-white.svg" alt="">
+      <h2>Pronto para contratar com dados?</h2>
+      <p>Abra sua primeira vaga hoje e veja o match trabalhar por você.</p>
+      <div class="linha-acoes" style="justify-content:center">
+        <a class="btn big" href="/gestor">Começar agora</a>
+      </div>
+    </div>
+
+    <p class="texto-centro" style="color:var(--muted);font-size:.8rem;margin-top:44px">
       Bússola · metodologia B.A.S.E. e curadoria Tony Belleza ·
+      <a href="https://tonybelleza.com" style="color:inherit" target="_blank" rel="noopener">tonybelleza.com</a> ·
       <a href="/dono" style="color:inherit">administração</a>
     </p>
   </div>
@@ -98,13 +155,26 @@
       ["grafico", "Relatórios", "Funil de conversão, tempo de contratação e a distribuição de perfis do seu banco de talentos."],
     ];
     document.getElementById("recursos").innerHTML = recursos.map(([ic, titulo, texto]) => `
-      <div class="card" style="margin-bottom:0">
+      <div class="card ld-recurso" style="margin-bottom:0">
         <div class="passo" style="border:none;background:none;padding:0;margin:0 0 10px">
           <div class="icone">${icone(ic)}</div>
           <div class="info"><div class="titulo">${titulo}</div></div>
         </div>
         <p class="desc" style="margin:0">${texto}</p>
       </div>`).join("");
+    document.getElementById("ic-cand").innerHTML = icone("usuario");
+    document.getElementById("ic-gestor").innerHTML = icone("barras");
+    document.getElementById("ic-vagas").innerHTML = icone("pasta");
+
+    // revelação suave ao rolar (desativada se o usuário prefere menos movimento)
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+      const obs = new IntersectionObserver((entradas) => entradas.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add("visivel"); obs.unobserve(e.target); }
+      }), { threshold: .12 });
+      document.querySelectorAll(".revela").forEach((el) => obs.observe(el));
+    } else {
+      document.querySelectorAll(".revela").forEach((el) => el.classList.add("visivel"));
+    }
   </script>
 </body>
 </html>

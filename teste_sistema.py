@@ -97,8 +97,12 @@ def main():
         verifica("gestor comum não gerencia contas", code == 403)
 
         print("\n== Vagas, avaliações do cargo e portal ==")
-        _, code = req("/api/gestor/vaga", {"titulo": "Vaga Sênior", "cargo_id": 3, "local": "Unidade A"}, G)
+        _, code = req("/api/gestor/vaga", {"titulo": "Vaga Sênior", "cargo_id": 3,
+                                           "local": "Unidade A", "pais": "Brasil"}, G)
         verifica("vaga criada", code == 200)
+        vg_pais, _ = req("/api/vagas")
+        verifica("vaga expõe o país no portal público",
+                 any(v.get("pais") == "Brasil" for v in vg_pais["vagas"]))
         req("/api/gestor/pergunta-entrevista", {"cargo_id": 3, "texto": "Pergunta 1"}, G)
         req("/api/gestor/questao", {"cargo_id": 3, "pergunta": "2+2?",
                                     "opcoes": ["3", "4", "5"], "correta": 1}, G)

@@ -246,6 +246,9 @@ const BASE_PERFIS = {
   },
 };
 
+// ---------------------------------------------------------- países das vagas
+const PAISES = ["Angola", "Brasil", "Espanha", "Estados Unidos", "França", "Portugal"];
+
 // ---------------------------------------------------------- escala da autoavaliação
 const ESCALA_NIVEIS = [
   { v: 0, rot: "0 · Não possuo" },
