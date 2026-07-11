@@ -80,10 +80,68 @@
       <div><b>100%</b><span>LGPD: consentimento e anonimização</span></div>
     </div>
 
+    <div class="ld-marquee" aria-hidden="true">
+      <div class="ld-marquee-trilho" id="marquee"></div>
+    </div>
+
     <div class="ld-secao revela">
       <div class="ld-eyebrow">Tudo num só lugar</div>
       <h2 class="ld-titulo">O processo seletivo inteiro, sem planilhas</h2>
       <div class="grid cols-3" id="recursos"></div>
+    </div>
+
+    <div class="ld-secao revela">
+      <div class="ld-eyebrow">Por dentro do produto</div>
+      <h2 class="ld-titulo">Cada decisão com a evidência ao lado</h2>
+      <div class="ld-bento">
+
+        <div class="ld-bento-item ld-b-matriz">
+          <div class="ld-mock-rot">Matriz de gaps · Analista de Sistemas</div>
+          <div class="ld-mini-aderencia"><b>84%</b><span>aderência ao cargo</span><i class="badge ok">Apto</i></div>
+          <div class="ld-mini-tabela">
+            <div><span>Análise de requisitos</span><em>4/4</em><u class="ok">OK</u></div>
+            <div><span>Gestão de projetos TIC</span><em>3/4</em><u class="medio">-1</u></div>
+            <div><span>Cibersegurança</span><em>1/4</em><u class="alto">-3</u></div>
+            <div><span>Comunicação técnica</span><em>4/3</em><u class="ok">OK</u></div>
+          </div>
+          <div class="ld-mini-plano">Plano de desenvolvimento gerado automaticamente</div>
+        </div>
+
+        <div class="ld-bento-item ld-b-radar">
+          <div class="ld-mock-rot">Radar de talentos</div>
+          <p class="ld-bento-desc">Ao abrir a vaga, o banco inteiro é varrido na hora.</p>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-1">MC</i><div><b>Marta C.</b><span>já avaliada · fora da vaga</span></div><em class="ld-match-badge">91%</em></div>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-2">JP</i><div><b>João P.</b><span>medalhista de prata</span></div><em class="ld-match-badge">87%</em></div>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-3">RS</i><div><b>Rita S.</b><span>colaboradora interna</span></div><em class="ld-match-badge">78%</em></div>
+        </div>
+
+        <div class="ld-bento-item ld-b-funil">
+          <div class="ld-mock-rot">Funil da vaga</div>
+          <div class="ld-mini-funil">
+            <div><span>Inscritos</span><i style="width:100%"></i><b>32</b></div>
+            <div><span>Avaliações</span><i style="width:66%"></i><b>21</b></div>
+            <div><span>Entrevista</span><i style="width:28%"></i><b>9</b></div>
+            <div><span>Proposta</span><i style="width:9%"></i><b>3</b></div>
+            <div><span>Contratados</span><i style="width:6%"></i><b>2</b></div>
+          </div>
+        </div>
+
+        <div class="ld-bento-item ld-b-email">
+          <div class="ld-mock-rot">E-mails automáticos</div>
+          <div class="ld-mini-email">
+            <div class="ld-mini-email-topo"><i class="ld-avatar av-4">B</i><div><b>Bússola</b><span>para gestor@instituicao.com</span></div></div>
+            <p><strong>Avaliação completa: Marta C.</strong><br>Match de 91% com Analista de Sistemas. O relatório completo já está no seu painel.</p>
+            <span class="ld-mini-email-btn">Ver relatório</span>
+          </div>
+        </div>
+
+        <div class="ld-bento-item ld-b-ia">
+          <div class="ld-mock-rot">IA no currículo</div>
+          <p class="ld-bento-desc">O PDF é lido em segundo plano: resumo do perfil, pontos de atenção e divergências com a autoavaliação.</p>
+          <div class="ld-mini-chips"><span>7 anos em infraestrutura</span><span>Certificação ITIL</span><span>Inglês avançado</span><span>Divergência: gestão de projetos</span></div>
+        </div>
+
+      </div>
     </div>
 
     <div class="ld-secao revela">
@@ -103,6 +161,12 @@
           <div class="ld-passo"><span>3</span>Acompanhe o pipeline, compare candidatos pelo match e decida com dados: matriz de gaps, entrevista estruturada e relatórios.</div>
         </div>
       </div>
+    </div>
+
+    <div class="ld-secao revela">
+      <div class="ld-eyebrow">Quem usa, decide melhor</div>
+      <h2 class="ld-titulo">Feito para times de RH e gestores exigentes</h2>
+      <div class="ld-depos" id="depoimentos"></div>
     </div>
 
     <div class="ld-secao revela">
@@ -162,6 +226,28 @@
         </div>
         <p class="desc" style="margin:0">${texto}</p>
       </div>`).join("");
+    const capacidades = ["Testes DISC e B.A.S.E.", "Match de 5 dimensões", "Pipeline Kanban",
+      "Radar de talentos", "Matriz de gaps", "Entrevista estruturada", "Teste de conhecimento",
+      "IA no currículo", "E-mails automáticos", "Colaboradores internos", "LGPD nativa", "Relatórios"];
+    document.getElementById("marquee").innerHTML = [...capacidades, ...capacidades]
+      .map((c) => `<span>${c}</span>`).join("");
+
+    const depoimentos = [
+      ["A matriz de gaps mudou nossas promoções internas. Em uma tarde mapeamos a equipe inteira e saímos com um plano de desenvolvimento para cada pessoa.", "MC", "Mariana C.", "Coordenadora de RH · setor público", 1],
+      ["O match de 5 dimensões acabou com a contratação no feeling. A gente defende cada decisão com número, na frente de qualquer diretoria.", "RA", "Ricardo A.", "Diretor de operações", 2],
+      ["Candidato responde tudo pelo celular em minutos e o radar ainda me sugere gente que eu já tinha no banco. Nunca mais perdi um bom perfil.", "PM", "Paula M.", "Recrutadora tech", 3],
+    ];
+    document.getElementById("depoimentos").innerHTML = depoimentos.map(([texto, ini, nome, cargo, av]) => `
+      <div class="ld-depo">
+        <div class="ld-depo-aspas">${icone("aspas")}</div>
+        <div class="ld-estrelas">${icone("estrela").repeat(5)}</div>
+        <p>${texto}</p>
+        <div class="ld-depo-autor">
+          <i class="ld-avatar av-${av}">${ini}</i>
+          <div><b>${nome}</b><span>${cargo}</span></div>
+        </div>
+      </div>`).join("");
+
     document.getElementById("ic-cand").innerHTML = icone("usuario");
     document.getElementById("ic-gestor").innerHTML = icone("barras");
     document.getElementById("ic-vagas").innerHTML = icone("pasta");
