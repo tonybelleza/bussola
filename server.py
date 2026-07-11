@@ -1235,9 +1235,12 @@ class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def _ip_cliente(self):
+        # atrás do Caddy o IP real é o ÚLTIMO da cadeia X-Forwarded-For (o proxy
+        # acrescenta quem conectou); o primeiro valor é enviado pelo cliente e
+        # seria forjável para burlar o limite de tentativas.
         encaminhado = self.headers.get("X-Forwarded-For", "")
         if encaminhado:
-            return encaminhado.split(",")[0].strip()
+            return encaminhado.split(",")[-1].strip()
         return self.client_address[0] if self.client_address else "?"
 
     def _login_bloqueado(self, escopo):

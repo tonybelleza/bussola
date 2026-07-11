@@ -404,10 +404,12 @@ def main():
         verifica("admin cria cargo normalmente", code == 200)
 
         print("\n== Login e força bruta ==")
-        FAKE = {"X-Forwarded-For": "203.0.113.7"}
-        for _ in range(9):
-            _, code = req("/api/gestor/login", {"login": "maria", "senha": "errada"}, FAKE)
-        verifica("login trava após tentativas repetidas (429)", code == 429)
+        # simula o Caddy: IP real é o último da cadeia. Forjar o primeiro valor
+        # (rotativo) não pode burlar o limite, pois o IP real ao final é o mesmo.
+        for i in range(9):
+            _, code = req("/api/gestor/login", {"login": "maria", "senha": "errada"},
+                          {"X-Forwarded-For": "9.9.9.%d, 198.51.100.5" % i})
+        verifica("forjar o primeiro X-Forwarded-For não burla o limite (429)", code == 429)
         bom, code = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
         verifica("login legítimo de outro IP não é afetado pelo bloqueio", code == 200)
 
