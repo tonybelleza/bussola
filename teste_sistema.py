@@ -442,6 +442,13 @@ def main():
         repet = [c for c in cargos_apos2["cargos"] if c["nome"].lower() == "técnico de redes inventado"]
         verifica("cargo novo não é duplicado (reaproveita pelo nome)", len(repet) == 1)
 
+        print("\n== SMTP: teste de envio ==")
+        _, code = req("/api/gestor/integracoes/teste", {}, G)
+        verifica("teste de e-mail sem SMTP configurado avisa (400)", code == 400)
+        ig, _ = req("/api/gestor/integracoes", headers=G)
+        verifica("painel de integrações expõe porta padrão",
+                 ig.get("smtp_porta") == "587")
+
         print("\n== Esqueci minha senha (gestor) ==")
         r1, code = req("/api/gestor/esqueci-senha", {"login": "maria"})
         verifica("pedido de reset responde 200 para conta existente", code == 200)

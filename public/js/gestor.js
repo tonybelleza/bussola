@@ -1578,7 +1578,7 @@ async function secaoIntegracoes(el) {
             ${r.smtp_host ? '<span class="badge ok">Configurado</span>' : '<span class="badge warn">Não configurado</span>'}</p>
           <label class="field">Servidor SMTP <input type="text" id="int-host" value="${esc(r.smtp_host)}" placeholder="smtp.gmail.com"></label>
           <div class="grid cols-2">
-            <label class="field">Porta <input type="text" id="int-porta" value="${esc(r.smtp_porta)}"></label>
+            <label class="field">Porta <span class="hint">(587 STARTTLS ou 465 SSL)</span><input type="text" id="int-porta" value="${esc(r.smtp_porta)}" placeholder="587"></label>
             <label class="field">Usuário <input type="text" id="int-usuario" value="${esc(r.smtp_usuario)}" placeholder="voce@gmail.com"></label>
           </div>
           <label class="field">Senha ${r.smtp_senha_configurada ? '<span class="hint">(preencher apenas para trocar)</span>' : ""}
@@ -1601,7 +1601,11 @@ async function secaoIntegracoes(el) {
         </label>
       </div>
       <div class="form-erro" id="int-erro"></div>
-      <button class="btn" id="int-salvar">Salvar integrações</button>
+      <div class="linha-acoes">
+        <button class="btn" id="int-salvar">Salvar integrações</button>
+        <button class="btn secondary" id="int-testar">Salvar e enviar e-mail de teste</button>
+      </div>
+      <p class="desc" style="font-size:.8rem;margin-top:6px">O e-mail de teste vai para o endereço cadastrado na sua conta de gestor.</p>
     </div>
     <div id="cfg-templates"></div>`;
   document.getElementById("int-salvar").addEventListener("click", async () => {
@@ -1623,6 +1627,30 @@ async function secaoIntegracoes(el) {
       await api("/api/gestor/integracoes", { method: "POST", body: corpo });
       erro.style.color = "var(--ok)";
       erro.textContent = "Integrações salvas.";
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+  document.getElementById("int-testar").addEventListener("click", async () => {
+    const erro = document.getElementById("int-erro");
+    erro.style.color = "var(--text-2)";
+    erro.textContent = "Salvando e enviando e-mail de teste…";
+    const corpo = {
+      smtp_host: document.getElementById("int-host").value.trim(),
+      smtp_porta: document.getElementById("int-porta").value.trim(),
+      smtp_usuario: document.getElementById("int-usuario").value.trim(),
+      smtp_remetente: document.getElementById("int-remetente").value.trim(),
+      url_publica: document.getElementById("int-url").value.trim(),
+      retencao_meses: document.getElementById("int-retencao").value,
+    };
+    const senha = document.getElementById("int-senha").value;
+    if (senha) corpo.smtp_senha = senha;
+    try {
+      await api("/api/gestor/integracoes", { method: "POST", body: corpo });
+      const r = await api("/api/gestor/integracoes/teste", { method: "POST", body: {} });
+      erro.style.color = "var(--ok)";
+      erro.textContent = "E-mail de teste enviado para " + r.destino + ". Verifique a caixa de entrada (e o spam).";
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;

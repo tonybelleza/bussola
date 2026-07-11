@@ -641,11 +641,20 @@ def enviar_email(conn, para, assunto, corpo):
         msg["Subject"] = assunto
         msg["From"] = remetente
         msg["To"] = para
-        with smtplib.SMTP(host, porta, timeout=15) as servidor:
-            servidor.starttls()
-            if usuario:
-                servidor.login(usuario, senha)
-            servidor.sendmail(remetente, [para], msg.as_string())
+        # porta 465 usa SSL direto; 587 (e demais) usam STARTTLS
+        if porta == 465:
+            with smtplib.SMTP_SSL(host, porta, timeout=20) as servidor:
+                if usuario:
+                    servidor.login(usuario, senha)
+                servidor.sendmail(remetente, [para], msg.as_string())
+        else:
+            with smtplib.SMTP(host, porta, timeout=20) as servidor:
+                servidor.ehlo()
+                servidor.starttls()
+                servidor.ehlo()
+                if usuario:
+                    servidor.login(usuario, senha)
+                servidor.sendmail(remetente, [para], msg.as_string())
         return True, "enviado"
     except Exception as exc:  # noqa: BLE001
         return False, str(exc)
@@ -2637,6 +2646,27 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True})
 
         # -- integrações (IA e e-mail) --
+        if method == "POST" and path == "/api/gestor/integracoes/teste":
+            if not gestor["is_admin"]:
+                return self._json(403, {"erro": "Apenas o administrador configura integrações"})
+            if not config_get(conn, "smtp_host"):
+                return self._json(400, {"erro": "Preencha e salve os dados de SMTP antes de testar."})
+            destino = ((gestor["email"] or "").strip()
+                       or config_get(conn, "smtp_remetente")
+                       or config_get(conn, "smtp_usuario"))
+            if not destino:
+                return self._json(400, {"erro": "Cadastre um e-mail na sua conta de gestor para receber o teste."})
+            ok, msg = enviar_email(
+                conn, destino, "Teste de e-mail - Bússola",
+                "Este é um e-mail de teste da Bússola.\n\nSe você recebeu esta mensagem, "
+                "o envio automático está funcionando: confirmações de inscrição, avisos de "
+                "etapa e de novos candidatos, lembretes e redefinição de senha já operam.\n\n"
+                "Equipe Bússola",
+            )
+            if ok:
+                return self._json(200, {"ok": True, "destino": destino})
+            return self._json(400, {"erro": "Falha ao enviar: %s" % msg})
+
         if path == "/api/gestor/integracoes":
             if not gestor["is_admin"]:
                 return self._json(403, {"erro": "Apenas o administrador configura integrações"})
