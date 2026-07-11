@@ -130,7 +130,7 @@ def main():
         _, code = req("/api/candidato/cadastro", {"nome": "Sem Local", "email": "s@x.com", "consentimento": True})
         verifica("cadastro sem local é rejeitado", code == 400)
         t, code = req("/api/candidato/cadastro", {"nome": "Bia Teste", "email": "b@x.com", "consentimento": True,
-                                                  "local": "Unidade A", "vaga_id": vaga_id})
+                                                  "telefone": "+244 923000000", "local": "Unidade A", "vaga_id": vaga_id})
         verifica("cadastro pela vaga funciona", code == 200)
         C = {"X-Token": t["token"]}
         me, _ = req("/api/candidato/me", headers=C)
@@ -156,10 +156,10 @@ def main():
 
         print("\n== Banco de talentos (CRM) ==")
         _, code = req("/api/candidato/cadastro", {"nome": "Bia 2", "email": "b@x.com",
-                                                  "local": "Unidade A", "consentimento": True})
+                                                  "telefone": "+244 923000000", "local": "Unidade A", "consentimento": True})
         verifica("cadastro duplicado é barrado com aviso", code == 409)
         _, code = req("/api/candidato/cadastro", {"nome": "Sem Consentir", "email": "sc@x.com",
-                                                  "local": "Unidade A"})
+                                                  "telefone": "+244 923000000", "local": "Unidade A"})
         verifica("cadastro sem consentimento LGPD é rejeitado", code == 400)
         lista0, _ = req("/api/gestor/candidatos", headers=G)
         cid0 = lista0["candidatos"][0]["candidato"]["id"]
@@ -229,7 +229,7 @@ def main():
 
         print("\n== Isolamento por local ==")
         t2, _ = req("/api/candidato/cadastro", {"nome": "Outro Local", "email": "o@x.com", "consentimento": True,
-                                                "local": "Unidade B", "cargo_desejado_id": 2})
+                                                "telefone": "+244 923000000", "local": "Unidade B", "cargo_desejado_id": 2})
         lista_admin, _ = req("/api/gestor/candidatos", headers=G)
         lista_maria, _ = req("/api/gestor/candidatos", headers=M)
         verifica("admin vê os 2 candidatos", len(lista_admin["candidatos"]) == 2)
@@ -250,7 +250,7 @@ def main():
 
         print("\n== Anonimização (LGPD) ==")
         t3, _ = req("/api/candidato/cadastro", {"nome": "Para Anonimizar", "email": "an@x.com",
-                                                "local": "Unidade A", "consentimento": True,
+                                                "telefone": "+244 923000000", "local": "Unidade A", "consentimento": True,
                                                 "cargo_desejado_id": 2})
         lista3, _ = req("/api/gestor/candidatos", headers=G)
         alvo3 = [c for c in lista3["candidatos"] if c["candidato"]["nome"] == "Para Anonimizar"][0]
@@ -265,13 +265,13 @@ def main():
 
         print("\n== Colaborador interno ==")
         ti, code = req("/api/candidato/cadastro", {"nome": "Servidor Interno", "email": "si@x.com",
-                                                   "local": "Unidade A", "consentimento": True,
+                                                   "telefone": "+244 923000000", "local": "Unidade A", "consentimento": True,
                                                    "tipo": "interno", "cargo_desejado_id": 3})
         verifica("cadastro de colaborador interno funciona", code == 200)
         mei, _ = req("/api/candidato/me", headers={"X-Token": ti["token"]})
         verifica("tipo interno registrado", mei["candidato"]["tipo"] == "interno")
         t_ext, _ = req("/api/candidato/cadastro", {"nome": "Externo Vaga", "email": "ev@x.com",
-                                                   "local": "Unidade A", "consentimento": True,
+                                                   "telefone": "+244 923000000", "local": "Unidade A", "consentimento": True,
                                                    "vaga_id": vaga_id, "tipo": "interno"})
         me_ext, _ = req("/api/candidato/me", headers={"X-Token": t_ext["token"]})
         verifica("inscrição em vaga força tipo externo", me_ext["candidato"]["tipo"] == "externo")
@@ -379,7 +379,7 @@ def main():
 
         print("\n== Blindagem de entradas ==")
         cadx, _ = req("/api/candidato/cadastro",
-                      {"nome": "Fraude", "email": "fraude@x.com", "local": "Unidade A",
+                      {"nome": "Fraude", "email": "fraude@x.com", "telefone": "+244 923000000", "local": "Unidade A",
                        "consentimento": True, "tipo": "interno", "cargo_desejado_id": 2})
         FX = {"X-Token": cadx["token"]}
         _, code = req("/api/candidato/teste",
@@ -412,6 +412,46 @@ def main():
         verifica("forjar o primeiro X-Forwarded-For não burla o limite (429)", code == 429)
         bom, code = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
         verifica("login legítimo de outro IP não é afetado pelo bloqueio", code == 200)
+
+        print("\n== Cadastro: telefone, função e novo cargo ==")
+        _, code = req("/api/candidato/cadastro",
+                      {"nome": "Sem Fone", "email": "semfone@x.com",
+                       "local": "Unidade A", "consentimento": True})
+        verifica("cadastro sem telefone é rejeitado", code == 400)
+        cnv, code = req("/api/candidato/cadastro",
+                        {"nome": "Cria Cargo", "email": "criacargo@x.com",
+                         "telefone": "+244 923111222", "local": "Unidade A",
+                         "consentimento": True, "tipo": "interno",
+                         "funcao": "Suporte de rede do 2.º nível",
+                         "novo_cargo": "Técnico de Redes Inventado"})
+        verifica("cadastro com novo cargo funciona", code == 200 and cnv.get("token"))
+        cargos_apos, _ = req("/api/cargos")
+        novo = [c for c in cargos_apos["cargos"] if c["nome"] == "Técnico de Redes Inventado"]
+        verifica("cargo novo passou a existir no sistema", len(novo) == 1)
+        menv, _ = req("/api/candidato/me", headers={"X-Token": cnv["token"]})
+        verifica("candidato fica vinculado ao cargo que criou",
+                 menv["candidato"]["cargo_desejado_id"] == novo[0]["id"])
+        verifica("função e telefone guardados no candidato",
+                 menv["candidato"]["funcao"] == "Suporte de rede do 2.º nível"
+                 and menv["candidato"]["telefone"] == "+244 923111222")
+        req("/api/candidato/cadastro",
+            {"nome": "Reusa Cargo", "email": "reusa@x.com", "telefone": "+55 11999998888",
+             "local": "Unidade A", "consentimento": True, "tipo": "interno",
+             "novo_cargo": "técnico de redes inventado"})
+        cargos_apos2, _ = req("/api/cargos")
+        repet = [c for c in cargos_apos2["cargos"] if c["nome"].lower() == "técnico de redes inventado"]
+        verifica("cargo novo não é duplicado (reaproveita pelo nome)", len(repet) == 1)
+
+        print("\n== Esqueci minha senha (gestor) ==")
+        r1, code = req("/api/gestor/esqueci-senha", {"login": "maria"})
+        verifica("pedido de reset responde 200 para conta existente", code == 200)
+        r2, code = req("/api/gestor/esqueci-senha", {"login": "naoexiste@x.com"})
+        verifica("resposta idêntica para conta inexistente (não revela)",
+                 code == 200 and r2.get("ok") is True)
+        _, code = req("/api/gestor/redefinir-senha", {"token": "token-invalido", "nova": "novasenha9"})
+        verifica("redefinir com token inválido é rejeitado", code == 400)
+        _, code = req("/api/gestor/redefinir-senha", {"token": "x", "nova": "123"})
+        verifica("redefinir com senha curta é rejeitado", code == 400)
 
         print("\n== Endereços limpos ==")
         for pagina in ("/", "/candidato", "/gestor", "/vagas", "/dono"):

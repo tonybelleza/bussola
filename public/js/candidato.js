@@ -4,6 +4,17 @@
    ===================================================================== */
 
 const app = document.getElementById("app");
+
+// códigos de país para o telefone (mesmos países das vagas), ordem alfabética
+const CODIGOS_PAIS = [
+  { pais: "Angola", ddi: "+244", bandeira: "🇦🇴" },
+  { pais: "Brasil", ddi: "+55", bandeira: "🇧🇷" },
+  { pais: "Espanha", ddi: "+34", bandeira: "🇪🇸" },
+  { pais: "Estados Unidos", ddi: "+1", bandeira: "🇺🇸" },
+  { pais: "França", ddi: "+33", bandeira: "🇫🇷" },
+  { pais: "Portugal", ddi: "+351", bandeira: "🇵🇹" },
+];
+
 let cargos = [];
 let me = null; // resumo do candidato (dados + testes + gaps)
 let quizQuestoes = null; // questões do teste de conhecimento do cargo de interesse
@@ -83,14 +94,27 @@ function telaCadastro() {
       <label class="field">E-mail
         <input type="email" id="cad-email" placeholder="voce@email.com">
       </label>
+      <label class="field">Telefone (com código do país)
+        <div class="linha-acoes" style="margin:0;gap:8px">
+          <select id="cad-ddi" style="max-width:130px">
+            ${CODIGOS_PAIS.map((p, i) => `<option value="${p.ddi}" ${i === 0 ? "selected" : ""}>${p.bandeira} ${p.ddi}</option>`).join("")}
+          </select>
+          <input type="tel" id="cad-telefone" placeholder="923 000 000" style="flex:1;margin:0">
+        </div>
+      </label>
       <label class="field">Onde você está fazendo a avaliação?
         <input type="text" id="cad-local" list="lista-locais"
           placeholder="Instituição, unidade ou setor (ex.: Secretaria de GTI)">
         <datalist id="lista-locais"></datalist>
       </label>
-      <label class="field">Cargo/função atual <span class="hint">(opcional)</span>
-        <input type="text" id="cad-atual" placeholder="Ex.: Analista de Sistemas Júnior">
-      </label>
+      <div class="grid cols-2">
+        <label class="field">Cargo atual <span class="hint">(opcional)</span>
+          <input type="text" id="cad-atual" placeholder="Ex.: Analista de Sistemas Júnior">
+        </label>
+        <label class="field">Função que exerce <span class="hint">(opcional)</span>
+          <input type="text" id="cad-funcao" placeholder="Ex.: Suporte de rede do 2.º nível">
+        </label>
+      </div>
       <div class="grid cols-2">
         <label class="field">LinkedIn <span class="hint">(opcional)</span>
           <input type="text" id="cad-linkedin" placeholder="linkedin.com/in/seu-perfil">
@@ -99,12 +123,24 @@ function telaCadastro() {
           <input type="text" id="cad-instagram" placeholder="@seu.usuario">
         </label>
       </div>
-      <label class="field" id="campo-cargo" ${vagaEscolhida ? 'style="display:none"' : ""}><span id="rotulo-cargo">Cargo/função de interesse</span>
+      <label class="field" id="campo-cargo" ${vagaEscolhida ? 'style="display:none"' : ""}><span id="rotulo-cargo">Cargo de interesse</span>
         <select id="cad-desejado">
           <option value="">Selecione o cargo</option>
           ${cargos.map((c) => `<option value="${c.id}">${esc(c.nome)}${c.nivel ? " · " + esc(c.nivel) : ""}</option>`).join("")}
+          <option value="__novo__">+ Adicionar um cargo que não está na lista</option>
         </select>
       </label>
+      <div id="campo-novo-cargo" style="display:none">
+        <div class="grid cols-2">
+          <label class="field">Nome do novo cargo
+            <input type="text" id="cad-novo-cargo" placeholder="Ex.: Especialista em Cibersegurança">
+          </label>
+          <label class="field">Área <span class="hint">(opcional)</span>
+            <input type="text" id="cad-novo-cargo-area" placeholder="Ex.: Infraestrutura">
+          </label>
+        </div>
+        <p class="desc" style="margin:-4px 0 4px">O cargo adicionado passa a fazer parte do sistema e fica disponível para o gestor.</p>
+      </div>
       <label class="field" style="display:flex;align-items:flex-start;gap:10px;font-weight:340">
         <input type="checkbox" id="cad-consentimento" style="width:auto;margin-top:4px">
         <span>Autorizo o uso dos meus dados pessoais e respostas para este processo
@@ -126,8 +162,12 @@ function telaCadastro() {
   document.getElementById("cad-tipo").addEventListener("change", (ev) => {
     const interno = ev.target.value === "interno";
     document.getElementById("rotulo-cargo").textContent = interno
-      ? "Sua função (base da matriz de gaps e do plano de desenvolvimento)"
-      : "Cargo/função de interesse";
+      ? "Seu cargo (base da matriz de gaps e do plano de desenvolvimento)"
+      : "Cargo de interesse";
+  });
+  document.getElementById("cad-desejado").addEventListener("change", (ev) => {
+    document.getElementById("campo-novo-cargo").style.display =
+      ev.target.value === "__novo__" ? "" : "none";
   });
   document.getElementById("rec-enviar").addEventListener("click", async () => {
     const msg = document.getElementById("rec-msg");
@@ -168,16 +208,22 @@ function telaCadastro() {
     const erro = document.getElementById("cad-erro");
     erro.textContent = "";
     try {
+      const cargoSel = document.getElementById("cad-desejado").value;
+      const telefone = document.getElementById("cad-telefone").value.trim();
       const r = await api("/api/candidato/cadastro", {
         method: "POST",
         body: {
           nome: document.getElementById("cad-nome").value.trim(),
           email: document.getElementById("cad-email").value.trim(),
+          telefone: telefone ? document.getElementById("cad-ddi").value + " " + telefone : "",
           local: document.getElementById("cad-local").value.trim(),
           linkedin: document.getElementById("cad-linkedin").value.trim(),
           instagram: document.getElementById("cad-instagram").value.trim(),
           cargo_atual: document.getElementById("cad-atual").value.trim(),
-          cargo_desejado_id: Number(document.getElementById("cad-desejado").value) || null,
+          funcao: document.getElementById("cad-funcao").value.trim(),
+          cargo_desejado_id: cargoSel === "__novo__" ? null : (Number(cargoSel) || null),
+          novo_cargo: cargoSel === "__novo__" ? document.getElementById("cad-novo-cargo").value.trim() : "",
+          novo_cargo_area: cargoSel === "__novo__" ? document.getElementById("cad-novo-cargo-area").value.trim() : "",
           vaga_id: vagaEscolhida,
           tipo: vagaEscolhida ? "externo" : document.getElementById("cad-tipo").value,
           consentimento: document.getElementById("cad-consentimento").checked,

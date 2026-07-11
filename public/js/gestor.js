@@ -49,7 +49,14 @@ function telaLogin() {
       </label>
       <div class="form-erro" id="login-erro"></div>
       <button class="btn block" id="login-entrar">Entrar</button>
+      <p class="texto-centro" style="margin:14px 0 0">
+        <a href="#" id="link-esqueci" style="color:var(--text-2);font-size:.85rem">Esqueci minha senha</a>
+      </p>
     </div>`;
+  document.getElementById("link-esqueci").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    telaEsqueciSenha();
+  });
   const entrar = async () => {
     const erro = document.getElementById("login-erro");
     erro.textContent = "";
@@ -77,6 +84,82 @@ function telaLogin() {
       if (ev.key === "Enter") entrar();
     })
   );
+}
+
+function telaEsqueciSenha() {
+  document.getElementById("btn-sair").classList.add("oculto");
+  app.innerHTML = `
+    <div class="card" style="max-width:440px;margin:48px auto">
+      <h2 class="icone-titulo">${icone("chave")}<span>Recuperar acesso</span></h2>
+      <p class="desc">Informe o seu login ou e-mail. Se houver uma conta, enviaremos um
+        link para redefinir a senha (válido por 2 horas).</p>
+      <label class="field">Login ou e-mail
+        <input type="text" id="esq-ident" placeholder="seu.login ou voce@email.com">
+      </label>
+      <div class="form-erro" id="esq-msg"></div>
+      <button class="btn block" id="esq-enviar">Enviar link de redefinição</button>
+      <p class="texto-centro" style="margin:14px 0 0">
+        <a href="#" id="esq-voltar" style="color:var(--text-2);font-size:.85rem">Voltar ao login</a>
+      </p>
+    </div>`;
+  document.getElementById("esq-voltar").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    telaLogin();
+  });
+  document.getElementById("esq-enviar").addEventListener("click", async () => {
+    const msg = document.getElementById("esq-msg");
+    msg.style.color = "var(--err)";
+    msg.textContent = "";
+    try {
+      await api("/api/gestor/esqueci-senha", {
+        method: "POST",
+        body: { login: document.getElementById("esq-ident").value.trim() },
+      });
+      msg.style.color = "var(--ok)";
+      msg.textContent = "Se houver uma conta com esse login ou e-mail, o link de redefinição chegará em instantes. Verifique também o spam.";
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  });
+}
+
+function telaRedefinirSenha(token) {
+  document.getElementById("btn-sair").classList.add("oculto");
+  app.innerHTML = `
+    <div class="card" style="max-width:440px;margin:48px auto">
+      <h2 class="icone-titulo">${icone("cadeado")}<span>Criar nova senha</span></h2>
+      <p class="desc">Defina a sua nova senha de acesso.</p>
+      <label class="field">Nova senha (mín. 6 caracteres)
+        <input type="password" id="red-senha" autocomplete="new-password">
+      </label>
+      <label class="field">Confirmar nova senha
+        <input type="password" id="red-senha2" autocomplete="new-password">
+      </label>
+      <div class="form-erro" id="red-msg"></div>
+      <button class="btn block" id="red-salvar">Salvar nova senha</button>
+    </div>`;
+  document.getElementById("red-salvar").addEventListener("click", async () => {
+    const msg = document.getElementById("red-msg");
+    msg.style.color = "var(--err)";
+    msg.textContent = "";
+    const senha = document.getElementById("red-senha").value;
+    if (senha !== document.getElementById("red-senha2").value) {
+      msg.textContent = "As senhas não conferem.";
+      return;
+    }
+    try {
+      await api("/api/gestor/redefinir-senha", {
+        method: "POST",
+        body: { token, nova: senha },
+      });
+      history.replaceState({}, "", "/gestor");
+      msg.style.color = "var(--ok)";
+      msg.textContent = "Senha redefinida! Redirecionando para o login…";
+      setTimeout(telaLogin, 1500);
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  });
 }
 
 function telaSetup() {
@@ -885,8 +968,10 @@ async function abrirDetalheCandidato(id) {
       <button class="btn ghost small fechar" id="modal-fechar">${icone("fechar")} Fechar</button>
       <h2>${esc(c.candidato.nome)} ${c.candidato.tipo === "interno" ? '<span class="badge neutral">Colaborador interno</span>' : ""}</h2>
       <p class="desc">${esc(c.candidato.email)}
+        ${c.candidato.telefone ? " · Tel: " + esc(c.candidato.telefone) : ""}
         ${c.candidato.local ? " · Local: " + esc(c.candidato.local) : ""}
         ${c.candidato.cargo_atual ? " · Cargo atual: " + esc(c.candidato.cargo_atual) : ""}
+        ${c.candidato.funcao ? " · Função: " + esc(c.candidato.funcao) : ""}
         · Interesse: ${esc(nomeCargo(c.candidato.cargo_desejado_id))}
         · Cadastro: ${esc((c.candidato.criado_em || "").slice(0, 10))}</p>
       <div class="linha-acoes no-print">
@@ -1678,6 +1763,9 @@ function formGestor(g) {
 
 // ------------------------------------------------ boot
 (async function () {
+  // link de redefinição de senha (?reset=token) tem prioridade
+  const tokenReset = new URLSearchParams(location.search).get("reset");
+  if (tokenReset) return telaRedefinirSenha(tokenReset);
   try {
     const setup = await api("/api/gestor/setup");
     if (setup.precisa_setup) return telaSetup();

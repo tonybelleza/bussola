@@ -240,12 +240,19 @@ def init_db():
         c.execute("ALTER TABLE candidatos ADD COLUMN anonimizado INTEGER DEFAULT 0")
     if "tipo" not in colunas_cand:
         c.execute("ALTER TABLE candidatos ADD COLUMN tipo TEXT DEFAULT 'externo'")
+    if "telefone" not in colunas_cand:
+        c.execute("ALTER TABLE candidatos ADD COLUMN telefone TEXT DEFAULT ''")
+    if "funcao" not in colunas_cand:
+        c.execute("ALTER TABLE candidatos ADD COLUMN funcao TEXT DEFAULT ''")
     colunas_vagas = {r[1] for r in c.execute("PRAGMA table_info(vagas)").fetchall()}
     if "pais" not in colunas_vagas:
         c.execute("ALTER TABLE vagas ADD COLUMN pais TEXT DEFAULT ''")
     colunas_gest = {r[1] for r in c.execute("PRAGMA table_info(gestores)").fetchall()}
     if "modulos" not in colunas_gest:
         c.execute("ALTER TABLE gestores ADD COLUMN modulos TEXT DEFAULT '[]'")
+    if "reset_token" not in colunas_gest:
+        c.execute("ALTER TABLE gestores ADD COLUMN reset_token TEXT DEFAULT ''")
+        c.execute("ALTER TABLE gestores ADD COLUMN reset_expira TEXT DEFAULT ''")
     c.execute(
         "CREATE TABLE IF NOT EXISTS sessoes_diagnostico ("
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -971,6 +978,8 @@ def resumo_candidato(conn, cand):
             "nome": cand["nome"],
             "email": cand["email"],
             "local": cand["local"],
+            "telefone": cand["telefone"] if "telefone" in cand.keys() else "",
+            "funcao": cand["funcao"] if "funcao" in cand.keys() else "",
             "linkedin": cand["linkedin"],
             "instagram": cand["instagram"],
             "cargo_atual": cand["cargo_atual"],
@@ -1423,6 +1432,9 @@ class Handler(BaseHTTPRequestHandler):
             local = (d.get("local") or "").strip()
             if not local:
                 return self._json(400, {"erro": "Informe onde você está fazendo a avaliação"})
+            telefone = (d.get("telefone") or "").strip()
+            if len(re.sub(r"\D", "", telefone)) < 8:
+                return self._json(400, {"erro": "Informe um telefone válido com o código do país"})
             if not d.get("consentimento"):
                 return self._json(400, {"erro": "É necessário autorizar o uso dos seus dados para o processo seletivo"})
             # candidato duplicado: reaproveita a ficha existente com segurança
@@ -1474,19 +1486,41 @@ class Handler(BaseHTTPRequestHandler):
                                 "Use o seu link pessoal de acesso para continuar.")),
                     "ja_cadastrado": True,
                 })
+            # resolve o cargo de interesse: da vaga, do id escolhido, ou de um
+            # cargo novo digitado pelo candidato (passa a existir no sistema).
+            if vaga:
+                cargo_desejado = vaga["cargo_id"]
+            else:
+                cargo_desejado = d.get("cargo_desejado_id") or None
+                novo_cargo = (d.get("novo_cargo") or "").strip()
+                if novo_cargo:
+                    ja = conn.execute(
+                        "SELECT id FROM cargos WHERE lower(nome)=lower(?)", (novo_cargo,)
+                    ).fetchone()
+                    if ja:
+                        cargo_desejado = ja["id"]
+                    else:
+                        cur = conn.execute(
+                            "INSERT INTO cargos (nome, area, nivel) VALUES (?,?,?)",
+                            (novo_cargo, (d.get("novo_cargo_area") or "").strip(), ""),
+                        )
+                        cargo_desejado = cur.lastrowid
             token = secrets.token_urlsafe(24)
             conn.execute(
-                "INSERT INTO candidatos (token, nome, email, local, linkedin, instagram,"
-                " cargo_atual, cargo_desejado_id) VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO candidatos (token, nome, email, local, telefone, funcao,"
+                " linkedin, instagram, cargo_atual, cargo_desejado_id)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (
                     token,
                     nome,
                     email,
                     local,
+                    telefone,
+                    (d.get("funcao") or "").strip(),
                     (d.get("linkedin") or "").strip(),
                     (d.get("instagram") or "").strip().lstrip("@"),
                     (d.get("cargo_atual") or "").strip(),
-                    (vaga["cargo_id"] if vaga else d.get("cargo_desejado_id")) or None,
+                    cargo_desejado or None,
                 ),
             )
             conn.execute(
@@ -2038,8 +2072,62 @@ class Handler(BaseHTTPRequestHandler):
                 "admin": bool(gestor_row["is_admin"]),
             })
 
+        # ---- esqueci minha senha (gestor) ----
+        if method == "POST" and path == "/api/gestor/esqueci-senha":
+            if self._login_bloqueado("reset"):
+                return self._json(429, {"erro": "Muitas tentativas. Aguarde alguns minutos."})
+            self._registrar_falha_login("reset")
+            d = self._body()
+            ident = (d.get("login") or "").strip()
+            alvo = conn.execute(
+                "SELECT * FROM gestores WHERE lower(login)=lower(?) OR lower(email)=lower(?)",
+                (ident, ident),
+            ).fetchone()
+            enviou = False
+            if alvo and (alvo["email"] or "").strip() and config_get(conn, "smtp_host"):
+                token_reset = secrets.token_urlsafe(24)
+                conn.execute(
+                    "UPDATE gestores SET reset_token=?, reset_expira=datetime('now','+2 hours')"
+                    " WHERE id=?",
+                    (token_reset, alvo["id"]),
+                )
+                link = "%s/gestor?reset=%s" % (url_publica(conn, self.headers.get("Host")), token_reset)
+                ok, _ = enviar_email(
+                    conn, alvo["email"], "Redefinição de senha - Bússola",
+                    "Olá, %s!\n\nRecebemos um pedido para redefinir a sua senha de gestor.\n"
+                    "Abra o link abaixo (válido por 2 horas) para criar uma nova senha:\n\n%s\n\n"
+                    "Se você não pediu isso, ignore este e-mail.\n\nEquipe Bússola"
+                    % (alvo["nome"], link),
+                )
+                enviou = ok
+                conn.commit()
+            # resposta idêntica com ou sem conta (não revela quem tem cadastro)
+            return self._json(200, {"ok": True, "enviou": enviou})
+
+        if method == "POST" and path == "/api/gestor/redefinir-senha":
+            d = self._body()
+            token_reset = (d.get("token") or "").strip()
+            nova = d.get("nova") or ""
+            if len(nova) < 6:
+                return self._json(400, {"erro": "A nova senha deve ter ao menos 6 caracteres"})
+            alvo = conn.execute(
+                "SELECT * FROM gestores WHERE reset_token=? AND reset_token != ''"
+                " AND reset_expira >= datetime('now')",
+                (token_reset,),
+            ).fetchone()
+            if not alvo:
+                return self._json(400, {"erro": "Link de redefinição inválido ou expirado. Peça um novo."})
+            conn.execute(
+                "UPDATE gestores SET senha=?, reset_token='', reset_expira='' WHERE id=?",
+                (hash_senha(nova), alvo["id"]),
+            )
+            conn.commit()
+            return self._json(200, {"ok": True})
+
         gestor = None
-        if path.startswith("/api/gestor/") and path != "/api/gestor/login":
+        if path.startswith("/api/gestor/") and path not in (
+            "/api/gestor/login", "/api/gestor/esqueci-senha", "/api/gestor/redefinir-senha"
+        ):
             gestor = self._gestor(conn)
             if not gestor:
                 return self._json(401, {"erro": "Acesso restrito ao gestor"})
