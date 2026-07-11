@@ -14,6 +14,7 @@
   <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
   <title>Bússola · Recrutamento e Seleção · Tony Belleza</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/tema.js"></script>
 </head>
 <body class="landing">
   <div class="topbar">
@@ -27,9 +28,10 @@
         </div>
       </div>
       <div class="actions">
-        <a class="btn on-dark small" href="/vagas">Vagas</a>
-        <a class="btn on-dark small" href="/candidato">Candidato</a>
-        <a class="btn small" href="/gestor">Entrar</a>
+        <div class="ld-bandeiras" id="bandeiras"></div>
+        <a class="btn on-dark small" href="/vagas" data-i18n="nav_vagas">Vagas</a>
+        <a class="btn on-dark small" href="/candidato" data-i18n="nav_candidato">Candidato</a>
+        <a class="btn small" href="/gestor" data-i18n="nav_entrar">Entrar</a>
       </div>
     </div>
   </div>
@@ -39,13 +41,12 @@
 
   <div class="container">
     <div class="ld-hero revela">
-      <div class="ld-eyebrow">Metodologia B.A.S.E. + DISC · por Tony Belleza</div>
-      <h2>Talento na <span class="ld-grad">direção certa</span></h2>
-      <p>Da vaga aberta à decisão de contratação: avaliação comportamental, competências,
-        entrevista estruturada e um match que mede a pessoa inteira, não só o currículo.</p>
+      <div class="ld-eyebrow" data-i18n="hero_eyebrow"></div>
+      <h2 data-i18n-html="hero_titulo"></h2>
+      <p data-i18n="hero_sub"></p>
       <div class="linha-acoes ld-cta">
-        <a class="btn big" href="/vagas">Ver vagas abertas</a>
-        <a class="btn ghost big" href="/gestor">Painel do gestor</a>
+        <a class="btn big" href="/vagas" data-i18n="cta_vagas"></a>
+        <a class="btn ghost big" href="/gestor" data-i18n="cta_gestor"></a>
       </div>
     </div>
 
@@ -54,144 +55,122 @@
         <div class="ld-mock-topo"><span></span><span></span><span></span></div>
         <div class="ld-mock-corpo">
           <div class="ld-mock-col">
-            <div class="ld-mock-rot">Match geral</div>
+            <div class="ld-mock-rot" data-i18n="mock_match"></div>
             <div class="ld-mock-match">92%</div>
             <div class="ld-mock-barra"><i style="width:92%"></i></div>
-            <div class="ld-mock-linha"><span>Competências</span><i><b style="width:88%"></b></i></div>
-            <div class="ld-mock-linha"><span>DISC</span><i><b style="width:95%"></b></i></div>
-            <div class="ld-mock-linha"><span>B.A.S.E.</span><i><b style="width:90%"></b></i></div>
-            <div class="ld-mock-linha"><span>Conhecimento</span><i><b style="width:96%"></b></i></div>
-            <div class="ld-mock-linha"><span>Entrevista</span><i><b style="width:91%"></b></i></div>
+            <div id="mock-dims"></div>
           </div>
           <div class="ld-mock-col">
-            <div class="ld-mock-rot">Pipeline · Analista GTI</div>
-            <div class="ld-mock-etapa"><span>Inscritos</span><b>14</b></div>
-            <div class="ld-mock-etapa"><span>Avaliações</span><b>9</b></div>
-            <div class="ld-mock-etapa ativo"><span>Entrevista</span><b>4</b></div>
-            <div class="ld-mock-etapa"><span>Proposta</span><b>1</b></div>
-            <div class="ld-mock-rot" style="margin-top:14px">Código B.A.S.E.</div>
+            <div class="ld-mock-rot" data-i18n="mock_pipeline"></div>
+            <div id="mock-etapas"></div>
+            <div class="ld-mock-rot" style="margin-top:14px" data-i18n="mock_codigo"></div>
             <div class="ld-mock-codigo"><span style="background:#2EA87B">S</span><span style="background:#8B5CF6">E</span><span style="background:#3B67CA">B</span><span style="background:#E05C2E">A</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="ld-stats revela">
-      <div><b>5</b><span>dimensões num único match</span></div>
-      <div><b>2</b><span>testes comportamentais completos</span></div>
-      <div><b>3 min</b><span>por teste, direto do celular</span></div>
-      <div><b>100%</b><span>LGPD: consentimento e anonimização</span></div>
-    </div>
+    <div class="ld-stats revela" id="stats"></div>
 
     <div class="ld-marquee" aria-hidden="true">
       <div class="ld-marquee-trilho" id="marquee"></div>
     </div>
 
     <div class="ld-secao revela">
-      <div class="ld-eyebrow">Tudo num só lugar</div>
-      <h2 class="ld-titulo">O processo seletivo inteiro, sem planilhas</h2>
-      <div class="grid cols-3" id="recursos"></div>
+      <div class="ld-eyebrow" data-i18n="s1_eyebrow"></div>
+      <h2 class="ld-titulo" data-i18n="s1_titulo"></h2>
+      <div class="grid cols-4" id="recursos"></div>
     </div>
 
     <div class="ld-secao revela">
-      <div class="ld-eyebrow">Por dentro do produto</div>
-      <h2 class="ld-titulo">Cada decisão com a evidência ao lado</h2>
+      <div class="ld-eyebrow" data-i18n="bento_eyebrow"></div>
+      <h2 class="ld-titulo" data-i18n="bento_titulo"></h2>
       <div class="ld-bento">
 
         <div class="ld-bento-item ld-b-matriz">
-          <div class="ld-mock-rot">Matriz de gaps · Analista de Sistemas</div>
-          <div class="ld-mini-aderencia"><b>84%</b><span>aderência ao cargo</span><i class="badge ok">Apto</i></div>
+          <div class="ld-mock-rot" data-i18n="bm_rot"></div>
+          <div class="ld-mini-aderencia"><b>84%</b><span data-i18n="bm_ader"></span><i class="badge ok" data-i18n="bm_apto"></i></div>
           <div class="ld-mini-tabela">
-            <div><span>Análise de requisitos</span><em>4/4</em><u class="ok">OK</u></div>
-            <div><span>Gestão de projetos TIC</span><em>3/4</em><u class="medio">-1</u></div>
-            <div><span>Cibersegurança</span><em>1/4</em><u class="alto">-3</u></div>
-            <div><span>Comunicação técnica</span><em>4/3</em><u class="ok">OK</u></div>
+            <div><span data-i18n="bm_linhas.0"></span><em>4/4</em><u class="ok">OK</u></div>
+            <div><span data-i18n="bm_linhas.1"></span><em>3/4</em><u class="medio">-1</u></div>
+            <div><span data-i18n="bm_linhas.2"></span><em>1/4</em><u class="alto">-3</u></div>
+            <div><span data-i18n="bm_linhas.3"></span><em>4/3</em><u class="ok">OK</u></div>
           </div>
-          <div class="ld-mini-plano">Plano de desenvolvimento gerado automaticamente</div>
+          <div class="ld-mini-plano" data-i18n="bm_plano"></div>
         </div>
 
         <div class="ld-bento-item ld-b-radar">
-          <div class="ld-mock-rot">Radar de talentos</div>
-          <p class="ld-bento-desc">Ao abrir a vaga, o banco inteiro é varrido na hora.</p>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-1">MC</i><div><b>Marta C.</b><span>já avaliada · fora da vaga</span></div><em class="ld-match-badge">91%</em></div>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-2">JP</i><div><b>João P.</b><span>medalhista de prata</span></div><em class="ld-match-badge">87%</em></div>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-3">RS</i><div><b>Rita S.</b><span>colaboradora interna</span></div><em class="ld-match-badge">78%</em></div>
+          <div class="ld-mock-rot" data-i18n="br_rot"></div>
+          <p class="ld-bento-desc" data-i18n="br_desc"></p>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-1">MC</i><div><b>Marta C.</b><span data-i18n="br_subs.0"></span></div><em class="ld-match-badge">91%</em></div>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-2">JP</i><div><b>João P.</b><span data-i18n="br_subs.1"></span></div><em class="ld-match-badge">87%</em></div>
+          <div class="ld-mini-sugestao"><i class="ld-avatar av-3">RS</i><div><b>Rita S.</b><span data-i18n="br_subs.2"></span></div><em class="ld-match-badge">78%</em></div>
         </div>
 
         <div class="ld-bento-item ld-b-funil">
-          <div class="ld-mock-rot">Funil da vaga</div>
+          <div class="ld-mock-rot" data-i18n="bf_rot"></div>
           <div class="ld-mini-funil">
-            <div><span>Inscritos</span><i style="width:100%"></i><b>32</b></div>
-            <div><span>Avaliações</span><i style="width:66%"></i><b>21</b></div>
-            <div><span>Entrevista</span><i style="width:28%"></i><b>9</b></div>
-            <div><span>Proposta</span><i style="width:9%"></i><b>3</b></div>
-            <div><span>Contratados</span><i style="width:6%"></i><b>2</b></div>
+            <div><span data-i18n="bf_etapas.0"></span><i style="width:100%"></i><b>32</b></div>
+            <div><span data-i18n="bf_etapas.1"></span><i style="width:66%"></i><b>21</b></div>
+            <div><span data-i18n="bf_etapas.2"></span><i style="width:28%"></i><b>9</b></div>
+            <div><span data-i18n="bf_etapas.3"></span><i style="width:9%"></i><b>3</b></div>
+            <div><span data-i18n="bf_etapas.4"></span><i style="width:6%"></i><b>2</b></div>
           </div>
         </div>
 
         <div class="ld-bento-item ld-b-email">
-          <div class="ld-mock-rot">E-mails automáticos</div>
+          <div class="ld-mock-rot" data-i18n="be_rot"></div>
           <div class="ld-mini-email">
-            <div class="ld-mini-email-topo"><i class="ld-avatar av-4">B</i><div><b>Bússola</b><span>para gestor@instituicao.com</span></div></div>
-            <p><strong>Avaliação completa: Marta C.</strong><br>Match de 91% com Analista de Sistemas. O relatório completo já está no seu painel.</p>
-            <span class="ld-mini-email-btn">Ver relatório</span>
+            <div class="ld-mini-email-topo"><i class="ld-avatar av-4">B</i><div><b>Bússola</b><span data-i18n="be_para"></span></div></div>
+            <p><strong data-i18n="be_titulo"></strong><br><span data-i18n="be_txt"></span></p>
+            <span class="ld-mini-email-btn" data-i18n="be_btn"></span>
           </div>
         </div>
 
         <div class="ld-bento-item ld-b-ia">
-          <div class="ld-mock-rot">IA no currículo</div>
-          <p class="ld-bento-desc">O PDF é lido em segundo plano: resumo do perfil, pontos de atenção e divergências com a autoavaliação.</p>
-          <div class="ld-mini-chips"><span>7 anos em infraestrutura</span><span>Certificação ITIL</span><span>Inglês avançado</span><span>Divergência: gestão de projetos</span></div>
+          <div class="ld-mock-rot" data-i18n="bi_rot"></div>
+          <p class="ld-bento-desc" data-i18n="bi_desc"></p>
+          <div class="ld-mini-chips" id="ia-chips"></div>
         </div>
 
       </div>
     </div>
 
     <div class="ld-secao revela">
-      <div class="ld-eyebrow">Como funciona</div>
-      <h2 class="ld-titulo">Simples para quem se candidata, poderoso para quem decide</h2>
+      <div class="ld-eyebrow" data-i18n="como_eyebrow"></div>
+      <h2 class="ld-titulo" data-i18n="como_titulo"></h2>
       <div class="grid cols-2 mt">
         <div class="card ld-passos">
-          <h3>Para o candidato</h3>
-          <div class="ld-passo"><span>1</span>Escolha uma vaga e faça um cadastro rápido.</div>
-          <div class="ld-passo"><span>2</span>Responda o DISC, o B.A.S.E., a autoavaliação e o teste de conhecimento, pelo celular ou computador.</div>
-          <div class="ld-passo"><span>3</span>Receba seu link pessoal por e-mail e acompanhe seus resultados e o status da candidatura.</div>
+          <h3 data-i18n="como_cand_h"></h3>
+          <div id="passos-cand"></div>
         </div>
         <div class="card ld-passos">
-          <h3>Para o gestor</h3>
-          <div class="ld-passo"><span>1</span>Mapeie os cargos com competências e perfis desejados.</div>
-          <div class="ld-passo"><span>2</span>Abra vagas e compartilhe a sua página pública de vagas.</div>
-          <div class="ld-passo"><span>3</span>Acompanhe o pipeline, compare candidatos pelo match e decida com dados: matriz de gaps, entrevista estruturada e relatórios.</div>
+          <h3 data-i18n="como_gestor_h"></h3>
+          <div id="passos-gestor"></div>
         </div>
       </div>
     </div>
 
     <div class="ld-secao revela">
-      <div class="ld-eyebrow">Quem usa, decide melhor</div>
-      <h2 class="ld-titulo">Feito para times de RH e gestores exigentes</h2>
+      <div class="ld-eyebrow" data-i18n="depo_eyebrow"></div>
+      <h2 class="ld-titulo" data-i18n="depo_titulo"></h2>
       <div class="ld-depos" id="depoimentos"></div>
     </div>
 
     <div class="ld-secao revela">
       <div class="ld-autor">
         <div class="ld-autor-foto">
-          <img src="img/tony-palestra.jpg" alt="Tony Belleza palestrando" loading="lazy">
+          <img src="img/tony-palestra.jpg" alt="Tony Belleza" loading="lazy">
         </div>
         <div class="ld-autor-texto">
-          <div class="ld-eyebrow" style="margin-left:0">Quem está por trás</div>
-          <h2>O método de Tony Belleza</h2>
-          <p>A Bússola nasce de um trabalho de anos na estruturação de empresas: processos,
-            comportamento organizacional e tomada de decisão tratados como um sistema só.
-            Nada aqui é fórmula pronta. É método aplicado à realidade de cada organização.</p>
-          <p>Tony é mestre em Psicologia Organizacional, com foco em comportamento humano
-            nas empresas, dinâmica de equipes e liderança, e doutorando em Administração
-            de Empresas. Atende projetos no Brasil, nos Estados Unidos e em outros países.</p>
-          <div class="ld-autor-frase">Método não engessa. Improviso desgasta.</div>
-          <div class="ld-autor-pilares">
-            <span>Processos</span><span>Comportamento organizacional</span><span>Tomada de decisão</span>
-          </div>
+          <div class="ld-eyebrow" style="margin-left:0" data-i18n="autor_eyebrow"></div>
+          <h2 data-i18n="autor_titulo"></h2>
+          <p data-i18n="autor_p1"></p>
+          <p data-i18n="autor_p2"></p>
+          <div class="ld-autor-frase" data-i18n="autor_frase"></div>
+          <div class="ld-autor-pilares" id="pilares"></div>
           <div class="linha-acoes" style="margin-top:24px">
-            <a class="btn secondary" href="https://tonybelleza.com" target="_blank" rel="noopener">Conhecer o trabalho completo</a>
+            <a class="btn secondary" href="https://tonybelleza.com" target="_blank" rel="noopener" data-i18n="autor_btn"></a>
           </div>
         </div>
       </div>
@@ -201,84 +180,111 @@
       <div class="grid cols-3">
         <div class="card texto-centro ld-acesso">
           <div class="ld-acesso-icone" id="ic-cand"></div>
-          <h2 style="font-size:1.1rem">Sou candidato</h2>
-          <p class="desc">Inicie sua avaliação ou continue de onde parou com o seu link pessoal.</p>
-          <a class="btn block" href="/candidato">Entrar como candidato</a>
+          <h2 style="font-size:1.1rem" data-i18n="ac_cand_t"></h2>
+          <p class="desc" data-i18n="ac_cand_p"></p>
+          <a class="btn block" href="/candidato" data-i18n="ac_cand_b"></a>
         </div>
         <div class="card texto-centro ld-acesso">
           <div class="ld-acesso-icone" id="ic-gestor"></div>
-          <h2 style="font-size:1.1rem">Sou gestor</h2>
-          <p class="desc">Painel completo: vagas, pipeline, banco de talentos e relatórios.</p>
-          <a class="btn secondary block" href="/gestor">Entrar como gestor</a>
+          <h2 style="font-size:1.1rem" data-i18n="ac_gestor_t"></h2>
+          <p class="desc" data-i18n="ac_gestor_p"></p>
+          <a class="btn secondary block" href="/gestor" data-i18n="ac_gestor_b"></a>
         </div>
         <div class="card texto-centro ld-acesso">
           <div class="ld-acesso-icone" id="ic-vagas"></div>
-          <h2 style="font-size:1.1rem">Vagas abertas</h2>
-          <p class="desc">Confira as oportunidades disponíveis e candidate-se em minutos.</p>
-          <a class="btn secondary block" href="/vagas">Ver vagas</a>
+          <h2 style="font-size:1.1rem" data-i18n="ac_vagas_t"></h2>
+          <p class="desc" data-i18n="ac_vagas_p"></p>
+          <a class="btn secondary block" href="/vagas" data-i18n="ac_vagas_b"></a>
         </div>
       </div>
     </div>
 
     <div class="ld-final revela">
       <img class="simbolo" src="img/logo-symbol-white.svg" alt="">
-      <h2>Pronto para contratar com dados?</h2>
-      <p>Abra sua primeira vaga hoje e veja o match trabalhar por você.</p>
+      <h2 data-i18n="final_titulo"></h2>
+      <p data-i18n="final_p"></p>
       <div class="linha-acoes" style="justify-content:center">
-        <a class="btn big" href="/gestor">Começar agora</a>
+        <a class="btn big" href="/gestor" data-i18n="final_btn"></a>
       </div>
     </div>
 
     <p class="texto-centro" style="color:var(--muted);font-size:.8rem;margin-top:44px">
-      Bússola · metodologia B.A.S.E. e curadoria Tony Belleza ·
+      <span data-i18n="rodape"></span> ·
       <a href="https://tonybelleza.com" style="color:inherit" target="_blank" rel="noopener">tonybelleza.com</a> ·
-      <a href="/dono" style="color:inherit">administração</a>
+      <a href="/dono" style="color:inherit" data-i18n="rodape_admin"></a>
     </p>
   </div>
 
   <script src="js/icons.js"></script>
+  <script src="js/idiomas.js"></script>
   <script>
-    const recursos = [
-      ["camadas", "DISC + B.A.S.E.", "Perfil comportamental em 4 dimensões e o código de personalidade exclusivo da metodologia Tony Belleza."],
-      ["alvo", "Match de 5 dimensões", "Competências, comportamento, conhecimento e entrevista num único índice de compatibilidade com o cargo."],
-      ["pasta", "Vagas e pipeline", "Quadro visual da seleção, da inscrição à contratação, com notificações por e-mail em cada etapa."],
-      ["bussola", "Radar de talentos", "Ao abrir uma vaga, o banco inteiro é varrido e os melhores matches aparecem na hora."],
-      ["matriz", "Matriz de gaps", "O que falta para cada pessoa exercer ou subir de cargo, com plano de desenvolvimento priorizado."],
-      ["grafico", "Relatórios", "Funil de conversão, tempo de contratação e a distribuição de perfis do seu banco de talentos."],
-    ];
-    document.getElementById("recursos").innerHTML = recursos.map(([ic, titulo, texto]) => `
-      <div class="card ld-recurso" style="margin-bottom:0">
-        <div class="passo" style="border:none;background:none;padding:0;margin:0 0 10px">
-          <div class="icone">${icone(ic)}</div>
-          <div class="info"><div class="titulo">${titulo}</div></div>
-        </div>
-        <p class="desc" style="margin:0">${texto}</p>
-      </div>`).join("");
-    const capacidades = ["Testes DISC e B.A.S.E.", "Match de 5 dimensões", "Pipeline Kanban",
-      "Radar de talentos", "Matriz de gaps", "Entrevista estruturada", "Teste de conhecimento",
-      "IA no currículo", "E-mails automáticos", "Colaboradores internos", "LGPD nativa", "Relatórios"];
-    document.getElementById("marquee").innerHTML = [...capacidades, ...capacidades]
-      .map((c) => `<span>${c}</span>`).join("");
+    const BANDEIRAS = {
+      pt: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#2E9E5B"/><path d="M12 2.4L21.4 8.5 12 14.6 2.6 8.5z" fill="#F5CE41"/><circle cx="12" cy="8.5" r="3.4" fill="#28498E"/><path d="M8.9 7.6c2.3 0 4.4.9 6 2.3" stroke="#fff" stroke-width=".8" fill="none"/></svg>',
+      en: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#B7332E"/><path d="M0 2.6h24M0 5.2h24M0 7.8h24M0 10.4h24M0 13h24" stroke="#fff" stroke-width="1.3"/><rect width="10.5" height="9.1" fill="#28498E"/><g fill="#fff"><circle cx="2" cy="1.9" r=".55"/><circle cx="5.2" cy="1.9" r=".55"/><circle cx="8.4" cy="1.9" r=".55"/><circle cx="3.6" cy="4.4" r=".55"/><circle cx="6.8" cy="4.4" r=".55"/><circle cx="2" cy="6.9" r=".55"/><circle cx="5.2" cy="6.9" r=".55"/><circle cx="8.4" cy="6.9" r=".55"/></g></svg>',
+      es: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#C8443E"/><rect y="4.2" width="24" height="8.6" fill="#F5CE41"/><rect x="5" y="6.6" width="3.2" height="3.6" rx=".6" fill="#C8443E"/></svg>',
+      fr: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#fff"/><rect width="8" height="17" fill="#28498E"/><rect x="16" width="8" height="17" fill="#C8443E"/></svg>',
+    };
 
-    const depoimentos = [
-      ["A matriz de gaps mudou nossas promoções internas. Em uma tarde mapeamos a equipe inteira e saímos com um plano de desenvolvimento para cada pessoa.", "MC", "Mariana C.", "Coordenadora de RH · setor público", 1],
-      ["O match de 5 dimensões acabou com a contratação no feeling. A gente defende cada decisão com número, na frente de qualquer diretoria.", "RA", "Ricardo A.", "Diretor de operações", 2],
-      ["Candidato responde tudo pelo celular em minutos e o radar ainda me sugere gente que eu já tinha no banco. Nunca mais perdi um bom perfil.", "PM", "Paula M.", "Recrutadora tech", 3],
-    ];
-    document.getElementById("depoimentos").innerHTML = depoimentos.map(([texto, ini, nome, cargo, av]) => `
-      <div class="ld-depo">
-        <div class="ld-depo-aspas">${icone("aspas")}</div>
-        <div class="ld-estrelas">${icone("estrela").repeat(5)}</div>
-        <p>${texto}</p>
-        <div class="ld-depo-autor">
-          <i class="ld-avatar av-${av}">${ini}</i>
-          <div><b>${nome}</b><span>${cargo}</span></div>
-        </div>
-      </div>`).join("");
+    let idioma = idiomaAtual();
+
+    function pegar(dic, caminho) {
+      return caminho.split(".").reduce((o, k) => (o ? o[k] : ""), dic);
+    }
+
+    function aplicarIdioma() {
+      const t = TRADUCOES[idioma];
+      document.documentElement.lang = { pt: "pt-BR", en: "en", es: "es", fr: "fr" }[idioma];
+
+      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = pegar(t, el.dataset.i18n); });
+      document.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = pegar(t, el.dataset.i18nHtml); });
+
+      document.getElementById("mock-dims").innerHTML = t.mock_dims.map((d, i) => `
+        <div class="ld-mock-linha"><span>${d}</span><i><b style="width:${[88, 95, 90, 96, 91][i]}%"></b></i></div>`).join("");
+      document.getElementById("mock-etapas").innerHTML = t.mock_etapas.map((e, i) => `
+        <div class="ld-mock-etapa ${i === 2 ? "ativo" : ""}"><span>${e}</span><b>${[14, 9, 4, 1][i]}</b></div>`).join("");
+      document.getElementById("stats").innerHTML = t.stats.map(([n, s]) => `<div><b>${n}</b><span>${s}</span></div>`).join("");
+      document.getElementById("marquee").innerHTML = [...t.marquee, ...t.marquee].map((c) => `<span>${c}</span>`).join("");
+      document.getElementById("recursos").innerHTML = t.recursos.map(([ic, titulo, texto]) => `
+        <div class="card ld-recurso" style="margin-bottom:0">
+          <div class="passo" style="border:none;background:none;padding:0;margin:0 0 10px">
+            <div class="icone">${icone(ic)}</div>
+            <div class="info"><div class="titulo">${titulo}</div></div>
+          </div>
+          <p class="desc" style="margin:0">${texto}</p>
+        </div>`).join("");
+      document.getElementById("ia-chips").innerHTML = t.bi_chips.map((c) => `<span>${c}</span>`).join("");
+      document.getElementById("passos-cand").innerHTML = t.como_cand.map((p, i) => `<div class="ld-passo"><span>${i + 1}</span>${p}</div>`).join("");
+      document.getElementById("passos-gestor").innerHTML = t.como_gestor.map((p, i) => `<div class="ld-passo"><span>${i + 1}</span>${p}</div>`).join("");
+      document.getElementById("depoimentos").innerHTML = t.depoimentos.map(([texto, ini, nome, cargo, av]) => `
+        <div class="ld-depo">
+          <div class="ld-depo-aspas">${icone("aspas")}</div>
+          <div class="ld-estrelas">${icone("estrela").repeat(5)}</div>
+          <p>${texto}</p>
+          <div class="ld-depo-autor">
+            <i class="ld-avatar av-${av}">${ini}</i>
+            <div><b>${nome}</b><span>${cargo}</span></div>
+          </div>
+        </div>`).join("");
+      document.getElementById("pilares").innerHTML = t.autor_pilares.map((p) => `<span>${p}</span>`).join("");
+
+      document.querySelectorAll("#bandeiras button").forEach((b) =>
+        b.classList.toggle("ativa", b.dataset.idioma === idioma));
+    }
+
+    document.getElementById("bandeiras").innerHTML = Object.entries(BANDEIRAS).map(([cod, svg]) =>
+      `<button data-idioma="${cod}" title="${{ pt: "Português", en: "English", es: "Español", fr: "Français" }[cod]}" aria-label="${cod}">${svg}</button>`).join("");
+    document.querySelectorAll("#bandeiras button").forEach((b) =>
+      b.addEventListener("click", () => {
+        idioma = b.dataset.idioma;
+        localStorage.setItem("idioma", idioma);
+        aplicarIdioma();
+      })
+    );
 
     document.getElementById("ic-cand").innerHTML = icone("usuario");
     document.getElementById("ic-gestor").innerHTML = icone("barras");
     document.getElementById("ic-vagas").innerHTML = icone("pasta");
+    aplicarIdioma();
 
     // revelação suave ao rolar (desativada se o usuário prefere menos movimento)
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
