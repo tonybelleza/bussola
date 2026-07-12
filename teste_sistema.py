@@ -497,6 +497,23 @@ def main():
             verifica("redirect preserva a query string",
                      e4.headers.get("Location") == "/candidato?token=abc")
 
+        print("\n== Aprovação de gestores ==")
+        _, code = req("/api/gestor/solicitar-acesso", {"nome": "Recruta Nova", "login": "recruta",
+                      "email": "recruta@x.com", "senha": "senha123", "local": "Unidade A"})
+        verifica("solicitação de acesso de gestor aceita", code == 200)
+        _, code = req("/api/gestor/solicitar-acesso", {"nome": "Outra", "login": "recruta",
+                      "email": "o@x.com", "senha": "senha123"})
+        verifica("login duplicado na solicitação é barrado", code == 409)
+        _, code = req("/api/gestor/login", {"login": "recruta", "senha": "senha123"})
+        verifica("gestor pendente não consegue entrar", code == 403)
+        gl, _ = req("/api/gestor/gestores", headers=G)
+        pend = [g for g in gl["gestores"] if g["login"] == "recruta"][0]
+        verifica("conta aparece como pendente para o admin", pend["aprovado"] is False)
+        _, code = req("/api/gestor/gestores/%d/aprovar" % pend["id"], {}, G)
+        verifica("admin aprova a conta", code == 200)
+        rl, code = req("/api/gestor/login", {"login": "recruta", "senha": "senha123"})
+        verifica("gestor aprovado entra normalmente", code == 200 and rl.get("token"))
+
         print("\n== Conexão keep-alive (sem desync) ==")
         import socket as _sock
         corpo = b'{"login":"x","senha":"y"}'

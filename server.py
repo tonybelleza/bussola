@@ -251,6 +251,9 @@ def init_db():
     colunas_gest = {r[1] for r in c.execute("PRAGMA table_info(gestores)").fetchall()}
     if "modulos" not in colunas_gest:
         c.execute("ALTER TABLE gestores ADD COLUMN modulos TEXT DEFAULT '[]'")
+    if "aprovado" not in colunas_gest:
+        # contas existentes já ficam aprovadas; solicitações de acesso entram como 0
+        c.execute("ALTER TABLE gestores ADD COLUMN aprovado INTEGER DEFAULT 1")
     if "reset_token" not in colunas_gest:
         c.execute("ALTER TABLE gestores ADD COLUMN reset_token TEXT DEFAULT ''")
         c.execute("ALTER TABLE gestores ADD COLUMN reset_expira TEXT DEFAULT ''")
@@ -1529,9 +1532,10 @@ def analisar_curriculo_ia(conn, cand):
 
     client = anthropic.Anthropic(api_key=api_key)
     resposta = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=16000,
-        thinking={"type": "adaptive"},
+        # Haiku 4.5: rápido e econômico, ideal para extração de currículo.
+        # ~US$ 25 por mil análises (5x mais barato que o Opus).
+        model="claude-haiku-4-5",
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": [
@@ -2522,6 +2526,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._registrar_falha_login("gestor")
                 return self._json(401, {"erro": "Login ou senha incorretos"})
             self._limpar_falhas_login("gestor")
+            if not gestor_row["aprovado"]:
+                return self._json(403, {"erro": "Sua conta ainda está aguardando aprovação do administrador. Você receberá um aviso quando for liberada."})
             # atualiza o hash para o formato novo (PBKDF2), se ainda for o antigo
             novo_hash = migrar_hash_se_preciso(d.get("senha") or "", gestor_row["senha"])
             if novo_hash:
@@ -2593,9 +2599,44 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
+        # ---- solicitação pública de conta de gestor (fica pendente de aprovação) ----
+        if method == "POST" and path == "/api/gestor/solicitar-acesso":
+            d = self._body()
+            nome = (d.get("nome") or "").strip()
+            login = (d.get("login") or "").strip().lower()
+            email = (d.get("email") or "").strip()
+            senha = d.get("senha") or ""
+            local = (d.get("local") or "").strip()
+            if not nome or not login or not email:
+                return self._json(400, {"erro": "Preencha nome, login e e-mail"})
+            if len(senha) < 6:
+                return self._json(400, {"erro": "A senha deve ter ao menos 6 caracteres"})
+            if conn.execute("SELECT 1 FROM gestores WHERE lower(login)=?", (login,)).fetchone():
+                return self._json(409, {"erro": "Este login já está em uso. Escolha outro."})
+            conn.execute(
+                "INSERT INTO gestores (nome, login, email, senha, local, is_admin, aprovado)"
+                " VALUES (?,?,?,?,?,0,0)",
+                (nome, login, email, hash_senha(senha), local),
+            )
+            conn.commit()
+            # avisa os administradores (se houver SMTP configurado)
+            admins = conn.execute(
+                "SELECT email FROM gestores WHERE is_admin=1 AND email!=''"
+            ).fetchall()
+            if config_get(conn, "smtp_host"):
+                for a in admins:
+                    enviar_email(
+                        conn, a["email"], "Nova solicitação de acesso de gestor",
+                        ("%s (%s) solicitou uma conta de gestor%s.\n\n"
+                         "Acesse Configurações, Contas de gestor, para aprovar ou recusar.")
+                        % (nome, email, (" para o local " + local) if local else ""),
+                    )
+            return self._json(200, {"ok": True})
+
         gestor = None
         if path.startswith("/api/gestor/") and path not in (
-            "/api/gestor/login", "/api/gestor/esqueci-senha", "/api/gestor/redefinir-senha"
+            "/api/gestor/login", "/api/gestor/esqueci-senha", "/api/gestor/redefinir-senha",
+            "/api/gestor/solicitar-acesso"
         ):
             gestor = self._gestor(conn)
             if not gestor:
@@ -2747,10 +2788,33 @@ class Handler(BaseHTTPRequestHandler):
                     {"id": g["id"], "login": g["login"], "nome": g["nome"],
                      "email": g["email"], "local": g["local"],
                      "admin": bool(g["is_admin"]),
+                     "aprovado": bool(g["aprovado"]),
                      "modulos": modulos_do_gestor(g)}
-                    for g in conn.execute("SELECT * FROM gestores ORDER BY nome").fetchall()
+                    for g in conn.execute(
+                        "SELECT * FROM gestores ORDER BY aprovado, nome"
+                    ).fetchall()
                 ]
                 return self._json(200, {"gestores": lista})
+
+            m = re.match(r"^/api/gestor/gestores/(\d+)/aprovar$", path)
+            if m and method == "POST":
+                alvo = conn.execute(
+                    "SELECT * FROM gestores WHERE id=?", (int(m.group(1)),)
+                ).fetchone()
+                if not alvo:
+                    return self._json(404, {"erro": "Conta não encontrada"})
+                conn.execute("UPDATE gestores SET aprovado=1 WHERE id=?", (alvo["id"],))
+                conn.commit()
+                if (alvo["email"] or "").strip() and config_get(conn, "smtp_host"):
+                    enviar_email(
+                        conn, alvo["email"], "Sua conta de gestor foi aprovada",
+                        ("Olá, %s!\n\nSua conta de gestor na Bússola foi aprovada. "
+                         "Você já pode entrar com o seu login e senha:\n\n%s/gestor\n\n"
+                         "Atenciosamente,\nEquipe Bússola")
+                        % ((alvo["nome"] or "").split(" ")[0],
+                           url_publica(conn, self.headers.get("Host"))),
+                    )
+                return self._json(200, {"ok": True})
             if method == "POST" and path == "/api/gestor/gestores":
                 d = self._body()
                 login = (d.get("login") or "").strip().lower()

@@ -49,13 +49,21 @@ function telaLogin() {
       </label>
       <div class="form-erro" id="login-erro"></div>
       <button class="btn block" id="login-entrar">Entrar</button>
-      <p class="texto-centro" style="margin:14px 0 0">
+      <p class="texto-centro" style="margin:14px 0 6px">
         <a href="#" id="link-esqueci" style="color:var(--text-2);font-size:.85rem">Esqueci minha senha</a>
+      </p>
+      <p class="texto-centro" style="margin:0;border-top:1px solid var(--line-soft);padding-top:12px">
+        <span style="color:var(--muted);font-size:.85rem">Ainda não tem conta? </span>
+        <a href="#" id="link-solicitar" style="color:var(--accent);font-size:.85rem;font-weight:500">Solicitar acesso de gestor</a>
       </p>
     </div>`;
   document.getElementById("link-esqueci").addEventListener("click", (ev) => {
     ev.preventDefault();
     telaEsqueciSenha();
+  });
+  document.getElementById("link-solicitar").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    telaSolicitarAcesso();
   });
   const entrar = async () => {
     const erro = document.getElementById("login-erro");
@@ -117,6 +125,68 @@ function telaEsqueciSenha() {
       });
       msg.style.color = "var(--ok)";
       msg.textContent = "Se houver uma conta com esse login ou e-mail, o link de redefinição chegará em instantes. Verifique também o spam.";
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  });
+}
+
+function telaSolicitarAcesso() {
+  document.getElementById("btn-sair").classList.add("oculto");
+  app.innerHTML = `
+    <div class="card" style="max-width:460px;margin:48px auto">
+      <h2 class="icone-titulo">${icone("usuario")}<span>Solicitar acesso de gestor</span></h2>
+      <p class="desc">Preencha seus dados. Sua conta ficará pendente até que o
+        administrador aprove. Você receberá um aviso por e-mail quando for liberada.</p>
+      <label class="field">Nome completo
+        <input type="text" id="sol-nome" placeholder="Seu nome">
+      </label>
+      <label class="field">Login desejado
+        <input type="text" id="sol-login" placeholder="seu.login" autocomplete="username">
+      </label>
+      <label class="field">E-mail
+        <input type="email" id="sol-email" placeholder="voce@email.com" autocomplete="email">
+      </label>
+      <label class="field">Local / unidade <span class="hint">(opcional)</span>
+        <input type="text" id="sol-local" placeholder="Ex.: Secretaria de GTI">
+      </label>
+      <label class="field">Senha (mín. 6 caracteres)
+        <input type="password" id="sol-senha" autocomplete="new-password">
+      </label>
+      <div class="form-erro" id="sol-msg"></div>
+      <button class="btn block" id="sol-enviar">Enviar solicitação</button>
+      <p class="texto-centro" style="margin:14px 0 0">
+        <a href="#" id="sol-voltar" style="color:var(--text-2);font-size:.85rem">Voltar ao login</a>
+      </p>
+    </div>`;
+  document.getElementById("sol-voltar").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    telaLogin();
+  });
+  document.getElementById("sol-enviar").addEventListener("click", async () => {
+    const msg = document.getElementById("sol-msg");
+    msg.style.color = "var(--err)";
+    msg.textContent = "";
+    try {
+      await api("/api/gestor/solicitar-acesso", {
+        method: "POST",
+        body: {
+          nome: document.getElementById("sol-nome").value.trim(),
+          login: document.getElementById("sol-login").value.trim(),
+          email: document.getElementById("sol-email").value.trim(),
+          local: document.getElementById("sol-local").value.trim(),
+          senha: document.getElementById("sol-senha").value,
+        },
+      });
+      app.innerHTML = `
+        <div class="card texto-centro" style="max-width:460px;margin:48px auto">
+          <div class="selo-final">${icone("check")}</div>
+          <h2>Solicitação enviada</h2>
+          <p class="desc">Sua conta está aguardando aprovação do administrador. Assim que
+            for liberada, você receberá um e-mail e poderá entrar normalmente.</p>
+          <button class="btn" id="sol-ok">Voltar ao login</button>
+        </div>`;
+      document.getElementById("sol-ok").addEventListener("click", telaLogin);
     } catch (e) {
       msg.textContent = e.message;
     }
@@ -1592,7 +1662,7 @@ async function secaoIntegracoes(el) {
       <div class="grid cols-2">
         <div>
           <h3>Análise de currículo por IA</h3>
-          <p class="desc" style="font-size:.82rem">Usa a API da Anthropic (Claude). Crie uma chave em console.anthropic.com. Custo por análise: centavos de dólar. Status:
+          <p class="desc" style="font-size:.82rem">Usa a API da Anthropic (Claude Haiku 4.5, rápido e econômico). Crie uma chave em console.anthropic.com. Custo aproximado: US$ 25 a cada mil currículos analisados. Status:
             ${r.ia_configurada ? '<span class="badge ok">Configurada (...' + esc(r.ia_final) + ")</span>" : '<span class="badge warn">Não configurada</span>'}</p>
           <label class="field">Chave da API Anthropic
             <input type="password" id="int-chave" placeholder="${r.ia_configurada ? "Preencher apenas para trocar" : "sk-ant-..."}" autocomplete="off">
@@ -1729,7 +1799,33 @@ async function secaoTemplates(el) {
 
 async function secaoGestores(el) {
   const r = await api("/api/gestor/gestores");
+  const pendentes = r.gestores.filter((g) => !g.aprovado);
+  const aprovados = r.gestores.filter((g) => g.aprovado);
+  const cardPendentes = pendentes.length ? `
+    <div class="card" style="border-color:var(--warn);background:var(--warn-bg)">
+      <h2 class="icone-titulo"><span>Solicitações de acesso pendentes (${pendentes.length})</span></h2>
+      <p class="desc">Estas pessoas pediram uma conta de gestor e aguardam a sua aprovação.</p>
+      <div class="tabela-wrap mt">
+        <table class="tabela">
+          <thead><tr><th>Nome</th><th>Login</th><th>E-mail</th><th>Local</th><th></th></tr></thead>
+          <tbody>
+            ${pendentes.map((g) => `
+              <tr>
+                <td><strong>${esc(g.nome)}</strong></td>
+                <td>${esc(g.login)}</td>
+                <td>${g.email ? esc(g.email) : '<span class="badge warn">sem e-mail</span>'}</td>
+                <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">todos os locais</span>'}</td>
+                <td class="num">
+                  <button class="btn small" data-aprovar="${g.id}">Aprovar</button>
+                  <button class="btn danger small" data-recusar="${g.id}">Recusar</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>` : "";
   el.innerHTML = `
+    ${cardPendentes}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div>
@@ -1742,7 +1838,7 @@ async function secaoGestores(el) {
         <table class="tabela">
           <thead><tr><th>Nome</th><th>Login</th><th>E-mail</th><th>Local</th><th class="num">Perfil</th><th></th></tr></thead>
           <tbody>
-            ${r.gestores.map((g) => `
+            ${aprovados.map((g) => `
               <tr>
                 <td><strong>${esc(g.nome)}</strong></td>
                 <td>${esc(g.login)}</td>
@@ -1758,6 +1854,30 @@ async function secaoGestores(el) {
         </table>
       </div>
     </div>`;
+  el.querySelectorAll("[data-aprovar]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        await api("/api/gestor/gestores/" + b.dataset.aprovar + "/aprovar", { method: "POST" });
+        secaoGestores(el);
+      } catch (e) {
+        alert(e.message);
+        b.disabled = false;
+      }
+    })
+  );
+  el.querySelectorAll("[data-recusar]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const g = pendentes.find((x) => x.id === Number(b.dataset.recusar));
+      if (!confirm(`Recusar e apagar a solicitação de ${g.nome} (${g.login})?`)) return;
+      try {
+        await api("/api/gestor/gestores/" + g.id, { method: "DELETE" });
+        secaoGestores(el);
+      } catch (e) {
+        alert(e.message);
+      }
+    })
+  );
   document.getElementById("novo-gestor").addEventListener("click", () => formGestor(null));
   el.querySelectorAll("[data-editar-gestor]").forEach((b) =>
     b.addEventListener("click", () =>
