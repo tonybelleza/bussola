@@ -747,27 +747,38 @@ def montar_email_html(assunto, corpo_texto):
     return modelo.replace("__HERO__", hero_html).replace("__CORPO__", corpo_html)
 
 
-def enviar_email(conn, para, assunto, corpo):
-    """Envia e-mail via SMTP configurado (HTML com a marca + texto). Retorna (ok, mensagem)."""
+def enviar_email(conn, para, assunto, corpo, anexos=None):
+    """Envia e-mail via SMTP configurado (HTML com a marca + texto). Retorna (ok, mensagem).
+    anexos: lista opcional de (nome_arquivo, bytes, mime), ex.: ('relatorio.pdf', b'...', 'application/pdf')."""
     host = config_get(conn, "smtp_host")
     if not host:
         return False, "SMTP não configurado"
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    from email.mime.application import MIMEApplication
 
     try:
         porta = int(config_get(conn, "smtp_porta") or 587)
         usuario = config_get(conn, "smtp_usuario")
         senha = config_get(conn, "smtp_senha")
         remetente = config_get(conn, "smtp_remetente") or usuario
-        msg = MIMEMultipart("alternative")
+        # corpo em duas versões (texto puro de fallback + HTML da marca)
+        corpo_msg = MIMEMultipart("alternative")
+        corpo_msg.attach(MIMEText(corpo, "plain", "utf-8"))
+        corpo_msg.attach(MIMEText(montar_email_html(assunto, corpo), "html", "utf-8"))
+        if anexos:
+            msg = MIMEMultipart("mixed")
+            msg.attach(corpo_msg)
+            for nome_arq, dados, mime in anexos:
+                parte = MIMEApplication(dados, _subtype=mime.split("/")[-1])
+                parte.add_header("Content-Disposition", "attachment", filename=nome_arq)
+                msg.attach(parte)
+        else:
+            msg = corpo_msg
         msg["Subject"] = assunto
         msg["From"] = remetente
         msg["To"] = para
-        # texto puro primeiro (fallback), depois o HTML da marca
-        msg.attach(MIMEText(corpo, "plain", "utf-8"))
-        msg.attach(MIMEText(montar_email_html(assunto, corpo), "html", "utf-8"))
         # porta 465 usa SSL direto; 587 (e demais) usam STARTTLS
         if porta == 465:
             with smtplib.SMTP_SSL(host, porta, timeout=20) as servidor:
@@ -785,6 +796,275 @@ def enviar_email(conn, para, assunto, corpo):
         return True, "enviado"
     except Exception as exc:  # noqa: BLE001
         return False, str(exc)
+
+
+# --------------------------------------------------- relatório em PDF
+FONTS_PDF_DIR = os.path.join(PUBLIC_DIR, "fonts", "pdf")
+MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
+            "agosto", "setembro", "outubro", "novembro", "dezembro"]
+DISC_NOMES_PDF = {"D": "Dominância", "I": "Influência", "S": "Estabilidade", "C": "Conformidade"}
+DISC_CORES_PDF = {"D": (59, 103, 202), "I": (155, 185, 221), "S": (118, 149, 180), "C": (94, 112, 134)}
+BASE_NOMES_PDF = {"B": "Bússola", "A": "Atuante", "S": "Sensível", "E": "Estudioso"}
+BASE_CORES_PDF = {"B": (59, 103, 202), "A": (224, 92, 46), "S": (46, 168, 123), "E": (139, 92, 246)}
+
+
+def _lerp(c1, c2, t):
+    return tuple(round(a + (b - a) * t) for a, b in zip(c1, c2))
+
+
+def gerar_pdf_resultado(conn, cand):
+    """Gera o relatório luxuoso do candidato em PDF. Retorna (bytes, None) ou (None, erro)."""
+    try:
+        from fpdf import FPDF
+    except ImportError:
+        return None, "Biblioteca de PDF não instalada no servidor (pip3 install fpdf2)"
+    if not os.path.isfile(os.path.join(FONTS_PDF_DIR, "Gabarito-Regular.ttf")):
+        return None, "Fontes do PDF não encontradas no servidor"
+
+    testes = {
+        r["tipo"]: json.loads(r["payload"])
+        for r in conn.execute(
+            "SELECT tipo, payload FROM resultados_teste WHERE candidato_id=?", (cand["id"],)
+        ).fetchall()
+    }
+    cargo_nome, match, gaps = "", None, None
+    if cand["cargo_desejado_id"]:
+        cargo = conn.execute(
+            "SELECT nome FROM cargos WHERE id=?", (cand["cargo_desejado_id"],)
+        ).fetchone()
+        cargo_nome = cargo["nome"] if cargo else ""
+        gaps = matriz_gaps(conn, cand["id"], cand["cargo_desejado_id"])
+        # match_completo carrega os testes no seu próprio formato ({"payload": ...})
+        match = match_completo(conn, cand, cand["cargo_desejado_id"])
+    if not testes and not match:
+        return None, "O candidato ainda não tem resultados para gerar o relatório"
+
+    iso = conn.execute("SELECT date('now')").fetchone()[0]
+    an, me, di = iso.split("-")
+    data_txt = "%d de %s de %s" % (int(di), MESES_PT[int(me) - 1], an)
+
+    NAVY, NAVY2 = (16, 27, 55), (24, 43, 84)
+    AZUL, AZUL2, CLARO = (50, 88, 171), (59, 103, 202), (155, 185, 221)
+    TEXTO, MUTED, LINHA, BRANCO = (43, 54, 72), (120, 135, 155), (228, 233, 240), (255, 255, 255)
+    M = 16
+
+    class _PDF(FPDF):
+        def gradiente_h(self, x, y, w, h, c1, c2, passos=60):
+            pw = w / passos
+            for i in range(passos):
+                self.set_fill_color(*_lerp(c1, c2, i / (passos - 1)))
+                self.rect(x + i * pw, y, pw + 0.5, h, "F")
+
+        def barra(self, x, y, w, rotulo, pct, cor):
+            self.set_xy(x, y)
+            self.set_font("Just", "", 9.5)
+            self.set_text_color(*TEXTO)
+            self.cell(60, 5, rotulo)
+            self.set_font("Gab", "B", 9.5)
+            self.set_text_color(*cor)
+            self.set_xy(x + w - 18, y)
+            self.cell(18, 5, "%d%%" % pct, align="R")
+            ty = y + 6.5
+            self.set_fill_color(238, 241, 246)
+            self.rect(x, ty, w, 4.2, "F", round_corners=True, corner_radius=2.1)
+            self.set_fill_color(*cor)
+            self.rect(x, ty, max(2.2, w * pct / 100.0), 4.2, "F", round_corners=True, corner_radius=2.1)
+
+        def barra_inline(self, x, y, w, rotulo, pct, cor):
+            self.set_xy(x, y)
+            self.set_font("Just", "", 9)
+            self.set_text_color(*TEXTO)
+            self.cell(34, 4.6, rotulo)
+            tx, tw = x + 36, w - 36 - 13
+            self.set_fill_color(236, 239, 245)
+            self.rect(tx, y + 1.1, tw, 3.4, "F", round_corners=True, corner_radius=1.7)
+            self.set_fill_color(*cor)
+            self.rect(tx, y + 1.1, max(1.8, tw * pct / 100.0), 3.4, "F", round_corners=True, corner_radius=1.7)
+            self.set_xy(x + w - 13, y)
+            self.set_font("Gab", "B", 9)
+            self.set_text_color(*cor)
+            self.cell(13, 4.6, "%d%%" % pct, align="R")
+
+    pdf = _PDF(format="A4")
+    pdf.set_auto_page_break(True, margin=16)
+    pdf.add_font("Gab", "", os.path.join(FONTS_PDF_DIR, "Gabarito-Regular.ttf"))
+    pdf.add_font("Gab", "B", os.path.join(FONTS_PDF_DIR, "Gabarito-Bold.ttf"))
+    pdf.add_font("Just", "", os.path.join(FONTS_PDF_DIR, "JustSans-Regular.ttf"))
+    pdf.add_font("Just", "B", os.path.join(FONTS_PDF_DIR, "JustSans-Bold.ttf"))
+    pdf.add_page()
+
+    # hero
+    pdf.gradiente_h(0, 0, 210, 52, NAVY, NAVY2)
+    pdf.set_fill_color(*AZUL2)
+    pdf.rect(M, 16, 13, 13, "F", round_corners=True, corner_radius=3)
+    pdf.set_font("Gab", "B", 15)
+    pdf.set_text_color(*BRANCO)
+    pdf.set_xy(M, 16.5)
+    pdf.cell(13, 12, "T", align="C")
+    pdf.set_xy(M + 18, 15)
+    pdf.set_font("Gab", "B", 17)
+    pdf.set_text_color(*BRANCO)
+    pdf.cell(0, 8, "Bússola")
+    pdf.set_xy(M + 18, 24)
+    pdf.set_font("Just", "", 8)
+    pdf.set_text_color(*CLARO)
+    pdf.cell(0, 5, "RELATÓRIO DE AVALIAÇÃO")
+    pdf.set_xy(0, 20)
+    pdf.set_font("Just", "", 9)
+    pdf.set_text_color(*CLARO)
+    pdf.cell(210 - M, 6, data_txt, align="R")
+    pdf.gradiente_h(0, 52, 210, 1.4, AZUL, CLARO)
+
+    # identidade
+    y = 60
+    pdf.set_xy(M, y)
+    pdf.set_font("Gab", "B", 23)
+    pdf.set_text_color(*NAVY)
+    pdf.cell(0, 11, cand["nome"])
+    y += 12
+    pdf.set_xy(M, y)
+    pdf.set_font("Just", "", 10.5)
+    pdf.set_text_color(*MUTED)
+    sub = cargo_nome or "Sem cargo de interesse"
+    if cand["local"]:
+        sub += "   ·   " + cand["local"]
+    pdf.cell(0, 6, sub)
+    y += 10
+
+    # match
+    if match:
+        card_h = 42
+        pdf.set_fill_color(249, 250, 252)
+        pdf.set_draw_color(*LINHA)
+        pdf.rect(M, y, 210 - 2 * M, card_h, "DF", round_corners=True, corner_radius=4)
+        pdf.set_xy(M + 4, y + 11)
+        pdf.set_font("Gab", "B", 36)
+        pdf.set_text_color(*AZUL2)
+        pdf.cell(50, 16, "%d%%" % match["geral"], align="C")
+        pdf.set_xy(M + 4, y + 29)
+        pdf.set_font("Just", "", 8.5)
+        pdf.set_text_color(*MUTED)
+        pdf.cell(50, 5, "MATCH GERAL", align="C")
+        pdf.set_draw_color(*LINHA)
+        pdf.line(M + 56, y + 7, M + 56, y + card_h - 7)
+        cx = M + 62
+        cw = 210 - M - cx - 6
+        rot = {"competencias": "Competências", "disc": "DISC", "base": "B.A.S.E.",
+               "conhecimento": "Conhecimento", "entrevista": "Entrevista"}
+        presentes = [k for k in ["competencias", "disc", "base", "conhecimento", "entrevista"]
+                     if k in match["componentes"]]
+        passo = (card_h - 12) / max(1, len(presentes))
+        cy = y + 6
+        for k in presentes:
+            pdf.barra_inline(cx, cy, cw, rot[k], match["componentes"][k], AZUL2)
+            cy += passo
+        y += card_h + 8
+
+    # DISC
+    if "disc" in testes and testes["disc"].get("pct"):
+        disc = testes["disc"]
+        pdf.set_xy(M, y)
+        pdf.set_font("Gab", "B", 13)
+        pdf.set_text_color(*NAVY)
+        pdf.cell(0, 7, "Perfil comportamental DISC")
+        y += 9
+        col_w = (210 - 2 * M - 10) / 2
+        for i, k in enumerate(["D", "I", "S", "C"]):
+            pdf.barra(M + (i % 2) * (col_w + 10), y + (i // 2) * 11.5, col_w,
+                      DISC_NOMES_PDF[k], disc["pct"].get(k, 0), DISC_CORES_PDF[k])
+        pdf.set_xy(M, y + 24)
+        pdf.set_font("Just", "", 9.5)
+        pdf.set_text_color(*TEXTO)
+        dom = disc.get("dominante") or max(disc["pct"], key=disc["pct"].get)
+        pdf.cell(0, 5, "Perfil dominante: %s" % DISC_NOMES_PDF.get(dom, dom))
+        y += 32
+
+    # BASE
+    if "base" in testes and testes["base"].get("pct"):
+        base = testes["base"]
+        pct = base["pct"]
+        ordem = base.get("ordem") or sorted(pct, key=lambda k: -pct[k])
+        codigo = base.get("codigo") or "".join(ordem)
+        pdf.set_xy(M, y)
+        pdf.set_font("Gab", "B", 13)
+        pdf.set_text_color(*NAVY)
+        pdf.cell(0, 7, "Código de personalidade B.A.S.E.")
+        pdf.set_xy(M, y)
+        pdf.set_font("Gab", "B", 13)
+        pdf.set_text_color(*AZUL2)
+        pdf.cell(0, 7, "Código: %s" % codigo, align="R")
+        y += 10
+        cardw = (210 - 2 * M - 3 * 6) / 4
+        for i, k in enumerate(ordem):
+            bx = M + i * (cardw + 6)
+            pdf.set_fill_color(*_lerp(BASE_CORES_PDF[k], BRANCO, 0.88))
+            pdf.set_draw_color(*_lerp(BASE_CORES_PDF[k], BRANCO, 0.6))
+            pdf.rect(bx, y, cardw, 23, "DF", round_corners=True, corner_radius=3)
+            pdf.set_fill_color(*BASE_CORES_PDF[k])
+            pdf.rect(bx, y, cardw, 3, "F", round_corners=True, corner_radius=1.5)
+            pdf.set_xy(bx, y + 6)
+            pdf.set_font("Gab", "B", 11)
+            pdf.set_text_color(*_lerp(BASE_CORES_PDF[k], NAVY, 0.35))
+            pdf.cell(cardw, 6, BASE_NOMES_PDF[k], align="C")
+            pdf.set_xy(bx, y + 12)
+            pdf.set_font("Gab", "B", 15)
+            pdf.set_text_color(*BASE_CORES_PDF[k])
+            pdf.cell(cardw, 8, "%d%%" % pct[k], align="C")
+        pdf.set_xy(M, y + 26)
+        pdf.set_font("Just", "", 9.5)
+        pdf.set_text_color(*TEXTO)
+        pdf.cell(0, 5, "Arquétipo dominante: %s. Complementado por %s."
+                 % (BASE_NOMES_PDF[ordem[0]], BASE_NOMES_PDF[ordem[1]]))
+        y += 36
+
+    # matriz de gaps
+    if gaps and gaps.get("itens") and gaps.get("respondeu_autoavaliacao"):
+        pdf.set_xy(M, y)
+        pdf.set_font("Gab", "B", 13)
+        pdf.set_text_color(*NAVY)
+        pdf.cell(0, 7, "Matriz de gaps: aderência ao cargo")
+        ad = gaps["aderencia"]
+        cor_ad = (46, 158, 106) if ad >= 70 else (199, 154, 62) if ad >= 40 else (176, 74, 74)
+        pdf.set_xy(M, y)
+        pdf.set_font("Gab", "B", 13)
+        pdf.set_text_color(*cor_ad)
+        pdf.cell(0, 7, "%d%% de aderência" % ad, align="R")
+        y += 9
+        pdf.set_font("Just", "", 8)
+        pdf.set_text_color(*MUTED)
+        pdf.set_xy(M, y)
+        pdf.cell(96, 5, "COMPETÊNCIA")
+        pdf.cell(28, 5, "EXIGIDO", align="C")
+        pdf.cell(28, 5, "ATUAL", align="C")
+        pdf.cell(26, 5, "GAP", align="C")
+        y += 5.5
+        for item in gaps["itens"][:6]:
+            pdf.set_draw_color(*LINHA)
+            pdf.line(M, y, 210 - M, y)
+            pdf.set_xy(M, y + 1.6)
+            pdf.set_font("Just", "", 9)
+            pdf.set_text_color(*TEXTO)
+            nome = item["nome"]
+            pdf.cell(96, 5, nome if len(nome) <= 46 else nome[:44] + "…")
+            pdf.set_font("Gab", "B", 9)
+            pdf.cell(28, 5, str(item["nivel_requerido"]), align="C")
+            pdf.cell(28, 5, str(item["nivel_atual"]) if item.get("respondida", True) else "—", align="C")
+            g = item["gap"]
+            gcor = (46, 158, 106) if g == 0 else (199, 154, 62) if g <= 2 else (176, 74, 74)
+            pdf.set_text_color(*gcor)
+            pdf.cell(26, 5, ("OK" if g == 0 else "-%d" % g), align="C")
+            y += 6.8
+
+    # rodapé (sem quebra automática, para não gerar página fantasma)
+    pdf.set_auto_page_break(False)
+    pdf.set_xy(M, 285)
+    pdf.set_font("Just", "", 8)
+    pdf.set_text_color(*MUTED)
+    pdf.cell(210 - 2 * M, 5,
+             "Bússola · metodologia B.A.S.E. e curadoria Tony Belleza · rh.tonybelleza.com",
+             align="C")
+
+    return bytes(pdf.output()), None
 
 
 # --------------------------------------------------- modelos de e-mail
@@ -986,6 +1266,25 @@ def notificar_avaliacao_completa(conn, cand):
          "Acesse o painel do gestor para ver o relatório completo.")
         % (cand["nome"], cand["local"] or "local não informado", linha_match),
     )
+    # envia ao próprio candidato o relatório em PDF (uma vez, se houver e-mail e SMTP)
+    if (cand["email"] or "").strip() and config_get(conn, "smtp_host"):
+        pdf, erro_pdf = gerar_pdf_resultado(conn, cand)
+        if pdf and not erro_pdf:
+            primeiro = (cand["nome"] or "").split(" ")[0]
+            corpo = (
+                "Olá, %s!\n\nVocê concluiu toda a sua avaliação na Bússola. Parabéns!\n\n"
+                "Em anexo está o seu relatório completo em PDF: perfil comportamental "
+                "DISC, código de personalidade B.A.S.E. e o seu match com o cargo.\n\n"
+                "Você também pode acessar seus resultados a qualquer momento pelo seu "
+                "link pessoal.\n\nAtenciosamente,\nEquipe de Seleção"
+            ) % (primeiro or "tudo bem")
+            ok, _ = enviar_email(
+                conn, cand["email"], "Avaliação concluída: seu relatório Bússola",
+                corpo, anexos=[("relatorio-bussola.pdf", pdf, "application/pdf")],
+            )
+            if ok:
+                registrar_evento(conn, cand["id"], "email",
+                                 "Relatório em PDF enviado ao candidato")
 
 
 def quiz_do_candidato(conn, candidato_id, cargo_id):
@@ -1460,6 +1759,15 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             return {}
 
+    def _baixar_pdf(self, nome, dados):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/pdf")
+        self.send_header("Content-Disposition", 'inline; filename="%s"' % nome)
+        self.send_header("Content-Length", str(len(dados)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(dados)
+
     def _candidato(self, conn):
         token = self.headers.get("X-Token", "")
         if not token:
@@ -1800,6 +2108,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if method == "GET" and path == "/api/candidato/me":
             return self._json(200, resumo_candidato(conn, cand))
+
+        if method == "GET" and path == "/api/candidato/relatorio.pdf":
+            dados, erro = gerar_pdf_resultado(conn, cand)
+            if erro:
+                return self._json(400, {"erro": erro})
+            return self._baixar_pdf("relatorio-bussola.pdf", dados)
 
         if method == "POST" and path == "/api/candidato/teste":
             d = self._body()
@@ -3076,6 +3390,19 @@ class Handler(BaseHTTPRequestHandler):
                 if gestor_ve_candidato(gestor, cand_row):
                     lista.append(resumo_candidato(conn, cand_row))
             return self._json(200, {"candidatos": lista})
+
+        m = re.match(r"^/api/gestor/candidato/(\d+)/relatorio\.pdf$", path)
+        if m and method == "GET":
+            cand_row = conn.execute(
+                "SELECT * FROM candidatos WHERE id=?", (int(m.group(1)),)
+            ).fetchone()
+            if not cand_row or not gestor_ve_candidato(gestor, cand_row):
+                return self._json(404, {"erro": "Candidato não encontrado"})
+            dados, erro = gerar_pdf_resultado(conn, cand_row)
+            if erro:
+                return self._json(400, {"erro": erro})
+            nome_arq = "relatorio-%s.pdf" % re.sub(r"[^a-zA-Z0-9]+", "-", cand_row["nome"] or "candidato").strip("-").lower()
+            return self._baixar_pdf(nome_arq, dados)
 
         m = re.match(r"^/api/gestor/candidato/(\d+)$", path)
         if m:

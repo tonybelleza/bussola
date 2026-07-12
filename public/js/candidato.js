@@ -653,12 +653,39 @@ function telaResultados() {
         </div>
         <div class="linha-acoes" style="margin:0">
           <button class="btn ghost" id="res-voltar">← Voltar</button>
-          <button class="btn secondary" onclick="window.print()">${icone("impressora")} Imprimir / PDF</button>
+          <button class="btn" id="res-pdf">${icone("documento")} Baixar relatório em PDF</button>
         </div>
       </div>
     </div>
     ${blocos.join("") || '<div class="card"><p>Nenhum teste concluído ainda.</p></div>'}`;
   document.getElementById("res-voltar").addEventListener("click", telaPainel);
+  document.getElementById("res-pdf").addEventListener("click", baixarRelatorioPdf);
+}
+
+async function baixarRelatorioPdf() {
+  const btn = document.getElementById("res-pdf");
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = "Gerando…";
+  try {
+    const resp = await fetch("/api/candidato/relatorio.pdf", {
+      headers: { "X-Token": localStorage.getItem("cand_token") },
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.erro || "Não foi possível gerar o relatório");
+    }
+    const blob = await resp.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "relatorio-bussola.pdf";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    alert(e.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = original;
 }
 
 iniciar().catch((e) => {

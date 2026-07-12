@@ -154,6 +154,19 @@ def main():
                  set(me["match"]["componentes"]) ==
                  {"competencias", "disc", "base", "conhecimento"})
 
+        def _pdf(caminho, headers):
+            try:
+                resp = urllib.request.urlopen(urllib.request.Request(BASE + caminho, headers=headers))
+                return resp.status, resp.read()[:5]
+            except urllib.error.HTTPError as e:
+                return e.code, b""
+        st, ini = _pdf("/api/candidato/relatorio.pdf", C)
+        verifica("candidato baixa o relatório em PDF", st == 200 and ini == b"%PDF-")
+        st, _ini = _pdf("/api/candidato/relatorio.pdf", {})
+        verifica("relatório PDF do candidato exige token", st == 401)
+        st, ini = _pdf("/api/gestor/candidato/%d/relatorio.pdf" % me["candidato"]["id"], G)
+        verifica("gestor baixa o relatório do candidato em PDF", st == 200 and ini == b"%PDF-")
+
         print("\n== Banco de talentos (CRM) ==")
         _, code = req("/api/candidato/cadastro", {"nome": "Bia 2", "email": "b@x.com",
                                                   "telefone": "+244 923000000", "local": "Unidade A", "consentimento": True})

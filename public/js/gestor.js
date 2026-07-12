@@ -979,7 +979,7 @@ async function abrirDetalheCandidato(id) {
         ${c.candidato.instagram ? `<a class="btn secondary small" target="_blank" rel="noopener" href="${esc(urlPerfil(c.candidato.instagram, "instagram"))}">${icone("link")} Instagram</a>` : ""}
         ${c.candidato.curriculo ? `<a class="btn secondary small" href="/api/gestor/curriculo/${c.candidato.id}?t=${Date.now()}" id="baixar-cv">${icone("anexo")} Baixar currículo</a>` : '<span class="badge tipo">sem currículo</span>'}
         <button class="btn secondary small" id="btn-email-manual">Enviar e-mail</button>
-        <button class="btn secondary small" onclick="window.print()">${icone("impressora")} Imprimir / PDF</button>
+        <button class="btn secondary small" id="btn-relatorio-pdf" data-cand="${c.candidato.id}">${icone("documento")} Relatório em PDF</button>
         <button class="btn danger small" id="btn-anonimizar" title="Remove os dados pessoais e mantém as estatísticas">Anonimizar (LGPD)</button>
         <button class="btn danger small" id="excluir-cand">${icone("lixeira")} Excluir candidato</button>
       </div>
@@ -1061,6 +1061,32 @@ async function abrirDetalheCandidato(id) {
         fundo.remove();
         abrirDetalheCandidato(id);
       });
+  });
+
+  fundo.querySelector("#btn-relatorio-pdf").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "Gerando…";
+    try {
+      const resp = await fetch("/api/gestor/candidato/" + id + "/relatorio.pdf", {
+        headers: { "X-Gestor-Token": localStorage.getItem("gestor_token") },
+      });
+      if (!resp.ok) {
+        const d = await resp.json().catch(() => ({}));
+        throw new Error(d.erro || "Não foi possível gerar o relatório");
+      }
+      const blob = await resp.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "relatorio-" + (c.candidato.nome || "candidato").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".pdf";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      alert(e.message);
+    }
+    btn.disabled = false;
+    btn.innerHTML = original;
   });
 
   // anonimização LGPD
