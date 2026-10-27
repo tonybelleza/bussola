@@ -5,9 +5,10 @@
 
 const app = document.getElementById("app");
 let abaAtiva = "empresas";
+let telaAtual = "";  // "setup", "login" ou "painel": redesenhada ao trocar o idioma
 
 async function api(caminho, opcoes = {}) {
-  const headers = { "Content-Type": "application/json" };
+  const headers = { "Content-Type": "application/json", "X-Idioma": idiomaDono };
   const token = localStorage.getItem("dono_token");
   if (token) headers["X-Dono-Token"] = token;
   const resp = await fetch(caminho, {
@@ -19,9 +20,9 @@ async function api(caminho, opcoes = {}) {
   if (resp.status === 401 && !caminho.endsWith("/login") && !caminho.endsWith("/setup")) {
     localStorage.removeItem("dono_token");
     telaLogin();
-    throw new Error(dados.erro || "Sessão expirada");
+    throw new Error(dados.erro || td("sessao_expirada"));
   }
-  if (!resp.ok) throw new Error(dados.erro || "Erro de comunicação");
+  if (!resp.ok) throw new Error(dados.erro || td("erro_comunicacao"));
   return dados;
 }
 
@@ -30,23 +31,31 @@ document.getElementById("btn-sair").addEventListener("click", () => {
   telaLogin();
 });
 
+// seletor de idioma: salva e redesenha a tela atual
+montarSeletorIdiomaDono(() => {
+  if (telaAtual === "setup") telaSetup();
+  else if (telaAtual === "login") telaLogin();
+  else if (telaAtual === "painel") desenhar().catch(() => {});
+});
+
 // ------------------------------------------------ acesso
 function telaSetup() {
+  telaAtual = "setup";
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:460px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("chave")}<span>Configuração do dono</span></h2>
-      <p class="desc">Primeiro acesso ao painel do proprietário do software. Defina a senha mestra (mínimo 8 caracteres). Ela é independente das contas de gestor.</p>
-      <label class="field">Senha do dono <input type="password" id="dn-senha" autocomplete="new-password"></label>
-      <label class="field">Confirmar senha <input type="password" id="dn-senha2" autocomplete="new-password"></label>
+      <h2 class="icone-titulo">${icone("chave")}<span>${td("setup_titulo")}</span></h2>
+      <p class="desc">${td("setup_desc")}</p>
+      <label class="field">${td("setup_senha")} <input type="password" id="dn-senha" autocomplete="new-password"></label>
+      <label class="field">${td("setup_confirmar")} <input type="password" id="dn-senha2" autocomplete="new-password"></label>
       <div class="form-erro" id="dn-erro"></div>
-      <button class="btn block" id="dn-criar">Criar acesso do dono</button>
+      <button class="btn block" id="dn-criar">${td("setup_criar")}</button>
     </div>`;
   document.getElementById("dn-criar").addEventListener("click", async () => {
     const erro = document.getElementById("dn-erro");
     const senha = document.getElementById("dn-senha").value;
     if (senha !== document.getElementById("dn-senha2").value) {
-      erro.textContent = "As senhas não conferem.";
+      erro.textContent = td("senhas_nao_conferem");
       return;
     }
     try {
@@ -60,16 +69,17 @@ function telaSetup() {
 }
 
 function telaLogin() {
+  telaAtual = "login";
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:420px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("cadeado")}<span>Acesso do dono</span></h2>
-      <p class="desc">Área exclusiva do proprietário do software.</p>
-      <label class="field">Senha mestra
+      <h2 class="icone-titulo">${icone("cadeado")}<span>${td("login_titulo")}</span></h2>
+      <p class="desc">${td("login_desc")}</p>
+      <label class="field">${td("login_senha")}
         <input type="password" id="lg-senha" autocomplete="current-password">
       </label>
       <div class="form-erro" id="lg-erro"></div>
-      <button class="btn block" id="lg-entrar">Entrar</button>
+      <button class="btn block" id="lg-entrar">${td("login_entrar")}</button>
     </div>`;
   const entrar = async () => {
     const erro = document.getElementById("lg-erro");
@@ -93,14 +103,15 @@ function telaLogin() {
 
 // ------------------------------------------------ painel do administrador do sistema
 async function desenhar() {
+  telaAtual = "painel";
   document.getElementById("btn-sair").classList.remove("oculto");
   app.innerHTML = `
     <div class="tabs">
-      ${[["empresas", "Empresas"], ["visao", "Visão geral e saúde"], ["contas", "Todas as contas"],
-         ["integracoes", "Integrações"], ["config", "Configurações"]]
+      ${[["empresas", td("aba_empresas")], ["visao", td("aba_visao")], ["contas", td("aba_contas")],
+         ["integracoes", td("aba_integracoes")], ["config", td("aba_config")]]
         .map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
     </div>
-    <div id="conteudo"><p class="desc">Carregando…</p></div>`;
+    <div id="conteudo"><p class="desc">${td("carregando")}</p></div>`;
   app.querySelectorAll(".tab").forEach((t) =>
     t.addEventListener("click", () => { abaAtiva = t.dataset.aba; desenhar(); })
   );
@@ -116,38 +127,38 @@ async function abaVisao(el) {
   const [r, emp] = await Promise.all([api("/api/dono/visao"), api("/api/dono/empresas")]);
   el.innerHTML = `
     <div class="metricas">
-      <div class="metrica"><div class="num">${emp.empresas.length}</div><div class="rot">Empresas</div></div>
-      <div class="metrica"><div class="num">${r.totais.gestores}</div><div class="rot">Contas de gestor</div></div>
-      <div class="metrica"><div class="num">${r.totais.candidatos}</div><div class="rot">Pessoas avaliadas</div></div>
-      <div class="metrica"><div class="num">${r.totais.vagas}</div><div class="rot">Vagas criadas</div></div>
-      <div class="metrica"><div class="num">${r.totais.avaliacoes_completas}</div><div class="rot">Avaliações completas</div></div>
+      <div class="metrica"><div class="num">${fmtNumDono(emp.empresas.length)}</div><div class="rot">${td("m_empresas")}</div></div>
+      <div class="metrica"><div class="num">${fmtNumDono(r.totais.gestores)}</div><div class="rot">${td("m_contas_gestor")}</div></div>
+      <div class="metrica"><div class="num">${fmtNumDono(r.totais.candidatos)}</div><div class="rot">${td("m_pessoas_avaliadas")}</div></div>
+      <div class="metrica"><div class="num">${fmtNumDono(r.totais.vagas)}</div><div class="rot">${td("m_vagas_criadas")}</div></div>
+      <div class="metrica"><div class="num">${fmtNumDono(r.totais.avaliacoes_completas)}</div><div class="rot">${td("m_avaliacoes_completas")}</div></div>
     </div>
     <div class="grid cols-2">
       <div class="card">
-        <h2 class="icone-titulo">${icone("engrenagem")}<span>Saúde do sistema</span></h2>
+        <h2 class="icone-titulo">${icone("engrenagem")}<span>${td("saude_titulo")}</span></h2>
         <div class="tabela-wrap"><table class="tabela"><tbody>
-          <tr><td>Versão</td><td class="num"><strong>${esc(r.sistema.versao)}</strong></td></tr>
+          <tr><td>${td("saude_versao")}</td><td class="num"><strong>${esc(r.sistema.versao)}</strong></td></tr>
           <tr><td>Python</td><td class="num">${esc(r.sistema.python)}</td></tr>
-          <tr><td>Tamanho do banco</td><td class="num">${r.sistema.banco_mb} MB</td></tr>
-          <tr><td>IA (Anthropic)</td><td class="num">${r.sistema.ia_configurada ? '<span class="badge ok">Configurada</span>' : '<span class="badge warn">Não configurada</span>'}</td></tr>
-          <tr><td>E-mail (SMTP)</td><td class="num">${r.sistema.smtp_configurado ? '<span class="badge ok">Configurado</span>' : '<span class="badge warn">Não configurado</span>'}</td></tr>
-          <tr><td>Backups recentes</td><td class="num">${r.sistema.backups.length ? r.sistema.backups.map(esc).join("<br>") : "nenhum"}</td></tr>
+          <tr><td>${td("saude_banco")}</td><td class="num">${td("mb", { n: fmtNumDono(r.sistema.banco_mb) })}</td></tr>
+          <tr><td>${td("saude_ia")}</td><td class="num">${r.sistema.ia_configurada ? `<span class="badge ok">${td("configurada")}</span>` : `<span class="badge warn">${td("nao_configurada")}</span>`}</td></tr>
+          <tr><td>${td("saude_email")}</td><td class="num">${r.sistema.smtp_configurado ? `<span class="badge ok">${td("configurado")}</span>` : `<span class="badge warn">${td("nao_configurado")}</span>`}</td></tr>
+          <tr><td>${td("saude_backups")}</td><td class="num">${r.sistema.backups.length ? r.sistema.backups.map(esc).join("<br>") : td("nenhum")}</td></tr>
         </tbody></table></div>
       </div>
       <div class="card">
-        <h2 class="icone-titulo">${icone("documento")}<span>Uso por empresa</span></h2>
+        <h2 class="icone-titulo">${icone("documento")}<span>${td("uso_titulo")}</span></h2>
         <div class="tabela-wrap"><table class="tabela">
-          <thead><tr><th>Empresa</th><th class="num">Candidatos</th><th class="num">Vagas abertas</th><th class="num">Ligações</th></tr></thead>
+          <thead><tr><th>${td("col_empresa")}</th><th class="num">${td("col_candidatos")}</th><th class="num">${td("col_vagas_abertas")}</th><th class="num">${td("col_ligacoes")}</th></tr></thead>
           <tbody>${emp.empresas.map((e) => `
-            <tr><td><strong>${esc(e.nome)}</strong></td><td class="num">${e.candidatos}</td>
-            <td class="num">${e.vagas_abertas}</td><td class="num">${e.ligacoes_voz}</td></tr>`).join("")
-            || '<tr><td colspan="4" style="color:var(--muted)">Nenhuma empresa ainda.</td></tr>'}</tbody>
+            <tr><td><strong>${esc(e.nome)}</strong></td><td class="num">${fmtNumDono(e.candidatos)}</td>
+            <td class="num">${fmtNumDono(e.vagas_abertas)}</td><td class="num">${fmtNumDono(e.ligacoes_voz)}</td></tr>`).join("")
+            || `<tr><td colspan="4" style="color:var(--muted)">${td("nenhuma_empresa")}</td></tr>`}</tbody>
         </table></div>
       </div>
     </div>
     <div class="card">
-      <h2 class="icone-titulo">${icone("bloco")}<span>Log do servidor (últimas linhas)</span></h2>
-      <pre style="font-size:.72rem;color:var(--text-2);white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(7,11,20,.5);padding:14px;border-radius:12px">${esc(r.sistema.log || "Sem registros.")}</pre>
+      <h2 class="icone-titulo">${icone("bloco")}<span>${td("log_titulo")}</span></h2>
+      <pre style="font-size:.72rem;color:var(--text-2);white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(7,11,20,.5);padding:14px;border-radius:12px">${esc(r.sistema.log || td("sem_registros"))}</pre>
     </div>`;
 }
 
@@ -155,24 +166,24 @@ async function abaContas(el) {
   const r = await api("/api/dono/visao");
   el.innerHTML = `
     <div class="card">
-      <h2 class="icone-titulo">${icone("usuarios")}<span>Todas as contas de gestor</span></h2>
-      <p class="desc">Entre em qualquer conta para dar suporte ou redefina a senha de quem perdeu o acesso. Cada acesso seu abre o painel exatamente como o gestor o vê, só com os dados da empresa dele.</p>
+      <h2 class="icone-titulo">${icone("usuarios")}<span>${td("contas_titulo")}</span></h2>
+      <p class="desc">${td("contas_desc")}</p>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Nome</th><th>Empresa</th><th>Login</th><th>Local</th><th class="num">Perfil</th>
-          <th class="num">Candidatos visíveis</th><th></th></tr></thead>
+        <thead><tr><th>${td("col_nome")}</th><th>${td("col_empresa")}</th><th>${td("col_login")}</th><th>${td("col_local")}</th><th class="num">${td("col_perfil")}</th>
+          <th class="num">${td("col_candidatos_visiveis")}</th><th></th></tr></thead>
         <tbody>${r.gestores.map((g) => `
           <tr>
-            <td><strong>${esc(g.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${esc(g.email || "sem e-mail")}</span></td>
+            <td><strong>${esc(g.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${g.email ? esc(g.email) : td("sem_email")}</span></td>
             <td>${esc(g.empresa || "")}</td>
-            <td>${esc(g.login)}${g.aprovado ? "" : ' <span class="badge warn">inativo</span>'}</td>
-            <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">empresa toda</span>'}</td>
-            <td class="num">${g.admin ? '<span class="badge neutral">Admin</span>' : '<span class="badge tipo">Gestor</span>'}</td>
-            <td class="num">${g.candidatos_visiveis}</td>
+            <td>${esc(g.login)}${g.aprovado ? "" : ` <span class="badge warn">${td("inativo")}</span>`}</td>
+            <td>${g.local ? esc(g.local) : `<span style="color:var(--muted)">${td("empresa_toda")}</span>`}</td>
+            <td class="num">${g.admin ? `<span class="badge neutral">${td("perfil_admin")}</span>` : `<span class="badge tipo">${td("perfil_gestor")}</span>`}</td>
+            <td class="num">${fmtNumDono(g.candidatos_visiveis)}</td>
             <td class="num">
-              <button class="btn secondary small" data-entrar="${g.id}">Entrar na conta</button>
-              <button class="btn ghost small" data-senha="${g.id}">Redefinir senha</button>
+              <button class="btn secondary small" data-entrar="${g.id}">${td("entrar_conta")}</button>
+              <button class="btn ghost small" data-senha="${g.id}">${td("redefinir_senha")}</button>
             </td>
-          </tr>`).join("") || '<tr><td colspan="7" style="color:var(--muted)">Nenhuma conta criada ainda.</td></tr>'}</tbody>
+          </tr>`).join("") || `<tr><td colspan="7" style="color:var(--muted)">${td("nenhuma_conta")}</td></tr>`}</tbody>
       </table></div>
     </div>`;
   ligarAcoesGestor(el, () => abaContas(el));
@@ -186,56 +197,56 @@ async function abaEmpresas(el) {
   const mods = Object.entries(r.modulos_disponiveis || {});
   el.innerHTML = `
     <div class="card">
-      <h2 class="icone-titulo">${icone("camadas")}<span>Empresas</span></h2>
-      <p class="desc">Cada empresa é uma subconta isolada: só enxerga os próprios gestores, cargos, vagas, candidatos e ligações. Só você vê todas.</p>
+      <h2 class="icone-titulo">${icone("camadas")}<span>${td("empresas_titulo")}</span></h2>
+      <p class="desc">${td("empresas_desc")}</p>
       ${r.empresas.map((e) => `
         <div class="comp-item" style="margin-top:14px">
           <div class="nome" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-            <span><strong>${esc(e.nome)}</strong> <span class="badge ${STATUS_EMPRESA[e.status] || "tipo"}">${esc(e.status)}</span></span>
+            <span><strong>${esc(e.nome)}</strong> <span class="badge ${STATUS_EMPRESA[e.status] || "tipo"}">${esc(rotuloStatusDono(e.status))}</span></span>
             <span style="color:var(--muted);font-size:.8rem">${esc(location.origin)}/vagas?e=${esc(e.slug)}</span>
           </div>
           <div class="metricas" style="margin:10px 0">
-            <div class="metrica"><div class="num">${e.gestores}</div><div class="rot">Gestores</div></div>
-            <div class="metrica"><div class="num">${e.cargos}</div><div class="rot">Cargos</div></div>
-            <div class="metrica"><div class="num">${e.vagas_abertas}</div><div class="rot">Vagas abertas</div></div>
-            <div class="metrica"><div class="num">${e.candidatos}</div><div class="rot">Candidatos</div></div>
-            <div class="metrica"><div class="num">${e.ligacoes_voz}</div><div class="rot">Ligações de voz</div></div>
+            <div class="metrica"><div class="num">${fmtNumDono(e.gestores)}</div><div class="rot">${td("m_gestores")}</div></div>
+            <div class="metrica"><div class="num">${fmtNumDono(e.cargos)}</div><div class="rot">${td("m_cargos")}</div></div>
+            <div class="metrica"><div class="num">${fmtNumDono(e.vagas_abertas)}</div><div class="rot">${td("m_vagas_abertas")}</div></div>
+            <div class="metrica"><div class="num">${fmtNumDono(e.candidatos)}</div><div class="rot">${td("m_candidatos")}</div></div>
+            <div class="metrica"><div class="num">${fmtNumDono(e.ligacoes_voz)}</div><div class="rot">${td("m_ligacoes_voz")}</div></div>
           </div>
           <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
             <select data-campo="status" data-id="${e.id}" style="margin:0">
-              ${["ativa", "teste", "suspensa", "cancelada"].map((s) => `<option value="${s}" ${e.status === s ? "selected" : ""}>${s}</option>`).join("")}
+              ${["ativa", "teste", "suspensa", "cancelada"].map((s) => `<option value="${s}" ${e.status === s ? "selected" : ""}>${esc(rotuloStatusDono(s))}</option>`).join("")}
             </select>
-            <input type="text" data-campo="plano" data-id="${e.id}" value="${esc(e.plano)}" placeholder="Plano (ex.: mensal)" style="margin:0">
-            <input type="text" data-campo="valor" data-id="${e.id}" value="${esc(e.valor)}" placeholder="Valor" style="margin:0">
-            <input type="text" data-campo="notas" data-id="${e.id}" value="${esc(e.notas)}" placeholder="Notas" style="margin:0">
-            <input type="text" data-campo="slug" data-id="${e.id}" value="${esc(e.slug)}" placeholder="link (ex.: bhs-ct)" title="Link público da empresa" style="margin:0">
+            <input type="text" data-campo="plano" data-id="${e.id}" value="${esc(e.plano)}" placeholder="${td("ph_plano")}" style="margin:0">
+            <input type="text" data-campo="valor" data-id="${e.id}" value="${esc(e.valor)}" placeholder="${td("ph_valor")}" style="margin:0">
+            <input type="text" data-campo="notas" data-id="${e.id}" value="${esc(e.notas)}" placeholder="${td("ph_notas")}" style="margin:0">
+            <input type="text" data-campo="slug" data-id="${e.id}" value="${esc(e.slug)}" placeholder="${td("ph_slug")}" title="${td("title_slug")}" style="margin:0">
           </div>
           <div class="linha-acoes" style="margin-top:10px">
             ${mods.map(([m, rot]) => `<label class="badge ${e.modulos.includes(m) ? "ok" : ""}" style="cursor:pointer">
-              <input type="checkbox" data-modulo="${m}" data-id="${e.id}" ${e.modulos.includes(m) ? "checked" : ""}> ${esc(rot)}</label>`).join("")}
-            <button class="btn small" data-salvar-empresa="${e.id}">Salvar</button>
-            <button class="btn secondary small" data-ver-gestores="${e.id}">Gestores e acesso</button>
-            <label class="btn secondary small" style="cursor:pointer">${e.logo_url ? "Trocar logo" : "Enviar logo"}<input type="file" data-logo-empresa="${e.id}" accept="image/png,image/jpeg" style="display:none"></label>
+              <input type="checkbox" data-modulo="${m}" data-id="${e.id}" ${e.modulos.includes(m) ? "checked" : ""}> ${esc(rotuloModuloDono(m, rot))}</label>`).join("")}
+            <button class="btn small" data-salvar-empresa="${e.id}">${td("salvar")}</button>
+            <button class="btn secondary small" data-ver-gestores="${e.id}">${td("gestores_acesso")}</button>
+            <label class="btn secondary small" style="cursor:pointer">${e.logo_url ? td("trocar_logo") : td("enviar_logo")}<input type="file" data-logo-empresa="${e.id}" accept="image/png,image/jpeg" style="display:none"></label>
             ${e.logo_url ? `<img src="${esc(e.logo_url)}" alt="" style="height:30px;max-width:120px;background:#fff;border-radius:6px;padding:2px 6px">` : ""}
           </div>
           <div id="gestores-empresa-${e.id}"></div>
-        </div>`).join("") || '<p class="desc">Nenhuma empresa ainda.</p>'}
+        </div>`).join("") || `<p class="desc">${td("nenhuma_empresa")}</p>`}
     </div>
     <div class="card">
-      <h2 class="icone-titulo">${icone("chave")}<span>Nova empresa</span></h2>
+      <h2 class="icone-titulo">${icone("chave")}<span>${td("nova_empresa")}</span></h2>
       <div class="grid cols-2">
-        <label class="field">Nome da empresa <input type="text" id="ne-nome" placeholder="Belleza's Home Services CT"></label>
-        <label class="field">Situação <select id="ne-status"><option value="ativa">ativa</option><option value="teste">teste</option></select></label>
+        <label class="field">${td("ne_nome")} <input type="text" id="ne-nome" placeholder="Belleza's Home Services CT"></label>
+        <label class="field">${td("ne_situacao")} <select id="ne-status"><option value="ativa">${td("status_ativa")}</option><option value="teste">${td("status_teste")}</option></select></label>
       </div>
-      <p class="desc">Primeiro administrador da empresa (opcional agora, dá para criar depois):</p>
+      <p class="desc">${td("ne_admin_desc")}</p>
       <div class="grid cols-2">
-        <label class="field">Nome <input type="text" id="ne-a-nome"></label>
-        <label class="field">E-mail <input type="email" id="ne-a-email"></label>
-        <label class="field">Login <input type="text" id="ne-a-login" autocomplete="off"></label>
-        <label class="field">Senha (mín. 8) <input type="password" id="ne-a-senha" autocomplete="new-password"></label>
+        <label class="field">${td("campo_nome")} <input type="text" id="ne-a-nome"></label>
+        <label class="field">${td("campo_email")} <input type="email" id="ne-a-email"></label>
+        <label class="field">${td("campo_login")} <input type="text" id="ne-a-login" autocomplete="off"></label>
+        <label class="field">${td("campo_senha_min8")} <input type="password" id="ne-a-senha" autocomplete="new-password"></label>
       </div>
       <div class="form-erro" id="ne-erro"></div>
-      <button class="btn" id="ne-criar">Criar empresa</button>
+      <button class="btn" id="ne-criar">${td("criar_empresa")}</button>
     </div>`;
 
   const valor = (id, campo) => el.querySelector(`[data-campo="${campo}"][data-id="${id}"]`).value;
@@ -247,7 +258,7 @@ async function abaEmpresas(el) {
         status: valor(id, "status"), plano: valor(id, "plano"), valor: valor(id, "valor"),
         notas: valor(id, "notas"), slug: valor(id, "slug"), modulos,
       } });
-      b.textContent = "Salvo ✓";
+      b.textContent = td("salvo");
       setTimeout(() => abaEmpresas(el), 800);
     } catch (e) { alert(e.message); }
   }));
@@ -283,23 +294,23 @@ async function gestoresDaEmpresa(id, box) {
   const r = await api("/api/dono/empresa/" + id);
   box.innerHTML = `
     <div class="tabela-wrap" style="margin-top:10px"><table class="tabela">
-      <thead><tr><th>Nome</th><th>Login</th><th>Local</th><th class="num">Perfil</th><th></th></tr></thead>
+      <thead><tr><th>${td("col_nome")}</th><th>${td("col_login")}</th><th>${td("col_local")}</th><th class="num">${td("col_perfil")}</th><th></th></tr></thead>
       <tbody>${r.gestores_lista.map((g) => `
-        <tr><td><strong>${esc(g.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${esc(g.email || "sem e-mail")}</span></td>
-          <td>${esc(g.login)}${g.aprovado ? "" : ' <span class="badge warn">pendente</span>'}</td>
-          <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">empresa toda</span>'}</td>
-          <td class="num">${g.admin ? '<span class="badge neutral">Admin</span>' : '<span class="badge tipo">Gestor</span>'}</td>
-          <td class="num"><button class="btn secondary small" data-entrar="${g.id}">Entrar na conta</button>
-            <button class="btn ghost small" data-senha="${g.id}">Redefinir senha</button></td></tr>`).join("")
-        || '<tr><td colspan="5" style="color:var(--muted)">Nenhum gestor ainda.</td></tr>'}</tbody>
+        <tr><td><strong>${esc(g.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${g.email ? esc(g.email) : td("sem_email")}</span></td>
+          <td>${esc(g.login)}${g.aprovado ? "" : ` <span class="badge warn">${td("pendente")}</span>`}</td>
+          <td>${g.local ? esc(g.local) : `<span style="color:var(--muted)">${td("empresa_toda")}</span>`}</td>
+          <td class="num">${g.admin ? `<span class="badge neutral">${td("perfil_admin")}</span>` : `<span class="badge tipo">${td("perfil_gestor")}</span>`}</td>
+          <td class="num"><button class="btn secondary small" data-entrar="${g.id}">${td("entrar_conta")}</button>
+            <button class="btn ghost small" data-senha="${g.id}">${td("redefinir_senha")}</button></td></tr>`).join("")
+        || `<tr><td colspan="5" style="color:var(--muted)">${td("nenhum_gestor")}</td></tr>`}</tbody>
     </table></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px">
-      <input type="text" id="ng-nome-${id}" placeholder="Nome" style="margin:0">
-      <input type="email" id="ng-email-${id}" placeholder="E-mail" style="margin:0">
-      <input type="text" id="ng-login-${id}" placeholder="Login" style="margin:0" autocomplete="off">
-      <input type="password" id="ng-senha-${id}" placeholder="Senha (mín. 8)" style="margin:0" autocomplete="new-password">
-      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ng-admin-${id}"> Admin</label>
-      <button class="btn small" id="ng-criar-${id}">Adicionar gestor</button>
+      <input type="text" id="ng-nome-${id}" placeholder="${td("campo_nome")}" style="margin:0">
+      <input type="email" id="ng-email-${id}" placeholder="${td("campo_email")}" style="margin:0">
+      <input type="text" id="ng-login-${id}" placeholder="${td("campo_login")}" style="margin:0" autocomplete="off">
+      <input type="password" id="ng-senha-${id}" placeholder="${td("campo_senha_min8")}" style="margin:0" autocomplete="new-password">
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ng-admin-${id}"> ${td("perfil_admin")}</label>
+      <button class="btn small" id="ng-criar-${id}">${td("adicionar_gestor")}</button>
     </div>
     <p class="form-erro" id="ng-erro-${id}"></p>`;
   ligarAcoesGestor(box, () => gestoresDaEmpresa(id, box));
@@ -331,13 +342,13 @@ function ligarAcoesGestor(el, recarregar) {
   );
   el.querySelectorAll("[data-senha]").forEach((b) =>
     b.addEventListener("click", async () => {
-      const nova = prompt("Nova senha para esta conta (mínimo 6 caracteres):");
+      const nova = prompt(td("prompt_nova_senha"));
       if (!nova) return;
       try {
         await api("/api/dono/gestor-senha", {
           method: "POST", body: { gestor_id: Number(b.dataset.senha), nova },
         });
-        alert("Senha redefinida.");
+        alert(td("senha_redefinida"));
         if (recarregar) recarregar();
       } catch (e) {
         alert(e.message);
@@ -350,53 +361,53 @@ async function abaIntegracoes(el) {
   const r = await api("/api/dono/integracoes");
   el.innerHTML = `
     <div class="card">
-      <h2 class="icone-titulo">${icone("engrenagem")}<span>Integrações da plataforma (valem para todas as empresas)</span></h2>
-      <p class="desc">Estes são os únicos recursos do sistema que dependem de serviços externos. Tudo o mais funciona sem custo. Sem estas credenciais, os botões de IA e as notificações por e-mail apenas ficam indisponíveis.</p>
+      <h2 class="icone-titulo">${icone("engrenagem")}<span>${td("int_titulo")}</span></h2>
+      <p class="desc">${td("int_desc")}</p>
       <div class="grid cols-2">
         <div>
-          <h3>Análise de currículo por IA</h3>
-          <p class="desc" style="font-size:.82rem">Usa a API da Anthropic (Claude Haiku 4.5, rápido e econômico). Crie uma chave em console.anthropic.com. Custo aproximado: US$ 25 a cada mil currículos analisados. Status:
-            ${r.ia_configurada ? '<span class="badge ok">Configurada (...' + esc(r.ia_final) + ")</span>" : '<span class="badge warn">Não configurada</span>'}</p>
-          <label class="field">Chave da API Anthropic
-            <input type="password" id="int-chave" placeholder="${r.ia_configurada ? "Preencher apenas para trocar" : "sk-ant-..."}" autocomplete="off">
+          <h3>${td("ia_titulo")}</h3>
+          <p class="desc" style="font-size:.82rem">${td("ia_desc")}
+            ${r.ia_configurada ? `<span class="badge ok">${td("ia_configurada_final", { final: esc(r.ia_final) })}</span>` : `<span class="badge warn">${td("nao_configurada")}</span>`}</p>
+          <label class="field">${td("ia_chave")}
+            <input type="password" id="int-chave" placeholder="${r.ia_configurada ? td("ph_trocar") : "sk-ant-..."}" autocomplete="off">
           </label>
         </div>
         <div>
-          <h3>E-mail para candidatos (SMTP)</h3>
-          <p class="desc" style="font-size:.82rem">Com o SMTP configurado, o sistema envia automaticamente: confirmação de inscrição com link de acesso ao candidato, avisos de mudança de etapa, e alertas aos gestores (novo candidato e avaliação completa com o match). Funciona com qualquer SMTP; no Gmail use uma senha de app. Status:
-            ${r.smtp_host ? '<span class="badge ok">Configurado</span>' : '<span class="badge warn">Não configurado</span>'}</p>
-          <label class="field">Servidor SMTP <input type="text" id="int-host" value="${esc(r.smtp_host)}" placeholder="smtp.gmail.com"></label>
+          <h3>${td("smtp_titulo")}</h3>
+          <p class="desc" style="font-size:.82rem">${td("smtp_desc")}
+            ${r.smtp_host ? `<span class="badge ok">${td("configurado")}</span>` : `<span class="badge warn">${td("nao_configurado")}</span>`}</p>
+          <label class="field">${td("smtp_servidor")} <input type="text" id="int-host" value="${esc(r.smtp_host)}" placeholder="smtp.gmail.com"></label>
           <div class="grid cols-2">
-            <label class="field">Porta <span class="hint">(587 STARTTLS ou 465 SSL)</span><input type="text" id="int-porta" value="${esc(r.smtp_porta)}" placeholder="587"></label>
-            <label class="field">Usuário <input type="text" id="int-usuario" value="${esc(r.smtp_usuario)}" placeholder="voce@gmail.com"></label>
+            <label class="field">${td("smtp_porta")} <span class="hint">${td("smtp_porta_dica")}</span><input type="text" id="int-porta" value="${esc(r.smtp_porta)}" placeholder="587"></label>
+            <label class="field">${td("smtp_usuario")} <input type="text" id="int-usuario" value="${esc(r.smtp_usuario)}" placeholder="${td("ph_usuario")}"></label>
           </div>
-          <label class="field">Senha ${r.smtp_senha_configurada ? '<span class="hint">(preencher apenas para trocar)</span>' : ""}
+          <label class="field">${td("smtp_senha")} ${r.smtp_senha_configurada ? `<span class="hint">${td("dica_trocar")}</span>` : ""}
             <input type="password" id="int-senha" autocomplete="off">
           </label>
-          <label class="field">Remetente <span class="hint">(opcional)</span>
-            <input type="text" id="int-remetente" value="${esc(r.smtp_remetente)}" placeholder="selecao@suaempresa.com">
+          <label class="field">${td("smtp_remetente")} <span class="hint">${td("opcional")}</span>
+            <input type="text" id="int-remetente" value="${esc(r.smtp_remetente)}" placeholder="${td("ph_remetente")}">
           </label>
         </div>
       </div>
       <div class="grid cols-2 mt">
-        <label class="field">Endereço público do sistema <span class="hint">(usado nos links dos e-mails)</span>
-          <input type="text" id="int-url" value="${esc(r.url_publica)}" placeholder="http://localhost:8080 ou https://rh.seudominio.com">
+        <label class="field">${td("url_publica")} <span class="hint">${td("url_publica_dica")}</span>
+          <input type="text" id="int-url" value="${esc(r.url_publica)}" placeholder="${td("ph_url")}">
         </label>
-        <label class="field">Retenção de dados (LGPD) <span class="hint">(anonimizar candidatos automaticamente após)</span>
+        <label class="field">${td("retencao")} <span class="hint">${td("retencao_dica")}</span>
           <select id="int-retencao">
-            <option value="0" ${r.retencao_meses === "0" ? "selected" : ""}>Nunca (manter tudo)</option>
-            ${[6, 12, 24, 36].map((m) => `<option value="${m}" ${r.retencao_meses === String(m) ? "selected" : ""}>${m} meses</option>`).join("")}
+            <option value="0" ${r.retencao_meses === "0" ? "selected" : ""}>${td("retencao_nunca")}</option>
+            ${[6, 12, 24, 36].map((m) => `<option value="${m}" ${r.retencao_meses === String(m) ? "selected" : ""}>${td("meses", { n: fmtNumDono(m) })}</option>`).join("")}
           </select>
         </label>
       </div>
       <div class="form-erro" id="int-erro"></div>
       <div class="linha-acoes">
-        <button class="btn" id="int-salvar">Salvar integrações</button>
-        <button class="btn secondary" id="int-testar">Salvar e enviar e-mail de teste</button>
+        <button class="btn" id="int-salvar">${td("salvar_integracoes")}</button>
+        <button class="btn secondary" id="int-testar">${td("salvar_testar")}</button>
       </div>
-      <label class="field" style="max-width:360px">E-mail para o teste <input type="email" id="int-destino" placeholder="voce@seudominio.com"></label>
+      <label class="field" style="max-width:360px">${td("email_teste")} <input type="email" id="int-destino" placeholder="${td("ph_email_teste")}"></label>
     </div>
-    <div class="card" id="int-voz"><p class="desc">Carregando integração de voz…</p></div>`;
+    <div class="card" id="int-voz"><p class="desc">${td("carregando_voz")}</p></div>`;
   document.getElementById("int-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("int-erro");
     erro.textContent = "";
@@ -415,7 +426,7 @@ async function abaIntegracoes(el) {
     try {
       await api("/api/dono/integracoes", { method: "POST", body: corpo });
       erro.style.color = "var(--ok)";
-      erro.textContent = "Integrações salvas.";
+      erro.textContent = td("integracoes_salvas");
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;
@@ -424,7 +435,7 @@ async function abaIntegracoes(el) {
   document.getElementById("int-testar").addEventListener("click", async () => {
     const erro = document.getElementById("int-erro");
     erro.style.color = "var(--text-2)";
-    erro.textContent = "Salvando e enviando e-mail de teste…";
+    erro.textContent = td("enviando_teste");
     const corpo = {
       smtp_host: document.getElementById("int-host").value.trim(),
       smtp_porta: document.getElementById("int-porta").value.trim(),
@@ -439,7 +450,7 @@ async function abaIntegracoes(el) {
       await api("/api/dono/integracoes", { method: "POST", body: corpo });
       const r = await api("/api/dono/integracoes/teste", { method: "POST", body: { destino: document.getElementById("int-destino").value.trim() } });
       erro.style.color = "var(--ok)";
-      erro.textContent = "E-mail de teste enviado para " + r.destino + ". Verifique a caixa de entrada (e o spam).";
+      erro.textContent = td("teste_enviado", { destino: r.destino });
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;
@@ -453,18 +464,18 @@ async function abaIntegracoes(el) {
 async function secaoVozPlataforma(box) {
   const r = await api("/api/dono/voz/integracao");
   box.innerHTML = `
-    <h2 class="icone-titulo">${icone("usuarios")}<span>Triagem por voz (ElevenLabs)</span></h2>
-    <p class="desc">Conta da plataforma usada pela Francisca em todas as empresas que tiverem o módulo Triagem por Voz.</p>
+    <h2 class="icone-titulo">${icone("usuarios")}<span>${td("voz_titulo")}</span></h2>
+    <p class="desc">${td("voz_desc")}</p>
     <div class="grid cols-2">
-      <label class="field">Chave da API <input type="password" id="vi-key" autocomplete="off" placeholder="sk_...">
-        ${r.api_key_final ? `<span class="hint">Chave salva terminando em ${esc(r.api_key_final)}. Deixe vazio para manter.</span>` : ""}</label>
-      <label class="field">Segredo do webhook <input type="password" id="vi-secret" autocomplete="off" placeholder="${r.webhook_configurado ? "••••••" : "wsec_..."}"></label>
-      <label class="field">ID da agente <input type="text" id="vi-agent" value="${esc(r.agent_id)}"></label>
-      <label class="field">ID do número de telefone <input type="text" id="vi-phone" value="${esc(r.phone_number_id)}"></label>
+      <label class="field">${td("voz_chave")} <input type="password" id="vi-key" autocomplete="off" placeholder="sk_...">
+        ${r.api_key_final ? `<span class="hint">${td("voz_chave_salva", { final: esc(r.api_key_final) })}</span>` : ""}</label>
+      <label class="field">${td("voz_segredo")} <input type="password" id="vi-secret" autocomplete="off" placeholder="${r.webhook_configurado ? "••••••" : "wsec_..."}"></label>
+      <label class="field">${td("voz_agente")} <input type="text" id="vi-agent" value="${esc(r.agent_id)}"></label>
+      <label class="field">${td("voz_telefone")} <input type="text" id="vi-phone" value="${esc(r.phone_number_id)}"></label>
     </div>
-    <p class="desc">Endereço do webhook para colar no ElevenLabs: <code>${esc(r.webhook_url)}</code></p>
+    <p class="desc">${td("voz_webhook")} <code>${esc(r.webhook_url)}</code></p>
     <div class="form-erro" id="vi-erro"></div>
-    <button class="btn" id="vi-salvar">Salvar integração de voz</button>`;
+    <button class="btn" id="vi-salvar">${td("voz_salvar")}</button>`;
   box.querySelector("#vi-salvar").addEventListener("click", async () => {
     const corpo = { agent_id: box.querySelector("#vi-agent").value, phone_number_id: box.querySelector("#vi-phone").value };
     const k = box.querySelector("#vi-key").value.trim();
@@ -475,7 +486,7 @@ async function secaoVozPlataforma(box) {
     try {
       await api("/api/dono/voz/integracao", { method: "POST", body: corpo });
       erro.style.color = "var(--ok)";
-      erro.textContent = "Integração de voz salva.";
+      erro.textContent = td("voz_salva");
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;
@@ -486,11 +497,11 @@ async function secaoVozPlataforma(box) {
 function abaConfig(el) {
   el.innerHTML = `
     <div class="card" style="max-width:480px">
-      <h2 class="icone-titulo">${icone("chave")}<span>Alterar senha do dono</span></h2>
-      <label class="field">Senha atual <input type="password" id="cf-atual"></label>
-      <label class="field">Nova senha (mín. 8 caracteres) <input type="password" id="cf-nova"></label>
+      <h2 class="icone-titulo">${icone("chave")}<span>${td("cf_titulo")}</span></h2>
+      <label class="field">${td("cf_atual")} <input type="password" id="cf-atual"></label>
+      <label class="field">${td("cf_nova")} <input type="password" id="cf-nova"></label>
       <div class="form-erro" id="cf-erro"></div>
-      <button class="btn" id="cf-salvar">Alterar senha</button>
+      <button class="btn" id="cf-salvar">${td("cf_salvar")}</button>
     </div>`;
   document.getElementById("cf-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("cf-erro");
@@ -503,7 +514,7 @@ function abaConfig(el) {
         },
       });
       erro.style.color = "var(--ok)";
-      erro.textContent = "Senha alterada.";
+      erro.textContent = td("cf_alterada");
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;
