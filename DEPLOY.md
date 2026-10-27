@@ -73,3 +73,23 @@ rh.tonybelleza.com {
 EOF
 sudo systemctl reload caddy
 ```
+
+## Módulo Triagem por Voz (voz.py)
+
+- O `voz.py` precisa ir junto do `server.py` (o rsync acima já envia tudo).
+- Na primeira subida, o banco ganha sozinho as tabelas `voz_config` e `voz_chamadas` e
+  colunas novas em `candidaturas`, `cargos` e `candidatos`. Faça backup do `rh.db` antes:
+  ```bash
+  ssh -i ~/.ssh/bussola_oracle_studio ubuntu@159.54.181.125 'cp /home/ubuntu/bussola/rh.db /home/ubuntu/bussola/backups/rh-antes-voz.db'
+  ```
+- A fila de ligações roda numa thread do próprio servidor, uma rodada por minuto. Para
+  desligar a fila sem mexer no código, defina `VOZ_FILA_DESLIGADA=1` no serviço systemd.
+- Configuração no painel do gestor, aba **Triagem por voz** (admin):
+  1. Integração ElevenLabs: chave da API, ID da agente e ID do número.
+  2. Marque os cargos que usam triagem por voz e o peso no match (padrão 30%).
+  3. Libere o módulo "Triagem por Voz" para os gestores no painel do dono.
+- Webhook: no ElevenLabs (Agents > Settings > Post-call webhook), use
+  `https://rh.tonybelleza.com/api/voz/webhook`, eventos de transcrição pós chamada e falha de
+  início de chamada, e cole o segredo HMAC em "Segredo do webhook" na aba. Sem o webhook o
+  resultado chega mesmo assim, pela verificação automática (1 a 3 minutos de atraso).
+- Testes antes de subir: `python3 teste_sistema.py` e `python3 teste_voz.py`.
