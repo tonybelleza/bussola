@@ -46,6 +46,7 @@
   <script src="js/render.js"></script>
   <script>
     const gestorPagina = new URLSearchParams(location.search).get("g") || "";
+    let empresaPagina = new URLSearchParams(location.search).get("e") || "";
     let todasVagas = [];
 
     function desenharVagas() {
@@ -65,15 +66,23 @@
             <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(v.pais) : ""}</div>
             ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
           </div>
-          <a class="btn" href="/candidato?vaga=${v.id}">Candidatar-se</a>
+          <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}">Candidatar-se</a>
         </div>`).join("");
     }
 
-    fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina) : ""))
+    fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina)
+                               : "?e=" + encodeURIComponent(empresaPagina)))
       .then((r) => r.json()).then((d) => {
       const el = document.getElementById("lista-vagas");
       if (d.erro) {
         el.innerHTML = '<div class="card texto-centro"><p class="desc">' + esc(d.erro) + "</p></div>";
+        return;
+      }
+      if (d.empresa) {
+        empresaPagina = d.empresa.slug;
+        document.getElementById("sub-vagas").textContent = d.empresa.nome;
+      } else {
+        el.innerHTML = '<div class="card texto-centro"><p class="desc">Use o link de vagas enviado pela empresa.</p></div>';
         return;
       }
       if (d.pagina) {

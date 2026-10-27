@@ -32,6 +32,7 @@ def ligar(modulo_servidor):
 def gerar_slug(texto, existentes=()):
     t = unicodedata.normalize("NFD", texto or "")
     t = "".join(ch for ch in t if unicodedata.category(ch) != "Mn").lower()
+    t = re.sub(r"['’`]", "", t)  # Belleza's vira bellezas
     base = re.sub(r"[^a-z0-9]+", "-", t).strip("-")[:40] or "empresa"
     slug, n = base, 2
     while slug in existentes:
@@ -258,6 +259,13 @@ def rotear_dono(h, method, path, conn):
                 if chave in d:
                     campos.append("%s=?" % chave)
                     valores.append((d.get(chave) or "").strip())
+            if "slug" in d and (d.get("slug") or "").strip():
+                novo = gerar_slug(d["slug"])
+                if novo != e["slug"]:
+                    if conn.execute("SELECT 1 FROM empresas WHERE slug=? AND id!=?", (novo, e["id"])).fetchone():
+                        return _resp(h, 400, {"erro": "Este link já é usado por outra empresa"})
+                    campos.append("slug=?")
+                    valores.append(novo)
             if "modulos" in d:
                 mods = sorted({x for x in (d.get("modulos") or []) if x in srv.MODULOS_DISPONIVEIS})
                 campos.append("modulos=?")

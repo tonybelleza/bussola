@@ -2160,6 +2160,23 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"vagas": vagas, "pagina": pagina,
                                     "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]}})
 
+        m = re.match(r"^/api/vaga/(\d+)$", path)
+        if m and method == "GET":
+            # público: uma vaga aberta e a empresa dela (links /candidato?vaga=ID)
+            r = conn.execute(
+                "SELECT v.id, v.titulo, v.local, c.nome AS cargo_nome, e.nome AS empresa_nome,"
+                " e.slug AS empresa_slug FROM vagas v JOIN cargos c ON c.id=v.cargo_id"
+                " JOIN empresas e ON e.id=v.empresa_id"
+                " WHERE v.id=? AND v.status='aberta' AND e.status IN ('ativa','teste')",
+                (int(m.group(1)),),
+            ).fetchone()
+            if not r:
+                return self._json(404, {"erro": "Esta vaga não está mais aberta"})
+            return self._json(200, {
+                "vaga": {"id": r["id"], "titulo": r["titulo"], "local": r["local"], "cargo_nome": r["cargo_nome"]},
+                "empresa": {"nome": r["empresa_nome"], "slug": r["empresa_slug"]},
+            })
+
         if method == "POST" and path == "/api/candidato/recuperar-acesso":
             d = self._body()
             email = (d.get("email") or "").strip()

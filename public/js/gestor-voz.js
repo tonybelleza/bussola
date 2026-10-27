@@ -159,7 +159,6 @@ let vozIdioma = (() => {
   return "pt";
 })();
 let vozFiltro = "";
-let vozLocal = null;
 
 function vt(chave, vars) {
   let txt = VOZ_TEXTOS[vozIdioma][chave];
@@ -226,10 +225,7 @@ async function abaVoz(el) {
     el.innerHTML = `<div class="card"><p class="form-erro">${esc(e.message)}</p></div>`;
     return;
   }
-  const locais = Object.keys(r.configs);
-  if (vozLocal === null || (vozLocal !== "" && !locais.includes(vozLocal))) vozLocal = locais[0] || "";
-  if (vozLocal === "" && !r.admin && locais.length) vozLocal = locais[0];
-  const cfg = vozLocal ? r.configs[vozLocal] : r.padrao;
+  const cfg = r.config;
   const fila = r.fila.filter((f) => !vozFiltro || f.voz_status === vozFiltro);
   const estado = !cfg.ativo ? vt("desligado") : cfg.pausado ? vt("pausado") : vt("ativo");
 
@@ -245,7 +241,7 @@ async function abaVoz(el) {
       ${!r.configurado ? `<p class="form-erro" style="margin-top:12px">${vt("naoConfigurado")}</p>` : ""}
       ${r.configurado && !r.webhook_configurado ? `<p class="hint" style="margin-top:12px">${vt("semWebhook")}</p>` : ""}
       <div class="linha-acoes" style="margin-top:14px">
-        <span class="badge ${cfg.pausado || !cfg.ativo ? "err" : "ok"}">${estado}${vozLocal ? " · " + esc(vozLocal) : ""}</span>
+        <span class="badge ${cfg.pausado || !cfg.ativo ? "err" : "ok"}">${estado}${r.empresa ? " · " + esc(r.empresa) : ""}</span>
         <button class="btn secondary small" id="voz-rodar" ${cfg.pausado || !r.configurado ? "disabled" : ""}>${vt("rodar")}</button>
         <button class="btn ${cfg.pausado ? "" : "secondary"} small" id="voz-pausa">${cfg.pausado ? vt("retomar") : vt("pausar")}</button>
         <span class="desc" id="voz-aviso" style="margin:0"></span>
@@ -291,9 +287,8 @@ async function abaVoz(el) {
           <td class="num">${c.duracao != null ? Math.floor(c.duracao / 60) + ":" + String(c.duracao % 60).padStart(2, "0") : ""}</td></tr>`).join("")}
       </tbody></table></div>` : `<p class="desc">${vt("semLigacoes")}</p>`}
     </div>
-    ${vozHtmlConfig(r, cfg, locais)}
-    ${r.admin ? vozHtmlCargos(r) : ""}
-    ${r.admin ? `<div class="card" id="voz-integracao"><h3 style="margin-top:0">${vt("integracao")}</h3><p class="desc">${vt("carregando")}</p></div>` : ""}`;
+    ${r.admin ? vozHtmlConfig(r, cfg) : ""}
+    ${r.admin ? vozHtmlCargos(r) : ""}`;
 
   const redesenhar = () => abaVoz(el);
   vozLigarSeletor(el, redesenhar);
@@ -308,7 +303,7 @@ async function abaVoz(el) {
   });
   el.querySelector("#voz-pausa").addEventListener("click", async () => {
     try {
-      await vozApi("/api/gestor/voz/config", { method: "POST", body: { local: vozLocal, config: { pausado: !cfg.pausado } } });
+      await vozApi("/api/gestor/voz/config", { method: "POST", body: { config: { pausado: !cfg.pausado } } });
       redesenhar();
     } catch (e) { aviso(e.message, true); }
   });
@@ -317,10 +312,9 @@ async function abaVoz(el) {
     abrirDetalheCandidato(Number(a.dataset.vozCand));
   }));
   vozLigarBotoesCandidatura(el, redesenhar, aviso);
-  vozLigarConfig(el, r, redesenhar);
   if (r.admin) {
+    vozLigarConfig(el, r, redesenhar);
     vozLigarCargos(el, redesenhar);
-    vozCarregarIntegracao(el);
   }
 }
 
@@ -353,14 +347,10 @@ function vozLigarBotoesCandidatura(el, redesenhar, aviso) {
   }));
 }
 
-function vozHtmlConfig(r, cfg, locais) {
-  const opcoes = (r.admin ? [["", vt("padrao")]] : []).concat(locais.map((l) => [l, l]));
+function vozHtmlConfig(r, cfg) {
   return `<div class="card" id="voz-config">
     <h3 style="margin-top:0">${vt("config")}</h3>
     <div class="grid cols-2">
-      <label class="field">${vt("local")}
-        <select id="vc-local">${opcoes.map(([v, rot]) => `<option value="${esc(v)}" ${v === vozLocal ? "selected" : ""}>${esc(rot)}</option>`).join("")}</select>
-      </label>
       <label class="field">${vt("idiomaPadrao")}
         <select id="vc-idioma">${["es", "en", "pt"].map((l) => `<option value="${l}" ${cfg.idioma_padrao === l ? "selected" : ""}>${esc(VOZ_TEXTOS[vozIdioma].idiomaLigacao[l])}</option>`).join("")}</select>
       </label>
@@ -389,7 +379,6 @@ function vozHtmlConfig(r, cfg, locais) {
 
 function vozLigarConfig(el, r, redesenhar) {
   const q = (s) => el.querySelector(s);
-  q("#vc-local").addEventListener("change", (ev) => { vozLocal = ev.target.value; redesenhar(); });
   q("#vc-dias").querySelectorAll("label").forEach((lab) => lab.addEventListener("click", (ev) => {
     ev.preventDefault();
     const cb = lab.querySelector("input");
@@ -400,7 +389,7 @@ function vozLigarConfig(el, r, redesenhar) {
     q("#vc-erro").textContent = "";
     const dias = [...q("#vc-dias").querySelectorAll("input:checked")].map((i) => Number(i.value));
     try {
-      await vozApi("/api/gestor/voz/config", { method: "POST", body: { local: vozLocal, config: {
+      await vozApi("/api/gestor/voz/config", { method: "POST", body: { config: {
         ativo: q("#vc-ativo").checked, pausado: q("#vc-pausado").checked, fuso: q("#vc-fuso").value,
         inicio: q("#vc-inicio").value, fim: q("#vc-fim").value, dias,
         max_tentativas: Number(q("#vc-max").value), simultaneas: Number(q("#vc-sim").value),
@@ -431,35 +420,6 @@ function vozLigarCargos(el, redesenhar) {
   };
   el.querySelectorAll("[data-voz-cargo]").forEach((cb) => cb.addEventListener("change", () => salvar(cb.dataset.vozCargo)));
   el.querySelectorAll("[data-voz-peso]").forEach((inp) => inp.addEventListener("change", () => salvar(inp.dataset.vozPeso)));
-}
-
-async function vozCarregarIntegracao(el) {
-  const box = el.querySelector("#voz-integracao");
-  let r;
-  try { r = await vozApi("/api/gestor/voz/integracao"); } catch (e) { box.innerHTML = `<p class="form-erro">${esc(e.message)}</p>`; return; }
-  box.innerHTML = `
-    <h3 style="margin-top:0">${vt("integracao")}</h3>
-    <div class="grid cols-2">
-      <label class="field">${vt("apiKey")}<input type="password" id="vi-key" autocomplete="off" placeholder="sk_...">
-        ${r.api_key_final ? `<span class="hint">${vt("apiKeyAtual", { f: esc(r.api_key_final) })}</span>` : ""}</label>
-      <label class="field">${vt("webhookSecret")}<input type="password" id="vi-secret" autocomplete="off" placeholder="${r.webhook_configurado ? "••••••" : "wsec_..."}"></label>
-      <label class="field">${vt("agentId")}<input type="text" id="vi-agent" value="${esc(r.agent_id)}"></label>
-      <label class="field">${vt("phoneId")}<input type="text" id="vi-phone" value="${esc(r.phone_number_id)}"></label>
-    </div>
-    <p class="hint">${vt("webhookUrl")}: <code>${esc(r.webhook_url)}</code></p>
-    <div class="form-erro" id="vi-erro"></div>
-    <button class="btn" id="vi-salvar">${vt("salvar")}</button> <span class="desc" id="vi-ok" style="margin:0"></span>`;
-  box.querySelector("#vi-salvar").addEventListener("click", async () => {
-    const corpo = { agent_id: box.querySelector("#vi-agent").value, phone_number_id: box.querySelector("#vi-phone").value };
-    const k = box.querySelector("#vi-key").value.trim();
-    const s = box.querySelector("#vi-secret").value.trim();
-    if (k) corpo.api_key = k;
-    if (s) corpo.webhook_secret = s;
-    try {
-      await vozApi("/api/gestor/voz/integracao", { method: "POST", body: corpo });
-      box.querySelector("#vi-ok").textContent = vt("salvo");
-    } catch (e) { box.querySelector("#vi-erro").textContent = e.message; }
-  });
 }
 
 // ------------------------------------------------ bloco na ficha do candidato

@@ -19,6 +19,13 @@ let cargos = [];
 let me = null; // resumo do candidato (dados + testes + gaps)
 let quizQuestoes = null; // questões do teste de conhecimento do cargo de interesse
 let vagaEscolhida = Number(new URLSearchParams(location.search).get("vaga")) || null;
+// empresa do link (?e=empresa) ou da vaga escolhida: define quem recebe o cadastro
+let empresaSlug = new URLSearchParams(location.search).get("e") || "";
+try {
+  if (empresaSlug) localStorage.setItem("cand_empresa", empresaSlug);
+  else empresaSlug = localStorage.getItem("cand_empresa") || "";
+} catch (e) { /* armazenamento bloqueado */ }
+let vagaInfo = null;
 
 // link de acesso vindo do e-mail de confirmação (?token=...)
 const tokenDaUrl = new URLSearchParams(location.search).get("token");
@@ -44,7 +51,15 @@ async function api(caminho, opcoes = {}) {
 
 // ------------------------------------------------ inicialização
 async function iniciar() {
-  cargos = (await api("/api/cargos")).cargos;
+  if (vagaEscolhida) {
+    try {
+      vagaInfo = await api("/api/vaga/" + vagaEscolhida);
+      empresaSlug = vagaInfo.empresa.slug;
+    } catch (e) {
+      vagaInfo = null;
+    }
+  }
+  cargos = (await api("/api/cargos?e=" + encodeURIComponent(empresaSlug))).cargos;
   const token = localStorage.getItem("cand_token");
   if (!token) return telaCadastro();
   try {
@@ -184,13 +199,13 @@ function telaCadastro() {
       msg.textContent = e.message;
     }
   });
-  api("/api/locais").then((r) => {
+  api("/api/locais?e=" + encodeURIComponent(empresaSlug)).then((r) => {
     document.getElementById("lista-locais").innerHTML =
       r.locais.map((l) => `<option value="${esc(l)}"></option>`).join("");
   }).catch(() => {});
   if (vagaEscolhida) {
-    api("/api/vagas").then((r) => {
-      const v = r.vagas.find((x) => x.id === vagaEscolhida);
+    Promise.resolve(vagaInfo).then((info) => {
+      const v = info ? info.vaga : null;
       const aviso = document.getElementById("aviso-vaga");
       if (!v) {
         vagaEscolhida = null;
@@ -225,6 +240,7 @@ function telaCadastro() {
           novo_cargo: cargoSel === "__novo__" ? document.getElementById("cad-novo-cargo").value.trim() : "",
           novo_cargo_area: cargoSel === "__novo__" ? document.getElementById("cad-novo-cargo-area").value.trim() : "",
           vaga_id: vagaEscolhida,
+          empresa: empresaSlug,
           tipo: vagaEscolhida ? "externo" : document.getElementById("cad-tipo").value,
           consentimento: document.getElementById("cad-consentimento").checked,
         },

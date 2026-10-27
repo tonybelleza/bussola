@@ -29,7 +29,7 @@ async function api(caminho, opcoes = {}) {
 }
 
 async function carregarDados() {
-  const [rc, rl] = await Promise.all([api("/api/cargos"), api("/api/gestor/candidatos")]);
+  const [rc, rl] = await Promise.all([api("/api/gestor/cargos"), api("/api/gestor/candidatos")]);
   cargos = rc.cargos;
   candidatos = rl.candidatos;
 }
@@ -79,7 +79,7 @@ function telaLogin() {
       localStorage.setItem("gestor_token", r.token);
       localStorage.setItem("gestor_info", JSON.stringify({
         nome: r.nome, login: r.login, local: r.local, admin: r.admin,
-        modulos: r.modulos || [],
+        modulos: r.modulos || [], empresa: r.empresa || null,
       }));
       iniciarPainel();
     } catch (e) {
@@ -176,6 +176,8 @@ function telaSolicitarAcesso() {
           email: document.getElementById("sol-email").value.trim(),
           local: document.getElementById("sol-local").value.trim(),
           senha: document.getElementById("sol-senha").value,
+          // a solicitação vale para a empresa do link recebido (?e=empresa)
+          empresa: new URLSearchParams(location.search).get("e") || "",
         },
       });
       app.innerHTML = `
@@ -277,6 +279,7 @@ function telaSetup() {
       localStorage.setItem("gestor_token", r.token);
       localStorage.setItem("gestor_info", JSON.stringify({
         nome: r.nome, login: r.login, local: r.local, admin: r.admin,
+        modulos: r.modulos || [], empresa: r.empresa || null,
       }));
       iniciarPainel();
     } catch (e) {
@@ -306,6 +309,7 @@ async function iniciarPainel() {
   const sub = document.querySelector(".topbar .sub");
   if (sub && info.nome) {
     const partes = [info.nome];
+    if (info.empresa && info.empresa.nome) partes.push(info.empresa.nome);
     if (info.local) partes.push(info.local);
     if (info.admin && info.nome !== "Administrador") partes.push("Administrador");
     sub.textContent = partes.join(" · ");
@@ -1602,13 +1606,18 @@ function abaMatriz(el) {
 
 // ------------------------------------------------ configurações
 async function abaConfig(el) {
-  const linkCandidato = location.origin + "/candidato";
   const info = infoGestor();
+  const slug = (info.empresa && info.empresa.slug) || "";
+  const linkCandidato = location.origin + "/candidato?e=" + encodeURIComponent(slug);
+  const linkEmpresa = location.origin + "/vagas?e=" + encodeURIComponent(slug);
   el.innerHTML = `
     <div class="grid cols-2">
       <div class="card">
         <h2 class="icone-titulo">${icone("link")}<span>Seus links públicos</span></h2>
-        <p class="desc"><strong style="color:var(--text)">Sua página de vagas</strong>: mostra apenas as vagas do seu local${info.local ? " (" + esc(info.local) + ")" : " (sem local definido: mostra todas)"}. Quem se candidatar por ela entra direto no seu processo:</p>
+        <p class="desc"><strong style="color:var(--text)">Página de vagas da empresa</strong>: todas as vagas abertas de ${esc((info.empresa && info.empresa.nome) || "sua empresa")}.</p>
+        <input type="text" readonly value="${esc(linkEmpresa)}" id="cfg-link-empresa">
+        <button class="btn secondary small mt" id="cfg-copiar-empresa">Copiar página da empresa</button>
+        <p class="desc" style="margin-top:16px"><strong style="color:var(--text)">Sua página de vagas</strong>: só as vagas do seu local${info.local ? " (" + esc(info.local) + ")" : " (sem local definido: todas da empresa)"}:</p>
         <input type="text" readonly value="${esc(location.origin + "/vagas?g=" + (info.login || ""))}" id="cfg-link-vagas">
         <button class="btn secondary small mt" id="cfg-copiar-vagas">Copiar página de vagas</button>
         <p class="desc" style="margin-top:16px"><strong style="color:var(--text)">Cadastro direto</strong> (sem vaga específica):</p>
@@ -1625,10 +1634,14 @@ async function abaConfig(el) {
       </div>
     </div>
     <div id="cfg-gestores"></div>
-    <div id="cfg-integracoes"></div>`;
+    <div id="cfg-templates"></div>`;
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = "Copiado ✓";
+  });
+  document.getElementById("cfg-copiar-empresa").addEventListener("click", () => {
+    navigator.clipboard.writeText(linkEmpresa);
+    document.getElementById("cfg-copiar-empresa").textContent = "Copiado ✓";
   });
   document.getElementById("cfg-copiar-vagas").addEventListener("click", () => {
     navigator.clipboard.writeText(document.getElementById("cfg-link-vagas").value);
@@ -1656,110 +1669,9 @@ async function abaConfig(el) {
   });
   if (info.admin) {
     await secaoGestores(document.getElementById("cfg-gestores"));
-    await secaoIntegracoes(document.getElementById("cfg-integracoes"));
+    // e-mail, IA e endereço público agora são da plataforma: ficam no painel do administrador do sistema
+    await secaoTemplates(document.getElementById("cfg-templates"));
   }
-}
-
-async function secaoIntegracoes(el) {
-  const r = await api("/api/gestor/integracoes");
-  el.innerHTML = `
-    <div class="card">
-      <h2 class="icone-titulo">${icone("engrenagem")}<span>Integrações (serviços pagos)</span></h2>
-      <p class="desc">Estes são os únicos recursos do sistema que dependem de serviços externos. Tudo o mais funciona sem custo. Sem estas credenciais, os botões de IA e as notificações por e-mail apenas ficam indisponíveis.</p>
-      <div class="grid cols-2">
-        <div>
-          <h3>Análise de currículo por IA</h3>
-          <p class="desc" style="font-size:.82rem">Usa a API da Anthropic (Claude Haiku 4.5, rápido e econômico). Crie uma chave em console.anthropic.com. Custo aproximado: US$ 25 a cada mil currículos analisados. Status:
-            ${r.ia_configurada ? '<span class="badge ok">Configurada (...' + esc(r.ia_final) + ")</span>" : '<span class="badge warn">Não configurada</span>'}</p>
-          <label class="field">Chave da API Anthropic
-            <input type="password" id="int-chave" placeholder="${r.ia_configurada ? "Preencher apenas para trocar" : "sk-ant-..."}" autocomplete="off">
-          </label>
-        </div>
-        <div>
-          <h3>E-mail para candidatos (SMTP)</h3>
-          <p class="desc" style="font-size:.82rem">Com o SMTP configurado, o sistema envia automaticamente: confirmação de inscrição com link de acesso ao candidato, avisos de mudança de etapa, e alertas aos gestores (novo candidato e avaliação completa com o match). Funciona com qualquer SMTP; no Gmail use uma senha de app. Status:
-            ${r.smtp_host ? '<span class="badge ok">Configurado</span>' : '<span class="badge warn">Não configurado</span>'}</p>
-          <label class="field">Servidor SMTP <input type="text" id="int-host" value="${esc(r.smtp_host)}" placeholder="smtp.gmail.com"></label>
-          <div class="grid cols-2">
-            <label class="field">Porta <span class="hint">(587 STARTTLS ou 465 SSL)</span><input type="text" id="int-porta" value="${esc(r.smtp_porta)}" placeholder="587"></label>
-            <label class="field">Usuário <input type="text" id="int-usuario" value="${esc(r.smtp_usuario)}" placeholder="voce@gmail.com"></label>
-          </div>
-          <label class="field">Senha ${r.smtp_senha_configurada ? '<span class="hint">(preencher apenas para trocar)</span>' : ""}
-            <input type="password" id="int-senha" autocomplete="off">
-          </label>
-          <label class="field">Remetente <span class="hint">(opcional)</span>
-            <input type="text" id="int-remetente" value="${esc(r.smtp_remetente)}" placeholder="selecao@suaempresa.com">
-          </label>
-        </div>
-      </div>
-      <div class="grid cols-2 mt">
-        <label class="field">Endereço público do sistema <span class="hint">(usado nos links dos e-mails)</span>
-          <input type="text" id="int-url" value="${esc(r.url_publica)}" placeholder="http://localhost:8080 ou https://rh.seudominio.com">
-        </label>
-        <label class="field">Retenção de dados (LGPD) <span class="hint">(anonimizar candidatos automaticamente após)</span>
-          <select id="int-retencao">
-            <option value="0" ${r.retencao_meses === "0" ? "selected" : ""}>Nunca (manter tudo)</option>
-            ${[6, 12, 24, 36].map((m) => `<option value="${m}" ${r.retencao_meses === String(m) ? "selected" : ""}>${m} meses</option>`).join("")}
-          </select>
-        </label>
-      </div>
-      <div class="form-erro" id="int-erro"></div>
-      <div class="linha-acoes">
-        <button class="btn" id="int-salvar">Salvar integrações</button>
-        <button class="btn secondary" id="int-testar">Salvar e enviar e-mail de teste</button>
-      </div>
-      <p class="desc" style="font-size:.8rem;margin-top:6px">O e-mail de teste vai para o endereço cadastrado na sua conta de gestor.</p>
-    </div>
-    <div id="cfg-templates"></div>`;
-  document.getElementById("int-salvar").addEventListener("click", async () => {
-    const erro = document.getElementById("int-erro");
-    erro.textContent = "";
-    const corpo = {
-      smtp_host: document.getElementById("int-host").value.trim(),
-      smtp_porta: document.getElementById("int-porta").value.trim(),
-      smtp_usuario: document.getElementById("int-usuario").value.trim(),
-      smtp_remetente: document.getElementById("int-remetente").value.trim(),
-      url_publica: document.getElementById("int-url").value.trim(),
-      retencao_meses: document.getElementById("int-retencao").value,
-    };
-    const chave = document.getElementById("int-chave").value.trim();
-    if (chave) corpo.anthropic_api_key = chave;
-    const senha = document.getElementById("int-senha").value;
-    if (senha) corpo.smtp_senha = senha;
-    try {
-      await api("/api/gestor/integracoes", { method: "POST", body: corpo });
-      erro.style.color = "var(--ok)";
-      erro.textContent = "Integrações salvas.";
-    } catch (e) {
-      erro.style.color = "var(--err)";
-      erro.textContent = e.message;
-    }
-  });
-  document.getElementById("int-testar").addEventListener("click", async () => {
-    const erro = document.getElementById("int-erro");
-    erro.style.color = "var(--text-2)";
-    erro.textContent = "Salvando e enviando e-mail de teste…";
-    const corpo = {
-      smtp_host: document.getElementById("int-host").value.trim(),
-      smtp_porta: document.getElementById("int-porta").value.trim(),
-      smtp_usuario: document.getElementById("int-usuario").value.trim(),
-      smtp_remetente: document.getElementById("int-remetente").value.trim(),
-      url_publica: document.getElementById("int-url").value.trim(),
-      retencao_meses: document.getElementById("int-retencao").value,
-    };
-    const senha = document.getElementById("int-senha").value;
-    if (senha) corpo.smtp_senha = senha;
-    try {
-      await api("/api/gestor/integracoes", { method: "POST", body: corpo });
-      const r = await api("/api/gestor/integracoes/teste", { method: "POST", body: {} });
-      erro.style.color = "var(--ok)";
-      erro.textContent = "E-mail de teste enviado para " + r.destino + ". Verifique a caixa de entrada (e o spam).";
-    } catch (e) {
-      erro.style.color = "var(--err)";
-      erro.textContent = e.message;
-    }
-  });
-  await secaoTemplates(document.getElementById("cfg-templates"));
 }
 
 async function secaoTemplates(el) {
