@@ -25,11 +25,12 @@ from zoneinfo import ZoneInfo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="voz-teste-")
-for arquivo in ("server.py", "voz.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
 
+import empresas  # noqa: E402
 import server  # noqa: E402  (importa a cópia, com banco isolado em PASTA)
 import voz  # noqa: E402
 
@@ -237,12 +238,16 @@ class TestFluxo(unittest.TestCase):
         voz.GATEWAY_TESTE = self.falso
         self.conn = server.db()
         c = self.conn
+        self.empresa, _ = empresas.criar_empresa(c, "BHS CT")
+        c.execute("UPDATE empresas SET modulos='[\"voz\"]' WHERE id=?", (self.empresa,))
         self.cargo = c.execute(
-            "INSERT INTO cargos (nome, area, nivel, voz_ativa, peso_voz) VALUES ('Cleaning Tech','Ops','',1,0.30)"
+            "INSERT INTO cargos (nome, area, nivel, voz_ativa, peso_voz, empresa_id)"
+            " VALUES ('Cleaning Tech','Ops','',1,0.30,?)", (self.empresa,),
         ).lastrowid
         self.vaga = c.execute(
-            "INSERT INTO vagas (cargo_id, titulo, local, status) VALUES (?, 'Cleaning Technician', 'BHS CT', 'aberta')",
-            (self.cargo,),
+            "INSERT INTO vagas (cargo_id, titulo, local, status, empresa_id)"
+            " VALUES (?, 'Cleaning Technician', 'BHS CT', 'aberta', ?)",
+            (self.cargo, self.empresa),
         ).lastrowid
         c.commit()
 
@@ -253,9 +258,9 @@ class TestFluxo(unittest.TestCase):
     def candidato(self, nome="Maria", telefone="+1 8605550101", email="maria@example.com", idioma=""):
         c = self.conn
         cid = c.execute(
-            "INSERT INTO candidatos (token, nome, email, local, telefone, cargo_desejado_id, idioma)"
-            " VALUES (?,?,?,?,?,?,?)",
-            (nome + str(time.time()), nome, email, "BHS CT", telefone, self.cargo, idioma),
+            "INSERT INTO candidatos (token, nome, email, local, telefone, cargo_desejado_id, idioma, empresa_id)"
+            " VALUES (?,?,?,?,?,?,?,?)",
+            (nome + str(time.time()), nome, email, "BHS CT", telefone, self.cargo, idioma, self.empresa),
         ).lastrowid
         c.execute("INSERT INTO candidaturas (candidato_id, vaga_id) VALUES (?,?)", (cid, self.vaga))
         voz.nova_candidatura(c, cid, self.vaga)
@@ -334,23 +339,31 @@ class TestFluxo(unittest.TestCase):
     def test_nao_liga_fora_da_janela_pausado_ou_bloqueado(self):
         a = self.candidato()
         voz.tick(self.conn, ct("2026-11-01 12:00"))  # domingo
-        voz.salvar_config(self.conn, "", {"pausado": 1})
+        voz.salvar_config(self.conn, self.empresa, {"pausado": 1})
         voz.tick(self.conn, self.TERCA_10H)
         self.assertEqual(self.falso.ligacoes, [])
-        voz.salvar_config(self.conn, "", {"pausado": 0})
+        voz.salvar_config(self.conn, self.empresa, {"pausado": 0})
         self.conn.execute("UPDATE candidaturas SET voz_status='nao_ligar' WHERE candidato_id=?", (a,))
         self.conn.execute("UPDATE candidatos SET telefone='+55 11999998888'")
         self.candidato(nome="Ana", telefone="+55 11988887777", email="ana@example.com")
         voz.tick(self.conn, self.TERCA_10H)
         self.assertEqual(self.falso.ligacoes, [])
 
-    def test_config_do_local_sobrepoe_o_padrao(self):
+    def test_config_da_empresa_sobrepoe_o_padrao(self):
         self.candidato()
-        voz.salvar_config(self.conn, "BHS CT", {"pausado": 1})
+        voz.salvar_config(self.conn, self.empresa, {"pausado": 1})
         voz.tick(self.conn, self.TERCA_10H)
         self.assertEqual(self.falso.ligacoes, [])
-        self.assertEqual(voz.config_local(self.conn, "bhs ct")["pausado"], 1)
-        self.assertEqual(voz.config_local(self.conn, "")["pausado"], 0)
+        self.assertEqual(voz.config_empresa(self.conn, self.empresa)["pausado"], 1)
+        self.assertEqual(voz.config_empresa(self.conn, None)["pausado"], 0)
+
+    def test_empresa_sem_modulo_ou_suspensa_nao_liga(self):
+        self.candidato()
+        self.conn.execute("UPDATE empresas SET modulos='[]' WHERE id=?", (self.empresa,))
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE empresas SET modulos='[\"voz\"]', status='suspensa' WHERE id=?", (self.empresa,))
+        voz.tick(self.conn, self.TERCA_10H)
+        self.assertEqual(self.falso.ligacoes, [])
 
     def test_falha_ao_iniciar_nao_gasta_tentativa(self):
         a = self.candidato()
@@ -392,39 +405,49 @@ class TestFluxo(unittest.TestCase):
 # ================================================================ isolamento entre empresas
 
 class TestIsolamento(unittest.TestCase):
-    def test_so_admin_ve_tudo(self):
-        admin = {"is_admin": 1, "local": ""}
-        bhs = {"is_admin": 0, "local": "BHS Connecticut"}
-        sem_local = {"is_admin": 0, "local": ""}
-        cand_bhs = {"local": "bhs connecticut "}
-        cand_outra = {"local": "Empresa B"}
-        self.assertTrue(server.gestor_ve_candidato(admin, cand_outra))
-        self.assertTrue(server.gestor_ve_candidato(bhs, cand_bhs))
-        self.assertFalse(server.gestor_ve_candidato(bhs, cand_outra))
-        self.assertFalse(server.gestor_ve_candidato(sem_local, cand_bhs))
-        self.assertFalse(server.gestor_ve_local(sem_local, ""))
+    def test_regras_de_visibilidade(self):
+        admin_a = {"is_admin": 1, "local": "", "empresa_id": 1}
+        unidade_a = {"is_admin": 0, "local": "Hartford", "empresa_id": 1}
+        geral_a = {"is_admin": 0, "local": "", "empresa_id": 1}
+        admin_b = {"is_admin": 1, "local": "", "empresa_id": 2}
+        cand_a = {"local": "hartford ", "empresa_id": 1}
+        cand_a2 = {"local": "Springfield", "empresa_id": 1}
+        cand_b = {"local": "Hartford", "empresa_id": 2}
+        self.assertTrue(server.gestor_ve_candidato(admin_a, cand_a2))
+        self.assertTrue(server.gestor_ve_candidato(unidade_a, cand_a))
+        self.assertFalse(server.gestor_ve_candidato(unidade_a, cand_a2))
+        self.assertTrue(server.gestor_ve_candidato(geral_a, cand_a2))
+        # nada atravessa de uma empresa para outra, nem para o admin
+        self.assertFalse(server.gestor_ve_candidato(admin_b, cand_a))
+        self.assertFalse(server.gestor_ve_candidato(admin_a, cand_b))
+        self.assertFalse(server.gestor_ve_candidato({"is_admin": 1, "local": "", "empresa_id": None}, cand_a))
 
-    def test_avisos_so_para_admin_e_gestor_do_local(self):
+    def test_avisos_so_para_a_empresa_do_candidato(self):
         if os.path.exists(server.DB_PATH):
             os.remove(server.DB_PATH)
         server.init_db()
         conn = server.db()
-        for login, local, admin in (("dono", "", 1), ("bhs", "BHS Connecticut", 0),
-                                    ("outra", "Empresa B", 0), ("solta", "", 0)):
+        ea, _ = empresas.criar_empresa(conn, "Empresa A")
+        eb, _ = empresas.criar_empresa(conn, "Empresa B")
+        for login, local, admin, eid in (("dono.a", "", 1, ea), ("unidade.a", "Hartford", 0, ea),
+                                         ("outra.unidade.a", "Boston", 0, ea), ("admin.b", "", 1, eb)):
             conn.execute(
-                "INSERT INTO gestores (login, senha, nome, email, local, is_admin) VALUES (?,?,?,?,?,?)",
-                (login, "x", login, login + "@example.com", local, admin),
+                "INSERT INTO gestores (login, senha, nome, email, local, is_admin, empresa_id) VALUES (?,?,?,?,?,?,?)",
+                (login, "x", login, login + "@example.com", local, admin, eid),
             )
         conn.commit()
-        self.assertEqual(server.emails_gestores_do_local(conn, "BHS Connecticut"),
-                         ["bhs@example.com", "dono@example.com"])
-        self.assertEqual(server.emails_gestores_do_local(conn, ""), ["dono@example.com"])
+        self.assertEqual(server.emails_gestores_do_local(conn, {"empresa_id": ea, "local": "Hartford"}),
+                         ["dono.a@example.com", "unidade.a@example.com"])
+        self.assertEqual(server.emails_gestores_do_local(conn, {"empresa_id": eb, "local": ""}),
+                         ["admin.b@example.com"])
         conn.close()
 
 
 # ================================================================ HTTP
 
 class TestHTTP(unittest.TestCase):
+    """Duas empresas pelo HTTP: A tem o módulo de voz, B não. Nada de A aparece para B."""
+
     @classmethod
     def setUpClass(cls):
         if os.path.exists(server.DB_PATH):
@@ -432,11 +455,22 @@ class TestHTTP(unittest.TestCase):
         server.init_db()
         conn = server.db()
         server.config_set(conn, "elevenlabs_webhook_secret", "segredo")
-        for login, admin, modulos in (("admin", 1, "[]"), ("carine", 0, '["voz"]'), ("outro", 0, "[]")):
+        cls.ea, _ = empresas.criar_empresa(conn, "BHS CT")
+        cls.eb, _ = empresas.criar_empresa(conn, "Outra Empresa")
+        conn.execute("UPDATE empresas SET modulos='[\"voz\"]' WHERE id=?", (cls.ea,))
+        for login, admin, eid, local in (("admin", 1, cls.ea, ""), ("carine", 0, cls.ea, "BHS CT"),
+                                         ("admin.b", 1, cls.eb, ""), ("outro", 0, cls.eb, "")):
             conn.execute(
-                "INSERT INTO gestores (login, senha, nome, local, is_admin, modulos) VALUES (?,?,?,?,?,?)",
-                (login, server.hash_senha("senha-123"), login.title(), "" if admin else "BHS CT", admin, modulos),
+                "INSERT INTO gestores (login, senha, nome, local, is_admin, empresa_id) VALUES (?,?,?,?,?,?)",
+                (login, server.hash_senha("senha-123"), login.title(), local, admin, eid),
             )
+        cls.cargo_a = conn.execute(
+            "INSERT INTO cargos (nome, empresa_id, voz_ativa) VALUES ('Cleaning Tech', ?, 1)", (cls.ea,)
+        ).lastrowid
+        cls.vaga_a = conn.execute(
+            "INSERT INTO vagas (cargo_id, titulo, local, status, empresa_id) VALUES (?, 'Tech A', 'BHS CT', 'aberta', ?)",
+            (cls.cargo_a, cls.ea),
+        ).lastrowid
         conn.commit()
         conn.close()
         voz.GATEWAY_TESTE = FalsoElevenLabs()
@@ -473,32 +507,74 @@ class TestHTTP(unittest.TestCase):
         status, _ = self.req("POST", "/api/voz/webhook", bruto=corpo, cabecalhos={"ElevenLabs-Signature": assinatura})
         self.assertEqual(status, 200)
 
-    def test_modulo_liberado_por_gestor(self):
-        self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("outro"))[0], 403)
+    def test_modulo_liberado_por_empresa(self):
+        self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("admin.b"))[0], 403)
         status, d = self.req("GET", "/api/gestor/voz", cabecalhos=self.token("carine"))
         self.assertEqual(status, 200)
-        self.assertIn("fila", d)
-        self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("admin"))[0], 200)
+        self.assertEqual([c["nome"] for c in d["cargos"]], ["Cleaning Tech"])
         self.assertEqual(self.req("GET", "/api/gestor/voz")[0], 401)
 
-    def test_integracao_e_cargo_so_admin(self):
-        carine = self.token("carine")
-        self.assertEqual(self.req("POST", "/api/gestor/voz/integracao", {"api_key": "x"}, carine)[0], 403)
-        self.assertEqual(self.req("POST", "/api/gestor/voz/cargo/1", {"voz_ativa": True}, carine)[0], 403)
+    def test_integracao_e_da_plataforma_e_cargo_so_do_admin_da_empresa(self):
         admin = self.token("admin")
-        self.assertEqual(self.req("POST", "/api/gestor/voz/integracao", {"api_key": "sk_123456", "agent_id": "a"}, admin)[0], 200)
-        status, d = self.req("GET", "/api/gestor/voz/integracao", cabecalhos=admin)
-        self.assertEqual((d["api_key_final"], d["agent_id"]), ("3456", "a"))
-        self.assertNotIn("api_key", d)
+        self.assertEqual(self.req("POST", "/api/gestor/voz/integracao", {"api_key": "x"}, admin)[0], 403)
+        self.assertEqual(self.req("POST", "/api/gestor/voz/cargo/%d" % self.cargo_a, {"voz_ativa": True},
+                                  self.token("carine"))[0], 403)
+        self.assertEqual(self.req("POST", "/api/gestor/voz/cargo/%d" % self.cargo_a, {"voz_ativa": True}, admin)[0], 200)
 
-    def test_config_respeita_o_local(self):
+    def test_config_e_pausa(self):
         carine = self.token("carine")
-        self.assertEqual(self.req("POST", "/api/gestor/voz/config", {"local": "", "config": {"pausado": 1}}, carine)[0], 403)
-        self.assertEqual(self.req("POST", "/api/gestor/voz/config", {"local": "Outro Local", "config": {"pausado": 1}}, carine)[0], 403)
-        status, d = self.req("POST", "/api/gestor/voz/config", {"local": "BHS CT", "config": {"inicio": "08:30", "max_tentativas": 2}}, carine)
+        self.assertEqual(self.req("POST", "/api/gestor/voz/config", {"config": {"inicio": "08:30"}}, carine)[0], 403)
+        status, d = self.req("POST", "/api/gestor/voz/config", {"config": {"pausado": True}}, carine)
+        self.assertEqual((status, d["config"]["pausado"]), (200, 1))
+        admin = self.token("admin")
+        status, d = self.req("POST", "/api/gestor/voz/config", {"config": {"inicio": "08:30", "max_tentativas": 2,
+                                                                           "pausado": False}}, admin)
         self.assertEqual((status, d["config"]["inicio"], d["config"]["max_tentativas"]), (200, "08:30", 2))
-        status, d = self.req("POST", "/api/gestor/voz/config", {"local": "BHS CT", "config": {"inicio": "25:00"}}, carine)
+        status, d = self.req("POST", "/api/gestor/voz/config", {"config": {"inicio": "25:00"}}, admin)
         self.assertEqual((status, d.get("codigo")), (400, "invalid_time"))
+
+    def test_outra_empresa_nao_ve_nem_altera_nada(self):
+        b = self.token("admin.b")
+        _, vagas = self.req("GET", "/api/gestor/vagas", cabecalhos=b)
+        self.assertEqual(vagas["vagas"], [])
+        _, cargos = self.req("GET", "/api/gestor/cargos", cabecalhos=b)
+        self.assertEqual(cargos["cargos"], [])
+        self.assertEqual(self.req("GET", "/api/gestor/vaga/%d/pipeline" % self.vaga_a, cabecalhos=b)[0], 404)
+        self.assertEqual(self.req("GET", "/api/gestor/cargo/%d/avaliacoes" % self.cargo_a, cabecalhos=b)[0], 404)
+        self.assertEqual(self.req("POST", "/api/gestor/vaga", {"id": self.vaga_a, "titulo": "invadida",
+                                                               "cargo_id": self.cargo_a}, b)[0], 400)
+        self.assertEqual(self.req("DELETE", "/api/gestor/vaga/%d" % self.vaga_a, cabecalhos=b)[0], 200)
+        _, vagas_a = self.req("GET", "/api/gestor/vagas", cabecalhos=self.token("admin"))
+        self.assertEqual([v["titulo"] for v in vagas_a["vagas"]], ["Tech A"])  # continua lá
+        self.assertEqual(self.req("POST", "/api/gestor/pergunta-entrevista",
+                                  {"cargo_id": self.cargo_a, "texto": "x"}, b)[0], 404)
+        self.assertEqual(self.req("POST", "/api/gestor/competencia",
+                                  {"cargo_id": self.cargo_a, "nome": "x"}, b)[0], 404)
+        _, g = self.req("GET", "/api/gestor/gestores", cabecalhos=b)
+        self.assertEqual(sorted(x["login"] for x in g["gestores"]), ["admin.b", "outro"])
+
+    def test_portal_publico_exige_o_link_da_empresa(self):
+        _, sem = self.req("GET", "/api/vagas")
+        self.assertEqual(sem["vagas"], [])
+        _, com = self.req("GET", "/api/vagas?e=bhs-ct")
+        self.assertEqual([v["titulo"] for v in com["vagas"]], ["Tech A"])
+        _, outra = self.req("GET", "/api/vagas?e=outra-empresa")
+        self.assertEqual(outra["vagas"], [])
+        _, cargos = self.req("GET", "/api/cargos")
+        self.assertEqual(cargos["cargos"], [])
+        status, _ = self.req("POST", "/api/candidato/cadastro", {
+            "nome": "X", "email": "x@example.com", "local": "BHS CT", "telefone": "+1 8605550101",
+            "consentimento": True})
+        self.assertEqual(status, 400)  # sem vaga e sem link da empresa
+        status, d = self.req("POST", "/api/candidato/cadastro", {
+            "nome": "Y", "email": "y@example.com", "local": "qualquer coisa", "telefone": "+1 8605550101",
+            "consentimento": True, "vaga_id": self.vaga_a})
+        self.assertEqual(status, 200)
+        _, lista_b = self.req("GET", "/api/gestor/candidatos", cabecalhos=self.token("admin.b"))
+        self.assertEqual(lista_b["candidatos"], [])
+        status, _ = self.req("POST", "/api/gestor/solicitar-acesso",
+                             {"nome": "Z", "login": "z", "email": "z@x.com", "senha": "senha-123"})
+        self.assertEqual(status, 400)
 
 
 if __name__ == "__main__":

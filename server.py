@@ -19,6 +19,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+import empresas
 import voz
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,11 +57,22 @@ ARQUIVOS_DIAGNOSTICO = {
 
 
 def modulos_do_gestor(gestor):
-    try:
-        m = json.loads(gestor["modulos"] or "[]")
-        return m if isinstance(m, list) else []
-    except Exception:  # noqa: BLE001
+    """Módulos liberados para a EMPRESA do gestor (o dono libera por empresa)."""
+    if "empresa_modulos" in gestor.keys():
+        try:
+            m = json.loads(gestor["empresa_modulos"] or "[]")
+            return m if isinstance(m, list) else []
+        except ValueError:
+            return []
+    if "empresa_id" not in gestor.keys() or not gestor["empresa_id"]:
         return []
+    conn = db()
+    try:
+        return empresas.modulos(
+            conn.execute("SELECT modulos FROM empresas WHERE id=?", (gestor["empresa_id"],)).fetchone()
+        )
+    finally:
+        conn.close()
 
 
 def _sha256_hex(senha):
@@ -331,8 +343,7 @@ def init_db():
         (_sha256_hex(SENHA_GESTOR_PADRAO),),
     )
     voz.init_voz(c)
-    if not c.execute("SELECT 1 FROM cargos LIMIT 1").fetchone():
-        seed_cargos(c)
+    empresas.init_empresas(c)
     conn.commit()
     conn.close()
 
@@ -1136,12 +1147,18 @@ NOMES_TEMPLATES = {
 }
 
 
-def templates_email(conn):
-    salvos = config_get(conn, "templates_email")
-    try:
-        salvos = json.loads(salvos) if salvos else {}
-    except ValueError:
-        salvos = {}
+def templates_email(conn, empresa_id=None):
+    """Modelos de e-mail: os da empresa (se ela personalizou) sobre os padrões."""
+    salvos = {}
+    for chave_cfg in ("templates_email", "templates_email:%s" % empresa_id if empresa_id else None):
+        if not chave_cfg:
+            continue
+        try:
+            for k, v in (json.loads(config_get(conn, chave_cfg) or "{}") or {}).items():
+                if isinstance(v, dict) and (v.get("assunto") or v.get("corpo")):
+                    salvos[k] = v
+        except ValueError:
+            pass
     resultado = {}
     for chave, padrao in TEMPLATES_PADRAO.items():
         atual = salvos.get(chave) or {}
@@ -1183,17 +1200,18 @@ def variaveis_candidato(conn, cand, host_header=None):
     }
 
 
-def emails_gestores_do_local(conn, local_candidato):
-    """Gestores que devem ser avisados sobre um candidato: administradores e
-    gestores do mesmo local. Gestor sem local não recebe dados de ninguém
-    (isolamento entre empresas)."""
-    alvo = (local_candidato or "").strip().lower()
+def emails_gestores_do_local(conn, cand):
+    """Gestores avisados sobre um candidato: os da MESMA EMPRESA que enxergam a
+    unidade dele (admin da empresa, gestores sem unidade e os da mesma unidade).
+    Nenhum aviso sai para gestores de outra empresa."""
     emails = []
-    for g in conn.execute("SELECT email, local, is_admin FROM gestores").fetchall():
+    for g in conn.execute(
+        "SELECT email, local, is_admin, empresa_id FROM gestores WHERE empresa_id=? AND aprovado=1",
+        (cand["empresa_id"],),
+    ).fetchall():
         if not (g["email"] or "").strip():
             continue
-        local_g = (g["local"] or "").strip().lower()
-        if g["is_admin"] or (local_g and local_g == alvo):
+        if empresas.ve_local(g, cand["local"]):
             emails.append(g["email"].strip())
     return sorted(set(emails))
 
@@ -1203,7 +1221,7 @@ def notificar_gestores(conn, cand, assunto, corpo):
     if not config_get(conn, "smtp_host"):
         return
     enviados = 0
-    for email in emails_gestores_do_local(conn, cand["local"]):
+    for email in emails_gestores_do_local(conn, cand):
         ok, _ = enviar_email(conn, email, assunto, corpo)
         if ok:
             enviados += 1
@@ -1639,7 +1657,7 @@ def rotina_automatica():
                 ).fetchall()
                 for cand in pendentes:
                     variaveis = variaveis_candidato(conn, cand)
-                    modelo = templates_email(conn)["lembrete"]
+                    modelo = templates_email(conn, cand["empresa_id"])["lembrete"]
                     # envia o e-mail (I/O de rede) ANTES de qualquer escrita, para
                     # não segurar o lock do SQLite durante o SMTP.
                     ok, _ = enviar_email(
@@ -1675,17 +1693,27 @@ def rotina_automatica():
 
 
 def gestor_ve_candidato(gestor, cand):
-    """Isolamento entre empresas: só o administrador vê tudo. Um gestor vê
-    apenas candidatos do próprio local; gestor sem local não vê ninguém."""
-    return gestor_ve_local(gestor, cand["local"])
+    """Isolamento: o gestor só vê candidatos da própria empresa (e, se tiver
+    unidade definida e não for admin, só os da própria unidade)."""
+    return empresas.ve_candidato(gestor, cand)
 
 
-def gestor_ve_local(gestor, local):
-    """Mesma regra de escopo por local, aplicada a um valor de local avulso."""
-    if gestor["is_admin"]:
-        return True
-    proprio = (gestor["local"] or "").strip().lower()
-    return bool(proprio) and (local or "").strip().lower() == proprio
+def cargo_do_gestor(conn, gestor, cargo_id):
+    """O cargo existe e é da empresa do gestor."""
+    return bool(cargo_id) and conn.execute(
+        "SELECT 1 FROM cargos WHERE id=? AND empresa_id=?", (cargo_id, gestor["empresa_id"])
+    ).fetchone() is not None
+
+
+def filho_de_cargo_do_gestor(conn, gestor, tabela, item_id):
+    """Pergunta, questão ou competência cujo cargo é da empresa do gestor."""
+    r = conn.execute("SELECT cargo_id FROM %s WHERE id=?" % tabela, (item_id,)).fetchone()
+    return bool(r) and cargo_do_gestor(conn, gestor, r["cargo_id"])
+
+
+def gestor_ve_registro(gestor, registro):
+    """Mesma regra para qualquer registro com empresa_id e local (vagas, sessões)."""
+    return empresas.mesma_empresa(gestor, registro) and empresas.ve_local(gestor, registro["local"])
 
 
 # ------------------------------------------------------------ servidor
@@ -1805,8 +1833,11 @@ class Handler(BaseHTTPRequestHandler):
         if not token:
             return None
         return conn.execute(
-            "SELECT g.* FROM sessoes_gestor s JOIN gestores g ON g.id = s.gestor_id"
-            " WHERE s.token=?",
+            "SELECT g.*, e.modulos AS empresa_modulos, e.slug AS empresa_slug,"
+            " e.nome AS empresa_nome FROM sessoes_gestor s"
+            " JOIN gestores g ON g.id = s.gestor_id"
+            " JOIN empresas e ON e.id = g.empresa_id"
+            " WHERE s.token=? AND g.aprovado=1 AND e.status IN ('ativa','teste')",
             (token,),
         ).fetchone()
 
@@ -1905,9 +1936,15 @@ class Handler(BaseHTTPRequestHandler):
         if voz.rotear_publico(self, method, path, conn):
             return None
         if method == "GET" and path == "/api/cargos":
+            # público: só os cargos da empresa do link (?e=slug)
+            empresa_row = empresas.por_slug(conn, parse_qs(urlparse(self.path).query).get("e", [""])[0])
+            if not empresa_row:
+                return self._json(200, {"cargos": []})
             cargos = [
                 cargo_com_competencias(conn, r["id"])
-                for r in conn.execute("SELECT id FROM cargos ORDER BY nome").fetchall()
+                for r in conn.execute(
+                    "SELECT id FROM cargos WHERE empresa_id=? ORDER BY nome", (empresa_row["id"],)
+                ).fetchall()
             ]
             return self._json(200, {"cargos": cargos})
 
@@ -1926,19 +1963,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"erro": "Informe um telefone válido com o código do país"})
             if not d.get("consentimento"):
                 return self._json(400, {"erro": "É necessário autorizar o uso dos seus dados para o processo seletivo"})
-            # candidato duplicado: reaproveita a ficha existente com segurança
-            existente = conn.execute(
-                "SELECT * FROM candidatos WHERE lower(email)=lower(?) AND anonimizado=0",
-                (email,),
-            ).fetchone()
+            # a empresa vem da vaga escolhida ou do link da empresa (?e=slug),
+            # nunca do texto digitado: é ela que decide quem enxerga o cadastro
             vaga = None
             if d.get("vaga_id"):
                 vaga = conn.execute(
-                    "SELECT * FROM vagas WHERE id=? AND status='aberta'",
+                    "SELECT v.* FROM vagas v JOIN empresas e ON e.id=v.empresa_id"
+                    " WHERE v.id=? AND v.status='aberta' AND e.status IN ('ativa','teste')",
                     (d["vaga_id"],),
                 ).fetchone()
                 if not vaga:
                     return self._json(400, {"erro": "Esta vaga não está mais aberta"})
+                empresa_id = vaga["empresa_id"]
+            else:
+                empresa_row = empresas.por_slug(conn, d.get("empresa"))
+                if not empresa_row:
+                    return self._json(400, {"erro": "Use o link de inscrição enviado pela empresa."})
+                empresa_id = empresa_row["id"]
+            # candidato duplicado na MESMA empresa: reaproveita a ficha com segurança
+            existente = conn.execute(
+                "SELECT * FROM candidatos WHERE lower(email)=lower(?) AND anonimizado=0"
+                " AND empresa_id=?",
+                (email, empresa_id),
+            ).fetchone()
             if existente:
                 # não devolve o token de outra pessoa: envia o link por e-mail
                 if vaga and not conn.execute(
@@ -1982,24 +2029,29 @@ class Handler(BaseHTTPRequestHandler):
                 cargo_desejado = vaga["cargo_id"]
             else:
                 cargo_desejado = d.get("cargo_desejado_id") or None
+                if cargo_desejado and not conn.execute(
+                    "SELECT 1 FROM cargos WHERE id=? AND empresa_id=?", (cargo_desejado, empresa_id)
+                ).fetchone():
+                    cargo_desejado = None
                 novo_cargo = (d.get("novo_cargo") or "").strip()
                 if novo_cargo:
                     ja = conn.execute(
-                        "SELECT id FROM cargos WHERE lower(nome)=lower(?)", (novo_cargo,)
+                        "SELECT id FROM cargos WHERE lower(nome)=lower(?) AND empresa_id=?",
+                        (novo_cargo, empresa_id),
                     ).fetchone()
                     if ja:
                         cargo_desejado = ja["id"]
                     else:
                         cur = conn.execute(
-                            "INSERT INTO cargos (nome, area, nivel) VALUES (?,?,?)",
-                            (novo_cargo, (d.get("novo_cargo_area") or "").strip(), ""),
+                            "INSERT INTO cargos (nome, area, nivel, empresa_id) VALUES (?,?,?,?)",
+                            (novo_cargo, (d.get("novo_cargo_area") or "").strip(), "", empresa_id),
                         )
                         cargo_desejado = cur.lastrowid
             token = secrets.token_urlsafe(24)
             conn.execute(
                 "INSERT INTO candidatos (token, nome, email, local, telefone, funcao,"
-                " linkedin, instagram, cargo_atual, cargo_desejado_id)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                " linkedin, instagram, cargo_atual, cargo_desejado_id, empresa_id)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     token,
                     nome,
@@ -2011,6 +2063,7 @@ class Handler(BaseHTTPRequestHandler):
                     (d.get("instagram") or "").strip().lstrip("@"),
                     (d.get("cargo_atual") or "").strip(),
                     cargo_desejado or None,
+                    empresa_id,
                 ),
             )
             conn.execute(
@@ -2046,7 +2099,7 @@ class Handler(BaseHTTPRequestHandler):
             # e-mails automáticos (só quando o SMTP estiver configurado)
             if config_get(conn, "smtp_host"):
                 variaveis = variaveis_candidato(conn, novo, self.headers.get("Host"))
-                modelo = templates_email(conn)["confirmacao"]
+                modelo = templates_email(conn, novo["empresa_id"])["confirmacao"]
                 ok, _ = enviar_email(
                     conn, email,
                     renderizar(modelo["assunto"], variaveis),
@@ -2071,9 +2124,10 @@ class Handler(BaseHTTPRequestHandler):
             pagina = None
             filtro_local = None
             login_gestor = (qs.get("g", [""])[0] or "").strip().lower()
+            empresa_row = empresas.por_slug(conn, qs.get("e", [""])[0])
             if login_gestor:
                 dono = conn.execute(
-                    "SELECT nome, local FROM gestores WHERE lower(login)=?",
+                    "SELECT nome, local, empresa_id FROM gestores WHERE lower(login)=? AND aprovado=1",
                     (login_gestor,),
                 ).fetchone()
                 if not dono:
@@ -2081,11 +2135,19 @@ class Handler(BaseHTTPRequestHandler):
                 pagina = {"gestor_nome": dono["nome"], "local": dono["local"] or ""}
                 if (dono["local"] or "").strip():
                     filtro_local = dono["local"].strip().lower()
+                empresa_row = conn.execute(
+                    "SELECT * FROM empresas WHERE id=? AND status IN ('ativa','teste')",
+                    (dono["empresa_id"],),
+                ).fetchone()
+            if not empresa_row:
+                # sem o link de uma empresa não há o que listar (nada de vagas de todos)
+                return self._json(200, {"vagas": [], "pagina": pagina, "empresa": None})
             vagas = []
             for r in conn.execute(
                 "SELECT v.*, c.nome, c.nivel, c.area FROM vagas v"
                 " JOIN cargos c ON c.id = v.cargo_id"
-                " WHERE v.status='aberta' ORDER BY v.criado_em DESC"
+                " WHERE v.status='aberta' AND v.empresa_id=? ORDER BY v.criado_em DESC",
+                (empresa_row["id"],),
             ).fetchall():
                 if filtro_local and (r["local"] or "").strip().lower() != filtro_local:
                     continue
@@ -2095,7 +2157,8 @@ class Handler(BaseHTTPRequestHandler):
                     "descricao": r["descricao"], "cargo_id": r["cargo_id"],
                     "cargo_nome": r["nome"], "nivel": r["nivel"], "area": r["area"],
                 })
-            return self._json(200, {"vagas": vagas, "pagina": pagina})
+            return self._json(200, {"vagas": vagas, "pagina": pagina,
+                                    "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]}})
 
         if method == "POST" and path == "/api/candidato/recuperar-acesso":
             d = self._body()
@@ -2123,10 +2186,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True})
 
         if method == "GET" and path == "/api/locais":
+            # só as unidades da empresa do link
+            empresa_row = empresas.por_slug(conn, parse_qs(urlparse(self.path).query).get("e", [""])[0])
+            if not empresa_row:
+                return self._json(200, {"locais": []})
             locais = sorted({
                 (r["local"] or "").strip()
                 for r in conn.execute(
-                    "SELECT local FROM gestores UNION SELECT local FROM candidatos"
+                    "SELECT local FROM gestores WHERE empresa_id=? AND aprovado=1"
+                    " UNION SELECT local FROM vagas WHERE empresa_id=?",
+                    (empresa_row["id"], empresa_row["id"]),
                 ).fetchall()
                 if (r["local"] or "").strip()
             })
@@ -2331,20 +2400,30 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchone():
                 return self._json(401, {"erro": "Acesso restrito ao dono do software"})
 
+        if path.startswith("/api/dono/") and (
+            empresas.rotear_dono(self, method, path, conn) or voz.rotear_dono(self, method, path, conn)
+        ):
+            return None
+
         if method == "GET" and path == "/api/dono/visao":
             gestores_lista = []
-            for g in conn.execute("SELECT * FROM gestores ORDER BY nome").fetchall():
-                alvo = (g["local"] or "").strip().lower()
+            for g in conn.execute(
+                "SELECT g.*, e.nome AS empresa_nome FROM gestores g"
+                " LEFT JOIN empresas e ON e.id=g.empresa_id ORDER BY e.nome, g.nome"
+            ).fetchall():
                 cand_count = 0
-                for r in conn.execute("SELECT local FROM candidatos").fetchall():
-                    if g["is_admin"] or not alvo \
-                            or (r["local"] or "").strip().lower() == alvo:
+                for r in conn.execute(
+                    "SELECT local, empresa_id FROM candidatos WHERE empresa_id=?", (g["empresa_id"],)
+                ).fetchall():
+                    if empresas.ve_local(g, r["local"]):
                         cand_count += 1
                 gestores_lista.append({
                     "id": g["id"], "nome": g["nome"], "login": g["login"],
                     "email": g["email"], "local": g["local"],
                     "admin": bool(g["is_admin"]), "criado_em": g["criado_em"],
                     "candidatos_visiveis": cand_count,
+                    "empresa_id": g["empresa_id"], "empresa": g["empresa_nome"] or "",
+                    "aprovado": bool(g["aprovado"]),
                     "modulos": modulos_do_gestor(g),
                 })
             locais = {}
@@ -2405,10 +2484,12 @@ class Handler(BaseHTTPRequestHandler):
                 (token, g["id"]),
             )
             conn.commit()
+            empresa_row = conn.execute("SELECT * FROM empresas WHERE id=?", (g["empresa_id"],)).fetchone()
             return self._json(200, {
                 "token": token, "nome": g["nome"], "login": g["login"],
                 "local": g["local"], "admin": bool(g["is_admin"]),
-                "modulos": modulos_do_gestor(g),
+                "modulos": empresas.modulos(empresa_row),
+                "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]} if empresa_row else None,
             })
 
         if method == "POST" and path == "/api/dono/modulos":
@@ -2421,14 +2502,15 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchone()
             if not g:
                 return self._json(404, {"erro": "Gestor não encontrado"})
-            mods = set(modulos_do_gestor(g))
+            empresa_row = conn.execute("SELECT * FROM empresas WHERE id=?", (g["empresa_id"],)).fetchone()
+            mods = set(empresas.modulos(empresa_row))
             if d.get("ativo"):
                 mods.add(modulo)
             else:
                 mods.discard(modulo)
             conn.execute(
-                "UPDATE gestores SET modulos=? WHERE id=?",
-                (json.dumps(sorted(mods)), g["id"]),
+                "UPDATE empresas SET modulos=? WHERE id=?",
+                (json.dumps(sorted(mods)), g["empresa_id"]),
             )
             conn.commit()
             return self._json(200, {"ok": True, "modulos": sorted(mods)})
@@ -2461,45 +2543,78 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True})
 
         if path == "/api/dono/billing":
+            # cobrança agora é por empresa (campos plano, valor, status e notas da empresa)
             if method == "GET":
-                registros = {
-                    r["local"]: dict(r)
-                    for r in conn.execute("SELECT * FROM billing").fetchall()
-                }
-                locais = sorted({
-                    (r["local"] or "").strip()
-                    for r in conn.execute(
-                        "SELECT local FROM gestores UNION SELECT local FROM candidatos"
-                    ).fetchall()
-                    if (r["local"] or "").strip()
-                })
-                linhas = []
-                for local in locais:
-                    reg = registros.get(local, {})
-                    linhas.append({
-                        "local": local,
-                        "plano": reg.get("plano", ""),
-                        "valor": reg.get("valor", ""),
-                        "status": reg.get("status", "ativo"),
-                        "notas": reg.get("notas", ""),
-                    })
+                linhas = [
+                    {"empresa_id": e["id"], "local": e["nome"], "plano": e["plano"], "valor": e["valor"],
+                     "status": e["status"], "notas": e["notas"]}
+                    for e in conn.execute("SELECT * FROM empresas ORDER BY nome").fetchall()
+                ]
                 return self._json(200, {"clientes": linhas})
             if method == "POST":
                 d = self._body()
-                local = (d.get("local") or "").strip()
-                if not local:
-                    return self._json(400, {"erro": "Informe o local/cliente"})
+                empresa_row = conn.execute(
+                    "SELECT * FROM empresas WHERE id=? OR lower(nome)=lower(?)",
+                    (d.get("empresa_id") or 0, (d.get("local") or "").strip()),
+                ).fetchone()
+                if not empresa_row:
+                    return self._json(400, {"erro": "Empresa não encontrada"})
+                status = {"ativo": "ativa", "inadimplente": "suspensa", "cancelado": "cancelada"}.get(
+                    d.get("status"), d.get("status"))
                 conn.execute(
-                    "INSERT INTO billing (local, plano, valor, status, notas)"
-                    " VALUES (?,?,?,?,?)"
-                    " ON CONFLICT(local) DO UPDATE SET plano=excluded.plano,"
-                    " valor=excluded.valor, status=excluded.status,"
-                    " notas=excluded.notas, atualizado_em=datetime('now')",
-                    (local, (d.get("plano") or "").strip(),
-                     (d.get("valor") or "").strip(),
-                     d.get("status") if d.get("status") in ("ativo", "teste", "inadimplente", "cancelado") else "ativo",
-                     (d.get("notas") or "").strip()),
+                    "UPDATE empresas SET plano=?, valor=?, notas=?, status=? WHERE id=?",
+                    ((d.get("plano") or "").strip(), (d.get("valor") or "").strip(),
+                     (d.get("notas") or "").strip(),
+                     status if status in empresas.STATUS_EMPRESA else empresa_row["status"],
+                     empresa_row["id"]),
                 )
+                conn.commit()
+                return self._json(200, {"ok": True})
+
+        # ---- integrações da plataforma (IA, e-mail, endereço): só o dono ----
+        if method == "POST" and path == "/api/dono/integracoes/teste":
+            if not config_get(conn, "smtp_host"):
+                return self._json(400, {"erro": "Preencha e salve os dados de SMTP antes de testar."})
+            destino = ((self._body().get("destino") or "").strip()
+                       or config_get(conn, "smtp_remetente")
+                       or config_get(conn, "smtp_usuario"))
+            if not destino:
+                return self._json(400, {"erro": "Informe um e-mail de destino para o teste."})
+            ok, msg = enviar_email(
+                conn, destino, "Teste de e-mail - Bússola",
+                "Este é um e-mail de teste da Bússola.\n\nSe você recebeu esta mensagem, "
+                "o envio automático está funcionando: confirmações de inscrição, avisos de "
+                "etapa e de novos candidatos, lembretes e redefinição de senha já operam.\n\n"
+                "Equipe Bússola",
+            )
+            if ok:
+                return self._json(200, {"ok": True, "destino": destino})
+            return self._json(400, {"erro": "Falha ao enviar: %s" % msg})
+
+        if path == "/api/dono/integracoes":
+            if method == "GET":
+                chave = config_get(conn, "anthropic_api_key")
+                return self._json(200, {
+                    "ia_configurada": bool(chave),
+                    "ia_final": chave[-6:] if chave else "",
+                    "smtp_host": config_get(conn, "smtp_host"),
+                    "smtp_porta": config_get(conn, "smtp_porta") or "587",
+                    "smtp_usuario": config_get(conn, "smtp_usuario"),
+                    "smtp_remetente": config_get(conn, "smtp_remetente"),
+                    "smtp_senha_configurada": bool(config_get(conn, "smtp_senha")),
+                    "url_publica": config_get(conn, "url_publica"),
+                    "retencao_meses": config_get(conn, "retencao_meses") or "0",
+                })
+            if method == "POST":
+                d = self._body()
+                if "anthropic_api_key" in d:
+                    config_set(conn, "anthropic_api_key", (d.get("anthropic_api_key") or "").strip())
+                for chave in ("smtp_host", "smtp_porta", "smtp_usuario",
+                              "smtp_remetente", "url_publica", "retencao_meses"):
+                    if chave in d:
+                        config_set(conn, chave, (d.get(chave) or "").strip())
+                if d.get("smtp_senha"):
+                    config_set(conn, "smtp_senha", d["smtp_senha"])
                 conn.commit()
                 return self._json(200, {"ok": True})
 
@@ -2519,11 +2634,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"erro": "Nome e login são obrigatórios"})
             if len(senha) < 6:
                 return self._json(400, {"erro": "A senha deve ter ao menos 6 caracteres"})
+            empresa_id, _ = empresas.criar_empresa(
+                conn, (d.get("empresa") or d.get("local") or "").strip() or "Principal"
+            )
             conn.execute(
-                "INSERT INTO gestores (login, senha, nome, email, local, is_admin)"
-                " VALUES (?,?,?,?,?,1)",
+                "INSERT INTO gestores (login, senha, nome, email, local, is_admin, empresa_id)"
+                " VALUES (?,?,?,?,?,1,?)",
                 (login, hash_senha(senha), nome, (d.get("email") or "").strip(),
-                 (d.get("local") or "").strip()),
+                 (d.get("local") or "").strip(), empresa_id),
             )
             gestor_id = conn.execute(
                 "SELECT id FROM gestores WHERE login=?", (login,)
@@ -2534,9 +2652,12 @@ class Handler(BaseHTTPRequestHandler):
                 (token, gestor_id),
             )
             conn.commit()
+            empresa_row = conn.execute("SELECT * FROM empresas WHERE id=?", (empresa_id,)).fetchone()
             return self._json(200, {
                 "token": token, "nome": nome, "login": login,
                 "local": (d.get("local") or "").strip(), "admin": True,
+                "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]},
+                "modulos": [],
             })
 
         # ---- gestor ----
@@ -2555,6 +2676,11 @@ class Handler(BaseHTTPRequestHandler):
             self._limpar_falhas_login("gestor")
             if not gestor_row["aprovado"]:
                 return self._json(403, {"erro": "Sua conta ainda está aguardando aprovação do administrador. Você receberá um aviso quando for liberada."})
+            empresa_row = conn.execute(
+                "SELECT * FROM empresas WHERE id=?", (gestor_row["empresa_id"],)
+            ).fetchone()
+            if not empresa_row or empresa_row["status"] not in ("ativa", "teste"):
+                return self._json(403, {"erro": "O acesso desta empresa está suspenso. Fale com o suporte."})
             # atualiza o hash para o formato novo (PBKDF2), se ainda for o antigo
             novo_hash = migrar_hash_se_preciso(d.get("senha") or "", gestor_row["senha"])
             if novo_hash:
@@ -2570,8 +2696,9 @@ class Handler(BaseHTTPRequestHandler):
                 "nome": gestor_row["nome"],
                 "login": gestor_row["login"],
                 "local": gestor_row["local"],
-                "modulos": modulos_do_gestor(gestor_row),
+                "modulos": empresas.modulos(empresa_row),
                 "admin": bool(gestor_row["is_admin"]),
+                "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]},
             })
 
         # ---- esqueci minha senha (gestor) ----
@@ -2634,6 +2761,9 @@ class Handler(BaseHTTPRequestHandler):
             email = (d.get("email") or "").strip()
             senha = d.get("senha") or ""
             local = (d.get("local") or "").strip()
+            empresa_row = empresas.por_slug(conn, d.get("empresa"))
+            if not empresa_row:
+                return self._json(400, {"erro": "Use o link de cadastro enviado pela sua empresa para solicitar acesso."})
             if not nome or not login or not email:
                 return self._json(400, {"erro": "Preencha nome, login e e-mail"})
             if len(senha) < 6:
@@ -2641,14 +2771,15 @@ class Handler(BaseHTTPRequestHandler):
             if conn.execute("SELECT 1 FROM gestores WHERE lower(login)=?", (login,)).fetchone():
                 return self._json(409, {"erro": "Este login já está em uso. Escolha outro."})
             conn.execute(
-                "INSERT INTO gestores (nome, login, email, senha, local, is_admin, aprovado)"
-                " VALUES (?,?,?,?,?,0,0)",
-                (nome, login, email, hash_senha(senha), local),
+                "INSERT INTO gestores (nome, login, email, senha, local, is_admin, aprovado, empresa_id)"
+                " VALUES (?,?,?,?,?,0,0,?)",
+                (nome, login, email, hash_senha(senha), local, empresa_row["id"]),
             )
             conn.commit()
-            # avisa os administradores (se houver SMTP configurado)
+            # avisa só os administradores da empresa (se houver SMTP configurado)
             admins = conn.execute(
-                "SELECT email FROM gestores WHERE is_admin=1 AND email!=''"
+                "SELECT email FROM gestores WHERE is_admin=1 AND email!='' AND empresa_id=?",
+                (empresa_row["id"],),
             ).fetchall()
             if config_get(conn, "smtp_host"):
                 for a in admins:
@@ -2710,11 +2841,12 @@ class Handler(BaseHTTPRequestHandler):
                         conteudo = json.load(f)
                 sessoes = []
                 for s in conn.execute(
-                    "SELECT id, colaborador, cargo, unidade, status, local,"
+                    "SELECT id, colaborador, cargo, unidade, status, local, empresa_id,"
                     " criado_em, atualizado_em FROM sessoes_diagnostico"
-                    " ORDER BY atualizado_em DESC"
+                    " WHERE empresa_id=? ORDER BY atualizado_em DESC",
+                    (gestor["empresa_id"],),
                 ).fetchall():
-                    if gestor_ve_local(gestor, s["local"]):
+                    if gestor_ve_registro(gestor, s):
                         sessoes.append(dict(s))
                 por_unidade = {}
                 concluidas = 0
@@ -2739,7 +2871,7 @@ class Handler(BaseHTTPRequestHandler):
                 s = conn.execute(
                     "SELECT * FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
                 ).fetchone()
-                if not s or not gestor_ve_local(gestor, s["local"]):
+                if not s or not gestor_ve_registro(gestor, s):
                     return self._json(404, {"erro": "Sessão não encontrada"})
                 d = dict(s)
                 d["dados"] = json.loads(d["dados"] or "{}")
@@ -2747,9 +2879,9 @@ class Handler(BaseHTTPRequestHandler):
 
             if m and method == "DELETE":
                 s = conn.execute(
-                    "SELECT local FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
+                    "SELECT local, empresa_id FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),)
                 ).fetchone()
-                if not s or not gestor_ve_local(gestor, s["local"]):
+                if not s or not gestor_ve_registro(gestor, s):
                     return self._json(404, {"erro": "Sessão não encontrada"})
                 conn.execute("DELETE FROM sessoes_diagnostico WHERE id=?", (int(m.group(1)),))
                 conn.commit()
@@ -2764,9 +2896,9 @@ class Handler(BaseHTTPRequestHandler):
                 dados = json.dumps(d.get("dados") or {})
                 if d.get("id"):
                     atual = conn.execute(
-                        "SELECT local FROM sessoes_diagnostico WHERE id=?", (d["id"],)
+                        "SELECT local, empresa_id FROM sessoes_diagnostico WHERE id=?", (d["id"],)
                     ).fetchone()
-                    if not atual or not gestor_ve_local(gestor, atual["local"]):
+                    if not atual or not gestor_ve_registro(gestor, atual):
                         return self._json(404, {"erro": "Sessão não encontrada"})
                     conn.execute(
                         "UPDATE sessoes_diagnostico SET colaborador=?, cargo=?,"
@@ -2779,11 +2911,11 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     cur = conn.execute(
                         "INSERT INTO sessoes_diagnostico"
-                        " (gestor_id, colaborador, cargo, unidade, status, dados, local)"
-                        " VALUES (?,?,?,?,?,?,?)",
+                        " (gestor_id, colaborador, cargo, unidade, status, dados, local, empresa_id)"
+                        " VALUES (?,?,?,?,?,?,?,?)",
                         (gestor["id"], colaborador, (d.get("cargo") or "").strip(),
                          (d.get("unidade") or "").strip(), status, dados,
-                         (gestor["local"] or "").strip()),
+                         (gestor["local"] or "").strip(), gestor["empresa_id"]),
                     )
                     sessao_id = cur.lastrowid
                 conn.commit()
@@ -2810,6 +2942,15 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._json(404, {"erro": "Não encontrado"})
 
+        if method == "GET" and path == "/api/gestor/cargos":
+            cargos_lista = [
+                cargo_com_competencias(conn, r["id"])
+                for r in conn.execute(
+                    "SELECT id FROM cargos WHERE empresa_id=? ORDER BY nome", (gestor["empresa_id"],)
+                ).fetchall()
+            ]
+            return self._json(200, {"cargos": cargos_lista})
+
         # -- gestão de contas de gestor (somente administrador) --
         if path.startswith("/api/gestor/gestores"):
             if not gestor["is_admin"]:
@@ -2822,7 +2963,8 @@ class Handler(BaseHTTPRequestHandler):
                      "aprovado": bool(g["aprovado"]),
                      "modulos": modulos_do_gestor(g)}
                     for g in conn.execute(
-                        "SELECT * FROM gestores ORDER BY aprovado, nome"
+                        "SELECT * FROM gestores WHERE empresa_id=? ORDER BY aprovado, nome",
+                        (gestor["empresa_id"],),
                     ).fetchall()
                 ]
                 return self._json(200, {"gestores": lista})
@@ -2830,7 +2972,8 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r"^/api/gestor/gestores/(\d+)/aprovar$", path)
             if m and method == "POST":
                 alvo = conn.execute(
-                    "SELECT * FROM gestores WHERE id=?", (int(m.group(1)),)
+                    "SELECT * FROM gestores WHERE id=? AND empresa_id=?",
+                    (int(m.group(1)), gestor["empresa_id"]),
                 ).fetchone()
                 if not alvo:
                     return self._json(404, {"erro": "Conta não encontrada"})
@@ -2854,6 +2997,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(400, {"erro": "Nome e login são obrigatórios"})
                 senha = d.get("senha") or ""
                 if d.get("id"):
+                    if not conn.execute(
+                        "SELECT 1 FROM gestores WHERE id=? AND empresa_id=?",
+                        (d["id"], gestor["empresa_id"]),
+                    ).fetchone():
+                        return self._json(404, {"erro": "Conta não encontrada"})
                     conn.execute(
                         "UPDATE gestores SET nome=?, email=?, local=?, is_admin=? WHERE id=?",
                         (nome, (d.get("email") or "").strip(),
@@ -2875,11 +3023,12 @@ class Handler(BaseHTTPRequestHandler):
                     ).fetchone():
                         return self._json(400, {"erro": "Já existe um gestor com este login"})
                     conn.execute(
-                        "INSERT INTO gestores (login, senha, nome, email, local, is_admin)"
-                        " VALUES (?,?,?,?,?,?)",
+                        "INSERT INTO gestores (login, senha, nome, email, local, is_admin, empresa_id)"
+                        " VALUES (?,?,?,?,?,?,?)",
                         (login, hash_senha(senha), nome,
                          (d.get("email") or "").strip(),
-                         (d.get("local") or "").strip(), 1 if d.get("admin") else 0),
+                         (d.get("local") or "").strip(), 1 if d.get("admin") else 0,
+                         gestor["empresa_id"]),
                     )
                 conn.commit()
                 return self._json(200, {"ok": True})
@@ -2888,7 +3037,9 @@ class Handler(BaseHTTPRequestHandler):
                 alvo = int(m.group(1))
                 if alvo == gestor["id"]:
                     return self._json(400, {"erro": "Você não pode excluir a sua própria conta"})
-                conn.execute("DELETE FROM gestores WHERE id=?", (alvo,))
+                conn.execute(
+                    "DELETE FROM gestores WHERE id=? AND empresa_id=?", (alvo, gestor["empresa_id"])
+                )
                 conn.commit()
                 return self._json(200, {"ok": True})
 
@@ -2897,7 +3048,9 @@ class Handler(BaseHTTPRequestHandler):
             vagas = []
             for v in conn.execute(
                 "SELECT v.*, c.nome AS cargo_nome FROM vagas v"
-                " JOIN cargos c ON c.id = v.cargo_id ORDER BY v.criado_em DESC"
+                " JOIN cargos c ON c.id = v.cargo_id WHERE v.empresa_id=?"
+                " ORDER BY v.criado_em DESC",
+                (gestor["empresa_id"],),
             ).fetchall():
                 contagem = {e: 0 for e in ETAPAS_PIPELINE}
                 for r in conn.execute(
@@ -2925,7 +3078,17 @@ class Handler(BaseHTTPRequestHandler):
             if not titulo or not d.get("cargo_id"):
                 return self._json(400, {"erro": "Título e cargo são obrigatórios"})
             status = d.get("status") if d.get("status") in ("aberta", "pausada", "encerrada") else "aberta"
+            if not conn.execute(
+                "SELECT 1 FROM cargos WHERE id=? AND empresa_id=?",
+                (d.get("cargo_id"), gestor["empresa_id"]),
+            ).fetchone():
+                return self._json(400, {"erro": "Cargo não encontrado"})
             if d.get("id"):
+                if not conn.execute(
+                    "SELECT 1 FROM vagas WHERE id=? AND empresa_id=?",
+                    (d["id"], gestor["empresa_id"]),
+                ).fetchone():
+                    return self._json(404, {"erro": "Vaga não encontrada"})
                 conn.execute(
                     "UPDATE vagas SET titulo=?, cargo_id=?, local=?, pais=?, descricao=?,"
                     " status=? WHERE id=?",
@@ -2935,18 +3098,20 @@ class Handler(BaseHTTPRequestHandler):
                 )
             else:
                 conn.execute(
-                    "INSERT INTO vagas (titulo, cargo_id, local, pais, descricao, status)"
-                    " VALUES (?,?,?,?,?,?)",
+                    "INSERT INTO vagas (titulo, cargo_id, local, pais, descricao, status, empresa_id)"
+                    " VALUES (?,?,?,?,?,?,?)",
                     (titulo, d["cargo_id"], (d.get("local") or "").strip(),
                      (d.get("pais") or "").strip(),
-                     (d.get("descricao") or "").strip(), status),
+                     (d.get("descricao") or "").strip(), status, gestor["empresa_id"]),
                 )
             conn.commit()
             return self._json(200, {"ok": True})
 
         m = re.match(r"^/api/gestor/vaga/(\d+)$", path)
         if m and method == "DELETE":
-            conn.execute("DELETE FROM vagas WHERE id=?", (int(m.group(1)),))
+            conn.execute(
+                "DELETE FROM vagas WHERE id=? AND empresa_id=?", (int(m.group(1)), gestor["empresa_id"])
+            )
             conn.commit()
             return self._json(200, {"ok": True})
 
@@ -2954,8 +3119,8 @@ class Handler(BaseHTTPRequestHandler):
         if m and method == "GET":
             vaga = conn.execute(
                 "SELECT v.*, c.nome AS cargo_nome FROM vagas v"
-                " JOIN cargos c ON c.id = v.cargo_id WHERE v.id=?",
-                (int(m.group(1)),),
+                " JOIN cargos c ON c.id = v.cargo_id WHERE v.id=? AND v.empresa_id=?",
+                (int(m.group(1)), gestor["empresa_id"]),
             ).fetchone()
             if not vaga:
                 return self._json(404, {"erro": "Vaga não encontrada"})
@@ -2994,7 +3159,7 @@ class Handler(BaseHTTPRequestHandler):
             d = self._body()
             ca = conn.execute(
                 "SELECT ca.*, v.titulo FROM candidaturas ca JOIN vagas v ON v.id=ca.vaga_id"
-                " WHERE ca.id=?", (d.get("id"),),
+                " WHERE ca.id=? AND v.empresa_id=?", (d.get("id"), gestor["empresa_id"]),
             ).fetchone()
             if not ca:
                 return self._json(404, {"erro": "Candidatura não encontrada"})
@@ -3025,7 +3190,7 @@ class Handler(BaseHTTPRequestHandler):
                 variaveis = variaveis_candidato(conn, cand_row, self.headers.get("Host"))
                 variaveis["vaga"] = ca["titulo"]
                 variaveis["etapa"] = NOMES_ETAPAS[etapa]
-                modelo = templates_email(conn).get(
+                modelo = templates_email(conn, cand_row["empresa_id"]).get(
                     "etapa_" + etapa, TEMPLATES_PADRAO["etapa_inscrito"]
                 )
                 ok, msg = enviar_email(
@@ -3049,7 +3214,8 @@ class Handler(BaseHTTPRequestHandler):
                 "SELECT * FROM candidatos WHERE id=?", (d.get("candidato_id"),)
             ).fetchone()
             vaga = conn.execute(
-                "SELECT * FROM vagas WHERE id=?", (d.get("vaga_id"),)
+                "SELECT * FROM vagas WHERE id=? AND empresa_id=?",
+                (d.get("vaga_id"), gestor["empresa_id"]),
             ).fetchone()
             if not cand_row or not vaga or not gestor_ve_candidato(gestor, cand_row):
                 return self._json(404, {"erro": "Candidato ou vaga não encontrados"})
@@ -3074,6 +3240,8 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/gestor/cargo/(\d+)/avaliacoes$", path)
         if m and method == "GET":
             cargo_id = int(m.group(1))
+            if not cargo_do_gestor(conn, gestor, cargo_id):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             perguntas = [
                 dict(r) for r in conn.execute(
                     "SELECT * FROM perguntas_entrevista WHERE cargo_id=? ORDER BY ordem, id",
@@ -3094,6 +3262,10 @@ class Handler(BaseHTTPRequestHandler):
             texto = (d.get("texto") or "").strip()
             if not texto or not d.get("cargo_id"):
                 return self._json(400, {"erro": "Cargo e texto da pergunta são obrigatórios"})
+            if not cargo_do_gestor(conn, gestor, d["cargo_id"]) or (
+                d.get("id") and not filho_de_cargo_do_gestor(conn, gestor, "perguntas_entrevista", d["id"])
+            ):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             if d.get("id"):
                 conn.execute(
                     "UPDATE perguntas_entrevista SET texto=? WHERE id=?", (texto, d["id"])
@@ -3108,6 +3280,8 @@ class Handler(BaseHTTPRequestHandler):
 
         m = re.match(r"^/api/gestor/pergunta-entrevista/(\d+)$", path)
         if m and method == "DELETE":
+            if not filho_de_cargo_do_gestor(conn, gestor, "perguntas_entrevista", int(m.group(1))):
+                return self._json(404, {"erro": "Pergunta não encontrada"})
             conn.execute("DELETE FROM perguntas_entrevista WHERE id=?", (int(m.group(1)),))
             conn.commit()
             return self._json(200, {"ok": True})
@@ -3121,6 +3295,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"erro": "Informe a pergunta e ao menos 2 opções"})
             if correta < 0 or correta >= len(opcoes):
                 return self._json(400, {"erro": "Opção correta inválida"})
+            if not cargo_do_gestor(conn, gestor, d["cargo_id"]) or (
+                d.get("id") and not filho_de_cargo_do_gestor(conn, gestor, "questoes", d["id"])
+            ):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             if d.get("id"):
                 conn.execute(
                     "UPDATE questoes SET pergunta=?, opcoes=?, correta=? WHERE id=?",
@@ -3137,6 +3315,8 @@ class Handler(BaseHTTPRequestHandler):
 
         m = re.match(r"^/api/gestor/questao/(\d+)$", path)
         if m and method == "DELETE":
+            if not filho_de_cargo_do_gestor(conn, gestor, "questoes", int(m.group(1))):
+                return self._json(404, {"erro": "Questão não encontrada"})
             conn.execute("DELETE FROM questoes WHERE id=?", (int(m.group(1)),))
             conn.commit()
             return self._json(200, {"ok": True})
@@ -3149,6 +3329,8 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchone()
             if not cand_row or not gestor_ve_candidato(gestor, cand_row):
                 return self._json(404, {"erro": "Candidato não encontrado"})
+            if not cargo_do_gestor(conn, gestor, d.get("cargo_id")):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             notas = d.get("notas") or []
             validas = [n for n in notas if 1 <= int(n.get("nota", 0)) <= 5]
             if not validas:
@@ -3182,56 +3364,8 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
-        # -- integrações (IA e e-mail) --
-        if method == "POST" and path == "/api/gestor/integracoes/teste":
-            if not gestor["is_admin"]:
-                return self._json(403, {"erro": "Apenas o administrador configura integrações"})
-            if not config_get(conn, "smtp_host"):
-                return self._json(400, {"erro": "Preencha e salve os dados de SMTP antes de testar."})
-            destino = ((gestor["email"] or "").strip()
-                       or config_get(conn, "smtp_remetente")
-                       or config_get(conn, "smtp_usuario"))
-            if not destino:
-                return self._json(400, {"erro": "Cadastre um e-mail na sua conta de gestor para receber o teste."})
-            ok, msg = enviar_email(
-                conn, destino, "Teste de e-mail - Bússola",
-                "Este é um e-mail de teste da Bússola.\n\nSe você recebeu esta mensagem, "
-                "o envio automático está funcionando: confirmações de inscrição, avisos de "
-                "etapa e de novos candidatos, lembretes e redefinição de senha já operam.\n\n"
-                "Equipe Bússola",
-            )
-            if ok:
-                return self._json(200, {"ok": True, "destino": destino})
-            return self._json(400, {"erro": "Falha ao enviar: %s" % msg})
-
-        if path == "/api/gestor/integracoes":
-            if not gestor["is_admin"]:
-                return self._json(403, {"erro": "Apenas o administrador configura integrações"})
-            if method == "GET":
-                chave = config_get(conn, "anthropic_api_key")
-                return self._json(200, {
-                    "ia_configurada": bool(chave),
-                    "ia_final": chave[-6:] if chave else "",
-                    "smtp_host": config_get(conn, "smtp_host"),
-                    "smtp_porta": config_get(conn, "smtp_porta") or "587",
-                    "smtp_usuario": config_get(conn, "smtp_usuario"),
-                    "smtp_remetente": config_get(conn, "smtp_remetente"),
-                    "smtp_senha_configurada": bool(config_get(conn, "smtp_senha")),
-                    "url_publica": config_get(conn, "url_publica"),
-                    "retencao_meses": config_get(conn, "retencao_meses") or "0",
-                })
-            if method == "POST":
-                d = self._body()
-                if "anthropic_api_key" in d:
-                    config_set(conn, "anthropic_api_key", (d.get("anthropic_api_key") or "").strip())
-                for chave in ("smtp_host", "smtp_porta", "smtp_usuario",
-                              "smtp_remetente", "url_publica", "retencao_meses"):
-                    if chave in d:
-                        config_set(conn, chave, (d.get(chave) or "").strip())
-                if d.get("smtp_senha"):
-                    config_set(conn, "smtp_senha", d["smtp_senha"])
-                conn.commit()
-                return self._json(200, {"ok": True})
+        if path in ("/api/gestor/integracoes", "/api/gestor/integracoes/teste"):
+            return self._json(403, {"erro": "As integrações agora são configuradas pelo administrador do sistema (painel do dono)."})
 
         # -- análise de currículo por IA --
         m = re.match(r"^/api/gestor/ia/curriculo/(\d+)$", path)
@@ -3280,7 +3414,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if method == "GET" and path == "/api/gestor/tags":
             todas = set()
-            for r in conn.execute("SELECT tags FROM candidatos").fetchall():
+            for r in conn.execute(
+                "SELECT tags, local, empresa_id FROM candidatos WHERE empresa_id=?",
+                (gestor["empresa_id"],),
+            ).fetchall():
+                if not gestor_ve_candidato(gestor, r):
+                    continue
                 try:
                     todas.update(json.loads(r["tags"] or "[]"))
                 except ValueError:
@@ -3291,7 +3430,8 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/gestor/vaga/(\d+)/sugestoes$", path)
         if m and method == "GET":
             vaga = conn.execute(
-                "SELECT * FROM vagas WHERE id=?", (int(m.group(1)),)
+                "SELECT * FROM vagas WHERE id=? AND empresa_id=?",
+                (int(m.group(1)), gestor["empresa_id"]),
             ).fetchone()
             if not vaga:
                 return self._json(404, {"erro": "Vaga não encontrada"})
@@ -3303,7 +3443,8 @@ class Handler(BaseHTTPRequestHandler):
             }
             sugestoes = []
             for cand_row in conn.execute(
-                "SELECT * FROM candidatos WHERE anonimizado=0"
+                "SELECT * FROM candidatos WHERE anonimizado=0 AND empresa_id=?",
+                (gestor["empresa_id"],),
             ).fetchall():
                 if cand_row["id"] in ja_na_vaga:
                     continue
@@ -3364,7 +3505,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(403, {"erro": "Apenas o administrador edita os modelos"})
             if method == "GET":
                 return self._json(200, {
-                    "templates": templates_email(conn),
+                    "templates": templates_email(conn, gestor["empresa_id"]),
                     "nomes": NOMES_TEMPLATES,
                     "padrao": TEMPLATES_PADRAO,
                 })
@@ -3377,14 +3518,17 @@ class Handler(BaseHTTPRequestHandler):
                         "assunto": (item.get("assunto") or "").strip(),
                         "corpo": (item.get("corpo") or "").strip(),
                     }
-                config_set(conn, "templates_email", json.dumps(novos, ensure_ascii=False))
+                config_set(conn, "templates_email:%d" % gestor["empresa_id"],
+                           json.dumps(novos, ensure_ascii=False))
                 conn.commit()
                 return self._json(200, {"ok": True})
 
         # -- relatórios --
         if method == "GET" and path == "/api/gestor/relatorios":
             visiveis = [
-                r for r in conn.execute("SELECT * FROM candidatos").fetchall()
+                r for r in conn.execute(
+                    "SELECT * FROM candidatos WHERE empresa_id=?", (gestor["empresa_id"],)
+                ).fetchall()
                 if gestor_ve_candidato(gestor, r)
             ]
             ids_visiveis = {r["id"] for r in visiveis}
@@ -3392,7 +3536,9 @@ class Handler(BaseHTTPRequestHandler):
             funil = []
             for v in conn.execute(
                 "SELECT v.*, c.nome AS cargo_nome FROM vagas v"
-                " JOIN cargos c ON c.id=v.cargo_id ORDER BY v.criado_em DESC"
+                " JOIN cargos c ON c.id=v.cargo_id WHERE v.empresa_id=?"
+                " ORDER BY v.criado_em DESC",
+                (gestor["empresa_id"],),
             ).fetchall():
                 etapas = {e: 0 for e in ETAPAS_PIPELINE}
                 for ca in conn.execute(
@@ -3459,7 +3605,8 @@ class Handler(BaseHTTPRequestHandler):
             for ev in conn.execute(
                 "SELECT e.*, c.nome AS candidato_nome, c.local AS candidato_local"
                 " FROM eventos e JOIN candidatos c ON c.id = e.candidato_id"
-                " ORDER BY e.criado_em DESC, e.id DESC LIMIT 120"
+                " WHERE c.empresa_id=? ORDER BY e.criado_em DESC, e.id DESC LIMIT 120",
+                (gestor["empresa_id"],),
             ).fetchall():
                 cand_row = conn.execute(
                     "SELECT * FROM candidatos WHERE id=?", (ev["candidato_id"],)
@@ -3481,7 +3628,8 @@ class Handler(BaseHTTPRequestHandler):
         if method == "GET" and path == "/api/gestor/candidatos":
             lista = []
             for cand_row in conn.execute(
-                "SELECT * FROM candidatos ORDER BY criado_em DESC"
+                "SELECT * FROM candidatos WHERE empresa_id=? ORDER BY criado_em DESC",
+                (gestor["empresa_id"],),
             ).fetchall():
                 if gestor_ve_candidato(gestor, cand_row):
                     lista.append(resumo_candidato(conn, cand_row))
@@ -3527,7 +3675,9 @@ class Handler(BaseHTTPRequestHandler):
                             "nivel": c["nivel"],
                             "match": (match_completo(conn, cand_row, c["id"]) or {}).get("geral"),
                         }
-                        for c in conn.execute("SELECT * FROM cargos").fetchall()
+                        for c in conn.execute(
+                            "SELECT * FROM cargos WHERE empresa_id=?", (gestor["empresa_id"],)
+                        ).fetchall()
                     ],
                     key=lambda x: -(x["match"] if x["match"] is not None else -1),
                 )
@@ -3580,6 +3730,8 @@ class Handler(BaseHTTPRequestHandler):
             disc_alvo = d.get("disc_alvo") if d.get("disc_alvo") in ("D", "I", "S", "C") else ""
             base_alvo = d.get("base_alvo") if d.get("base_alvo") in ("B", "A", "S", "E") else ""
             if d.get("id"):
+                if not cargo_do_gestor(conn, gestor, d["id"]):
+                    return self._json(404, {"erro": "Cargo não encontrado"})
                 conn.execute(
                     "UPDATE cargos SET nome=?, area=?, nivel=?, descricao=?,"
                     " disc_alvo=?, base_alvo=? WHERE id=?",
@@ -3589,10 +3741,10 @@ class Handler(BaseHTTPRequestHandler):
                 cargo_id = d["id"]
             else:
                 cur = conn.execute(
-                    "INSERT INTO cargos (nome, area, nivel, descricao, disc_alvo, base_alvo)"
-                    " VALUES (?,?,?,?,?,?)",
+                    "INSERT INTO cargos (nome, area, nivel, descricao, disc_alvo, base_alvo, empresa_id)"
+                    " VALUES (?,?,?,?,?,?,?)",
                     (nome, d.get("area") or "", d.get("nivel") or "",
-                     d.get("descricao") or "", disc_alvo, base_alvo),
+                     d.get("descricao") or "", disc_alvo, base_alvo, gestor["empresa_id"]),
                 )
                 cargo_id = cur.lastrowid
             conn.commit()
@@ -3600,7 +3752,9 @@ class Handler(BaseHTTPRequestHandler):
 
         m = re.match(r"^/api/gestor/cargo/(\d+)$", path)
         if m and method == "DELETE":
-            conn.execute("DELETE FROM cargos WHERE id=?", (int(m.group(1)),))
+            conn.execute(
+                "DELETE FROM cargos WHERE id=? AND empresa_id=?", (int(m.group(1)), gestor["empresa_id"])
+            )
             conn.commit()
             return self._json(200, {"ok": True})
 
@@ -3612,6 +3766,10 @@ class Handler(BaseHTTPRequestHandler):
             tipo = d.get("tipo") if d.get("tipo") in RECOMENDACAO_POR_TIPO else "tecnica"
             req = max(1, min(5, int(d.get("nivel_requerido", 3))))
             obrig = 1 if d.get("obrigatoria") else 0
+            if not cargo_do_gestor(conn, gestor, d["cargo_id"]) or (
+                d.get("id") and not filho_de_cargo_do_gestor(conn, gestor, "competencias", d["id"])
+            ):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             if d.get("id"):
                 conn.execute(
                     "UPDATE competencias SET nome=?, tipo=?, nivel_requerido=?, obrigatoria=?"
@@ -3629,6 +3787,8 @@ class Handler(BaseHTTPRequestHandler):
 
         m = re.match(r"^/api/gestor/competencia/(\d+)$", path)
         if m and method == "DELETE":
+            if not filho_de_cargo_do_gestor(conn, gestor, "competencias", int(m.group(1))):
+                return self._json(404, {"erro": "Competência não encontrada"})
             conn.execute("DELETE FROM competencias WHERE id=?", (int(m.group(1)),))
             conn.commit()
             return self._json(200, {"ok": True})
@@ -3638,12 +3798,14 @@ class Handler(BaseHTTPRequestHandler):
             cargo_id = int(qs.get("cargo_id", ["0"])[0] or 0)
             if not cargo_id:
                 return self._json(400, {"erro": "Informe o cargo"})
+            if not cargo_do_gestor(conn, gestor, cargo_id):
+                return self._json(404, {"erro": "Cargo não encontrado"})
             cargo_row = conn.execute(
                 "SELECT * FROM cargos WHERE id=?", (cargo_id,)
             ).fetchone()
             linhas = []
             for cand_row in conn.execute(
-                "SELECT * FROM candidatos ORDER BY nome"
+                "SELECT * FROM candidatos WHERE empresa_id=? ORDER BY nome", (gestor["empresa_id"],)
             ).fetchall():
                 if not gestor_ve_candidato(gestor, cand_row):
                     continue
@@ -3697,6 +3859,7 @@ def backup_diario():
 
 
 voz.ligar(sys.modules[__name__])
+empresas.ligar(sys.modules[__name__])
 
 
 def main():

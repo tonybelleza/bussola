@@ -30,7 +30,23 @@ def verifica(descricao, condicao):
         falhas.append(descricao)
 
 
+SLUG = {"e": ""}  # link público da empresa criada no setup
+
+
+def _com_empresa(caminho, dados):
+    """As rotas públicas agora exigem o link da empresa: o teste acrescenta sozinho."""
+    if SLUG["e"]:
+        base = caminho.split("?")[0]
+        if base in ("/api/vagas", "/api/cargos", "/api/locais") and "g=" not in caminho and "e=" not in caminho:
+            caminho += ("&" if "?" in caminho else "?") + "e=" + SLUG["e"]
+        if base in ("/api/candidato/cadastro", "/api/gestor/solicitar-acesso") and isinstance(dados, dict) \
+                and "empresa" not in dados:
+            dados = dict(dados, empresa=SLUG["e"])
+    return caminho, dados
+
+
 def req(caminho, corpo=None, headers=None, metodo=None):
+    caminho, corpo = _com_empresa(caminho, corpo)
     r = urllib.request.Request(
         BASE + caminho,
         data=json.dumps(corpo).encode() if corpo is not None else None,
@@ -49,7 +65,7 @@ def req(caminho, corpo=None, headers=None, metodo=None):
 def main():
     pasta = tempfile.mkdtemp(prefix="rh-teste-")
     # roda o servidor com banco isolado copiando o código para a pasta temporária
-    for item in ("server.py", "voz.py"):
+    for item in ("server.py", "voz.py", "empresas.py"):
         shutil.copy(os.path.join(AQUI, item), pasta)
     shutil.copytree(os.path.join(AQUI, "public"), os.path.join(pasta, "public"))
     servidor = subprocess.Popen(
@@ -77,6 +93,16 @@ def main():
                                             "email": "adm@x.com", "senha": "senha123"})
         verifica("setup cria administrador e loga", code == 200 and a.get("admin") is True)
         G = {"X-Gestor-Token": a["token"]}
+        SLUG["e"] = a["empresa"]["slug"]
+        verifica("setup cria a primeira empresa", bool(SLUG["e"]))
+        # cargos de exemplo (antes vinham do cadastro automático): ids 1, 2 e 3
+        for nome, disc, base_alvo in (("Analista de Sistemas Júnior", "C", "E"),
+                                      ("Analista de Sistemas Pleno", "C", "E"),
+                                      ("Analista de Sistemas Sênior", "C", "E")):
+            req("/api/gestor/cargo", {"nome": nome, "area": "GTI", "disc_alvo": disc, "base_alvo": base_alvo}, G)
+        for nome in ("Arquitetura de software", "Gestão de projetos"):
+            req("/api/gestor/competencia", {"cargo_id": 3, "nome": nome, "tipo": "tecnica",
+                                            "nivel_requerido": 4, "obrigatoria": True}, G)
         _, code = req("/api/gestor/setup", {"nome": "X", "login": "x", "senha": "xxxxxx"})
         verifica("segundo setup é bloqueado", code == 403)
         _, code = req("/api/gestor/login", {"login": "admin.t", "senha": "errada"})
@@ -256,8 +282,8 @@ def main():
         print("\n== Integrações ==")
         _, code = req("/api/gestor/ia/curriculo/%d" % cand_id, {}, G)
         verifica("IA sem chave retorna erro claro", code == 400)
-        integ, _ = req("/api/gestor/integracoes", headers=G)
-        verifica("integrações reportam status", integ["ia_configurada"] is False)
+        _, code = req("/api/gestor/integracoes", headers=G)
+        verifica("admin de empresa não mexe nas integrações da plataforma", code == 403)
         _, code = req("/api/gestor/integracoes", headers=M)
         verifica("gestor comum não vê integrações", code == 403)
 
@@ -319,12 +345,14 @@ def main():
         verifica("dono redefine senha de gestor", code == 200)
         _, code = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
         verifica("gestora entra com a senha redefinida", code == 200)
-        _, code = req("/api/dono/billing", {"local": "Unidade A", "plano": "mensal",
+        emp, _ = req("/api/dono/empresas", headers=D)
+        id_emp = emp["empresas"][0]["id"]
+        _, code = req("/api/dono/billing", {"empresa_id": id_emp, "plano": "mensal",
                                             "valor": "R$ 490", "status": "ativo"}, D)
-        verifica("billing registra cliente", code == 200)
+        verifica("billing registra cliente (por empresa)", code == 200)
         bl, _ = req("/api/dono/billing", headers=D)
-        verifica("billing lista locais com plano",
-                 any(c["local"] == "Unidade A" and c["plano"] == "mensal"
+        verifica("billing lista empresas com plano",
+                 any(c["empresa_id"] == id_emp and c["plano"] == "mensal"
                      for c in bl["clientes"]))
 
         print("\n== Módulo Diagnóstico de Competências ==")
@@ -361,9 +389,9 @@ def main():
         _, code = req("/api/gestor/diagnostico/arquivo/nao-existe.pdf", headers=G)
         verifica("arquivo fora da lista é bloqueado", code == 404)
         ml2, _ = req("/api/gestor/login", {"login": "maria", "senha": "novasenha"})
-        verifica("login informa os módulos da conta", ml2.get("modulos") == [])
+        verifica("login informa os módulos da empresa", ml2.get("modulos") == ["diagnostico"])
         _, code = req("/api/gestor/diagnostico", headers={"X-Gestor-Token": ml2["token"]})
-        verifica("gestora sem módulo continua bloqueada", code == 403)
+        verifica("módulo liberado vale para a empresa inteira", code == 200)
 
         print("\n== Isolamento do módulo Diagnóstico por local ==")
         id_maria = [g["id"] for g in gl2["gestores"] if g["login"] == "maria"][0]
@@ -456,11 +484,13 @@ def main():
         verifica("cargo novo não é duplicado (reaproveita pelo nome)", len(repet) == 1)
 
         print("\n== SMTP: teste de envio ==")
-        _, code = req("/api/gestor/integracoes/teste", {}, G)
+        _, code = req("/api/dono/integracoes/teste", {"destino": "a@x.com"}, D)
         verifica("teste de e-mail sem SMTP configurado avisa (400)", code == 400)
-        ig, _ = req("/api/gestor/integracoes", headers=G)
-        verifica("painel de integrações expõe porta padrão",
-                 ig.get("smtp_porta") == "587")
+        ig, _ = req("/api/dono/integracoes", headers=D)
+        verifica("painel de integrações (dono) expõe porta padrão e status da IA",
+                 ig.get("smtp_porta") == "587" and ig.get("ia_configurada") is False)
+        _, code = req("/api/dono/integracoes", headers=G)
+        verifica("integrações da plataforma exigem o dono", code == 401)
 
         print("\n== Esqueci minha senha (gestor) ==")
         r1, code = req("/api/gestor/esqueci-senha", {"login": "maria"})

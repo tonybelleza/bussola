@@ -473,15 +473,18 @@ def init_voz(c):
         c.execute("ALTER TABLE candidatos ADD COLUMN idioma TEXT DEFAULT ''")
 
 
-def config_local(conn, local):
-    """Configuração do local, herdando do padrão ('') e dos valores de fábrica."""
+def chave_empresa(empresa_id):
+    return "empresa:%d" % int(empresa_id) if empresa_id else ""
+
+
+def config_empresa(conn, empresa_id):
+    """Regras da empresa, herdando do padrão da plataforma ('') e dos valores de fábrica."""
     cfg = dict(CONFIG_PADRAO)
     padrao = conn.execute("SELECT dados FROM voz_config WHERE local=''").fetchone()
     if padrao:
         cfg.update(json.loads(padrao["dados"] or "{}"))
-    alvo = (local or "").strip().lower()
-    if alvo:
-        r = conn.execute("SELECT dados FROM voz_config WHERE lower(local)=?", (alvo,)).fetchone()
+    if empresa_id:
+        r = conn.execute("SELECT dados FROM voz_config WHERE local=?", (chave_empresa(empresa_id),)).fetchone()
         if r:
             cfg.update(json.loads(r["dados"] or "{}"))
     return cfg
@@ -525,7 +528,8 @@ def validar_config(d):
     return saida, None
 
 
-def salvar_config(conn, local, novos):
+def salvar_config(conn, empresa_id, novos):
+    local = chave_empresa(empresa_id)
     atual = conn.execute("SELECT dados FROM voz_config WHERE local=?", (local,)).fetchone()
     dados = json.loads(atual["dados"]) if atual else {}
     dados.update(novos)
@@ -661,7 +665,7 @@ def assinatura_valida(corpo_bruto, cabecalho, segredo, agora=None, tolerancia=18
 
 _SQL_CANDIDATURA = (
     "SELECT ca.*, c.nome, c.email, c.telefone, c.idioma, c.anonimizado, c.local AS cand_local,"
-    " c.token, v.titulo AS vaga_titulo, v.local AS vaga_local, v.cargo_id,"
+    " c.token, c.empresa_id AS empresa_id, v.titulo AS vaga_titulo, v.local AS vaga_local, v.cargo_id,"
     " g.voz_ativa, g.nome AS cargo_nome"
     " FROM candidaturas ca JOIN candidatos c ON c.id=ca.candidato_id"
     " JOIN vagas v ON v.id=ca.vaga_id JOIN cargos g ON g.id=v.cargo_id"
@@ -680,12 +684,17 @@ def local_da_candidatura(row):
     return (row["vaga_local"] or row["cand_local"] or "").strip()
 
 
+def visivel_para(gestor, row):
+    """A candidatura é da empresa do gestor e da unidade que ele enxerga."""
+    return srv.gestor_ve_candidato(gestor, {"empresa_id": row["empresa_id"], "local": row["cand_local"]})
+
+
 def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False):
     """Liga para o candidato desta candidatura. Lança ErroVoz com um código."""
     row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (candidatura_id,)).fetchone()
     if not row:
         raise ErroVoz("not_found")
-    cfg = config_local(conn, local_da_candidatura(row))
+    cfg = config_empresa(conn, row["empresa_id"])
     motivo = motivo_bloqueio(row, cfg, _agora_utc(), manual)
     if motivo:
         raise ErroVoz(motivo)
@@ -776,7 +785,7 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
     row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (chamada["candidatura_id"],)).fetchone()
     if not row:
         return
-    cfg = config_local(conn, local_da_candidatura(row))
+    cfg = config_empresa(conn, row["empresa_id"])
     falas = [t for t in (conversa.get("transcript") or []) if (t.get("message") or "").strip()]
     candidato_falou = any(t.get("role") == "user" for t in falas)
     fatos, invalidos = extrair_fatos(conversa)
@@ -858,7 +867,7 @@ def enviar_convite(conn, row, idioma):
     variaveis = srv.variaveis_candidato(conn, cand)
     variaveis["vaga"] = row["vaga_titulo"]
     variaveis["nome"] = (row["nome"] or "").split(" ")[0] or row["nome"]
-    modelo = srv.templates_email(conn)["voz_convite_" + idioma]
+    modelo = srv.templates_email(conn, row["empresa_id"])["voz_convite_" + idioma]
     ok, msg = srv.enviar_email(
         conn, row["email"], srv.renderizar(modelo["assunto"], variaveis),
         srv.renderizar(modelo["corpo"], variaveis),
@@ -904,8 +913,9 @@ def reconciliar(conn, minutos=3):
     return fechadas
 
 
-def tick(conn, agora=None):
-    """Uma rodada da fila: reconcilia e liga para os próximos elegíveis, por local."""
+def tick(conn, agora=None, empresa_id=None):
+    """Uma rodada da fila: reconcilia e liga para os próximos elegíveis, por empresa.
+    Com empresa_id, só aquela empresa (botão "Rodar fila agora" do gestor)."""
     if not _trava_tick.acquire(blocking=False):
         return {"ocupado": True}
     try:
@@ -914,29 +924,30 @@ def tick(conn, agora=None):
         if gateway(conn) is None:
             relatorio["pulado"] = "not_configured"
             return relatorio
+        filtro = " AND c.empresa_id=?" if empresa_id else ""
         candidatas = conn.execute(
-            _SQL_CANDIDATURA + " WHERE ca.voz_status='para_ligar' AND g.voz_ativa=1"
+            _SQL_CANDIDATURA + " JOIN empresas e ON e.id=c.empresa_id"
+            " WHERE ca.voz_status='para_ligar' AND g.voz_ativa=1 AND e.status IN ('ativa','teste')"
+            " AND e.modulos LIKE '%\"voz\"%'"
             " AND c.anonimizado=0 AND (ca.voz_proxima='' OR ca.voz_proxima IS NULL OR ca.voz_proxima<=?)"
-            " ORDER BY ca.voz_proxima, ca.criado_em",
-            (_sql(agora),),
+            + filtro + " ORDER BY ca.voz_proxima, ca.criado_em",
+            (_sql(agora),) + ((empresa_id,) if empresa_id else ()),
         ).fetchall()
         em_curso = {}
         for r in conn.execute(
-            "SELECT COALESCE(NULLIF(v.local,''), c.local, '') AS loc, COUNT(*) AS n FROM voz_chamadas vc"
-            " JOIN candidaturas ca ON ca.id=vc.candidatura_id JOIN vagas v ON v.id=ca.vaga_id"
-            " JOIN candidatos c ON c.id=ca.candidato_id"
-            " WHERE vc.status IN ('iniciando','em_andamento') GROUP BY loc"
+            "SELECT c.empresa_id AS eid, COUNT(*) AS n FROM voz_chamadas vc"
+            " JOIN candidatos c ON c.id=vc.candidato_id"
+            " WHERE vc.status IN ('iniciando','em_andamento') GROUP BY c.empresa_id"
         ).fetchall():
-            em_curso[(r["loc"] or "").lower()] = r["n"]
+            em_curso[r["eid"]] = r["n"]
         for row in candidatas:
-            local = local_da_candidatura(row)
-            chave = local.lower()
-            cfg = config_local(conn, local)
+            chave = row["empresa_id"]
+            cfg = config_empresa(conn, chave)
             if em_curso.get(chave, 0) >= cfg["simultaneas"]:
                 continue
             motivo = motivo_bloqueio(row, cfg, agora)
             if motivo:
-                relatorio["locais"].setdefault(local or "-", motivo)
+                relatorio["locais"].setdefault(str(chave), motivo)
                 continue
             try:
                 iniciar_ligacao(conn, row["id"], "fila")
@@ -1060,6 +1071,32 @@ def _resp(h, status, dados):
     return True
 
 
+def rotear_dono(h, method, path, conn):
+    """Integração ElevenLabs da plataforma (só o dono do sistema)."""
+    if path != "/api/dono/voz/integracao":
+        return None
+    if method == "GET":
+        chave = srv.config_get(conn, "elevenlabs_api_key")
+        return _resp(h, 200, {
+            "api_key_final": chave[-4:] if chave else "",
+            "agent_id": srv.config_get(conn, "elevenlabs_agent_id"),
+            "phone_number_id": srv.config_get(conn, "elevenlabs_phone_number_id"),
+            "webhook_configurado": bool(srv.config_get(conn, "elevenlabs_webhook_secret")),
+            "webhook_url": srv.url_publica(conn, h.headers.get("Host")) + "/api/voz/webhook",
+        })
+    if method == "POST":
+        d = h._body()
+        for chave in ("agent_id", "phone_number_id"):
+            if chave in d:
+                srv.config_set(conn, "elevenlabs_" + chave, (d.get(chave) or "").strip())
+        for chave in ("api_key", "webhook_secret"):
+            if d.get(chave):
+                srv.config_set(conn, "elevenlabs_" + chave, d[chave].strip())
+        conn.commit()
+        return _resp(h, 200, {"ok": True})
+    return None
+
+
 def _enviar_audio(h, dados):
     h.send_response(200)
     h.send_header("Content-Type", "audio/mpeg")
@@ -1074,30 +1111,36 @@ def rotear_gestor(h, method, path, conn, gestor):
     """Rotas /api/gestor/voz* (gestor logado com o módulo 'voz')."""
     if not path.startswith("/api/gestor/voz"):
         return None
-    if "voz" not in srv.modulos_do_gestor(gestor) and not gestor["is_admin"]:
-        return _resp(h, 403, {"erro": "Módulo não liberado para esta conta.", "codigo": "module_disabled"})
+    if "voz" not in srv.modulos_do_gestor(gestor):
+        return _resp(h, 403, {"erro": "Módulo não liberado para esta empresa.", "codigo": "module_disabled"})
+    empresa_id = gestor["empresa_id"]
 
     def visivel(row):
-        return srv.gestor_ve_local(gestor, local_da_candidatura(row))
+        return visivel_para(gestor, row)
 
-    # painel: fila, ligações recentes, números de hoje e configurações dos locais visíveis
+    # painel: fila, ligações recentes, números de hoje e regras da empresa
     if method == "GET" and path == "/api/gestor/voz":
         linhas = conn.execute(
-            _SQL_CANDIDATURA + " WHERE ca.voz_status != '' ORDER BY ca.atualizado_em DESC LIMIT 400"
+            _SQL_CANDIDATURA + " WHERE ca.voz_status != '' AND c.empresa_id=?"
+            " ORDER BY ca.atualizado_em DESC LIMIT 400",
+            (empresa_id,),
         ).fetchall()
         linhas = [r for r in linhas if visivel(r)]
         ids = {r["id"] for r in linhas}
         chamadas = [
             c for c in conn.execute(
                 "SELECT vc.*, c.nome FROM voz_chamadas vc JOIN candidatos c ON c.id=vc.candidato_id"
-                " ORDER BY vc.iniciada_em DESC LIMIT 200"
+                " WHERE c.empresa_id=? ORDER BY vc.iniciada_em DESC LIMIT 200",
+                (empresa_id,),
             ).fetchall() if c["candidatura_id"] in ids
         ]
-        hoje = datetime.now(_zona(CONFIG_PADRAO)).strftime("%Y-%m-%d")
+        cfg = config_empresa(conn, empresa_id)
+        zona = _zona(cfg)
+        hoje = datetime.now(zona).strftime("%Y-%m-%d")
         stats = {"ligacoes": 0, "atendidas": 0, "strong": 0, "good": 0}
         for c in chamadas:
             inicio = _de_sql(c["iniciada_em"])
-            if inicio and inicio.astimezone(_zona(CONFIG_PADRAO)).strftime("%Y-%m-%d") == hoje:
+            if inicio and inicio.astimezone(zona).strftime("%Y-%m-%d") == hoje:
                 stats["ligacoes"] += 1
                 res = json.loads(c["resultado"]) if c["resultado"] else None
                 if res:
@@ -1106,11 +1149,11 @@ def rotear_gestor(h, method, path, conn, gestor):
                         stats["strong"] += 1
                     if res.get("tier") == "GOOD":
                         stats["good"] += 1
-        locais = sorted({local_da_candidatura(r) for r in linhas} | (
-            {(gestor["local"] or "").strip()} if (gestor["local"] or "").strip() else set()))
         cargos = [
             {"id": g["id"], "nome": g["nome"], "voz_ativa": bool(g["voz_ativa"]), "peso_voz": g["peso_voz"]}
-            for g in conn.execute("SELECT id, nome, voz_ativa, peso_voz FROM cargos ORDER BY nome").fetchall()
+            for g in conn.execute(
+                "SELECT id, nome, voz_ativa, peso_voz FROM cargos WHERE empresa_id=? ORDER BY nome", (empresa_id,)
+            ).fetchall()
         ]
         recentes = []
         for c in chamadas[:40]:
@@ -1120,8 +1163,8 @@ def rotear_gestor(h, method, path, conn, gestor):
         return _resp(h, 200, {
             "configurado": gateway(conn) is not None,
             "webhook_configurado": bool(srv.config_get(conn, "elevenlabs_webhook_secret")),
-            "padrao": config_local(conn, ""),
-            "configs": {loc: config_local(conn, loc) for loc in locais},
+            "config": cfg,
+            "empresa": gestor["empresa_nome"] if "empresa_nome" in gestor.keys() else "",
             "fila": [_candidatura_publica(r) for r in linhas],
             "recentes": recentes,
             "hoje": stats,
@@ -1132,48 +1175,30 @@ def rotear_gestor(h, method, path, conn, gestor):
 
     if method == "POST" and path == "/api/gestor/voz/config":
         d = h._body()
-        local = (d.get("local") or "").strip()
-        if not local and not gestor["is_admin"]:
-            return _resp(h, 403, {"erro": "Só o administrador altera o padrão geral.", "codigo": "forbidden"})
-        if local and not srv.gestor_ve_local(gestor, local):
-            return _resp(h, 403, {"erro": "Local fora do seu acesso.", "codigo": "forbidden"})
-        dados, erro = validar_config(d.get("config") or {})
+        config = d.get("config") or {}
+        # pausar e retomar: qualquer gestor da empresa com o módulo; o resto, só o admin
+        if set(config) - {"pausado"} and not gestor["is_admin"]:
+            return _resp(h, 403, {"erro": "Só o administrador da empresa altera as regras.", "codigo": "forbidden"})
+        dados, erro = validar_config(config)
         if erro:
             return _resp(h, 400, {"erro": erro, "codigo": erro})
-        salvar_config(conn, local, dados)
+        salvar_config(conn, empresa_id, dados)
         conn.commit()
-        return _resp(h, 200, {"ok": True, "config": config_local(conn, local)})
+        return _resp(h, 200, {"ok": True, "config": config_empresa(conn, empresa_id)})
 
     if method == "POST" and path == "/api/gestor/voz/rodar":
-        return _resp(h, 200, tick(conn))
+        return _resp(h, 200, tick(conn, empresa_id=empresa_id))
 
     if path == "/api/gestor/voz/integracao":
-        if not gestor["is_admin"]:
-            return _resp(h, 403, {"erro": "Apenas o administrador configura integrações.", "codigo": "forbidden"})
-        if method == "GET":
-            chave = srv.config_get(conn, "elevenlabs_api_key")
-            return _resp(h, 200, {
-                "api_key_final": chave[-4:] if chave else "",
-                "agent_id": srv.config_get(conn, "elevenlabs_agent_id"),
-                "phone_number_id": srv.config_get(conn, "elevenlabs_phone_number_id"),
-                "webhook_configurado": bool(srv.config_get(conn, "elevenlabs_webhook_secret")),
-                "webhook_url": srv.url_publica(conn, h.headers.get("Host")) + "/api/voz/webhook",
-            })
-        if method == "POST":
-            d = h._body()
-            for chave in ("agent_id", "phone_number_id"):
-                if chave in d:
-                    srv.config_set(conn, "elevenlabs_" + chave, (d.get(chave) or "").strip())
-            for chave in ("api_key", "webhook_secret"):
-                if d.get(chave):
-                    srv.config_set(conn, "elevenlabs_" + chave, d[chave].strip())
-            conn.commit()
-            return _resp(h, 200, {"ok": True})
+        return _resp(h, 403, {"erro": "A integração com o ElevenLabs é configurada no painel do administrador do sistema.",
+                              "codigo": "forbidden"})
 
     m = re.match(r"^/api/gestor/voz/cargo/(\d+)$", path)
     if m and method == "POST":
         if not gestor["is_admin"]:
             return _resp(h, 403, {"erro": "Apenas o administrador altera cargos.", "codigo": "forbidden"})
+        if not srv.cargo_do_gestor(conn, gestor, int(m.group(1))):
+            return _resp(h, 404, {"erro": "not_found", "codigo": "not_found"})
         d = h._body()
         try:
             peso = float(d.get("peso_voz", 0.30))
