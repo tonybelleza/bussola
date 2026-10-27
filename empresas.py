@@ -12,6 +12,7 @@ gestores sem local veem a empresa inteira. Nada atravessa de uma empresa para
 outra.
 """
 import json
+import base64
 import re
 import secrets
 import unicodedata
@@ -198,6 +199,7 @@ def resumo_empresa(conn, e):
         "id": e["id"], "nome": e["nome"], "slug": e["slug"], "status": e["status"],
         "modulos": modulos(e), "plano": e["plano"], "valor": e["valor"], "notas": e["notas"],
         "criada_em": e["criada_em"],
+        "logo_url": (srv.mensagens.marca(conn, e["id"]) or {}).get("logo_url", ""),
         "gestores": n("SELECT COUNT(*) FROM gestores WHERE empresa_id=?"),
         "candidatos": n("SELECT COUNT(*) FROM candidatos WHERE empresa_id=?"),
         "vagas_abertas": n("SELECT COUNT(*) FROM vagas WHERE empresa_id=? AND status='aberta'"),
@@ -280,6 +282,24 @@ def rotear_dono(h, method, path, conn):
                     )
                 conn.commit()
             return _resp(h, 200, {"ok": True})
+
+    m = re.match(r"^/api/dono/empresa/(\d+)/logo$", path)
+    if m and method == "POST":
+        eid = int(m.group(1))
+        if not conn.execute("SELECT 1 FROM empresas WHERE id=?", (eid,)).fetchone():
+            return _resp(h, 404, {"erro": "Empresa não encontrada"})
+        d = h._body()
+        if d.get("remover"):
+            srv.mensagens.remover_logo(conn, eid)
+            return _resp(h, 200, {"ok": True, "logo_url": ""})
+        try:
+            dados = base64.b64decode(d.get("data") or "")
+        except ValueError:
+            return _resp(h, 400, {"erro": "Arquivo inválido"})
+        erro = srv.mensagens.salvar_logo(conn, eid, d.get("filename"), dados)
+        if erro:
+            return _resp(h, 400, {"erro": erro})
+        return _resp(h, 200, {"ok": True, "logo_url": srv.mensagens.marca(conn, eid)["logo_url"]})
 
     m = re.match(r"^/api/dono/empresa/(\d+)/gestor$", path)
     if m and method == "POST":

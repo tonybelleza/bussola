@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="voz-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)

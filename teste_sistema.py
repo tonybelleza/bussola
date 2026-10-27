@@ -65,7 +65,7 @@ def req(caminho, corpo=None, headers=None, metodo=None):
 def main():
     pasta = tempfile.mkdtemp(prefix="rh-teste-")
     # roda o servidor com banco isolado copiando o código para a pasta temporária
-    for item in ("server.py", "voz.py", "empresas.py"):
+    for item in ("server.py", "voz.py", "empresas.py", "mensagens.py"):
         shutil.copy(os.path.join(AQUI, item), pasta)
     shutil.copytree(os.path.join(AQUI, "public"), os.path.join(pasta, "public"))
     servidor = subprocess.Popen(
@@ -176,8 +176,10 @@ def main():
         req("/api/candidato/autoavaliacao", {"respostas": [
             {"competencia_id": k["id"], "nivel": 4} for k in senior["competencias"]]}, C)
         me, _ = req("/api/candidato/me", headers=C)
-        verifica("match calculado com 4 componentes",
-                 set(me["match"]["componentes"]) ==
+        verifica("candidato não vê o match com o cargo", me["match"] is None)
+        ficha, _ = req("/api/gestor/candidato/%d" % me["candidato"]["id"], headers=G)
+        verifica("match calculado com 4 componentes (visão do gestor)",
+                 set(ficha["match"]["componentes"]) ==
                  {"competencias", "disc", "base", "conhecimento"})
 
         def _pdf(caminho, headers):

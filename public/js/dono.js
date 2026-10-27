@@ -215,6 +215,8 @@ async function abaEmpresas(el) {
               <input type="checkbox" data-modulo="${m}" data-id="${e.id}" ${e.modulos.includes(m) ? "checked" : ""}> ${esc(rot)}</label>`).join("")}
             <button class="btn small" data-salvar-empresa="${e.id}">Salvar</button>
             <button class="btn secondary small" data-ver-gestores="${e.id}">Gestores e acesso</button>
+            <label class="btn secondary small" style="cursor:pointer">${e.logo_url ? "Trocar logo" : "Enviar logo"}<input type="file" data-logo-empresa="${e.id}" accept="image/png,image/jpeg" style="display:none"></label>
+            ${e.logo_url ? `<img src="${esc(e.logo_url)}" alt="" style="height:30px;max-width:120px;background:#fff;border-radius:6px;padding:2px 6px">` : ""}
           </div>
           <div id="gestores-empresa-${e.id}"></div>
         </div>`).join("") || '<p class="desc">Nenhuma empresa ainda.</p>'}
@@ -248,6 +250,18 @@ async function abaEmpresas(el) {
       b.textContent = "Salvo ✓";
       setTimeout(() => abaEmpresas(el), 800);
     } catch (e) { alert(e.message); }
+  }));
+  el.querySelectorAll("[data-logo-empresa]").forEach((inp) => inp.addEventListener("change", () => {
+    const f = inp.files[0];
+    if (!f) return;
+    const leitor = new FileReader();
+    leitor.onload = async () => {
+      try {
+        await api("/api/dono/empresa/" + inp.dataset.logoEmpresa + "/logo", { method: "POST", body: { filename: f.name, data: String(leitor.result).split(",")[1] } });
+        abaEmpresas(el);
+      } catch (e) { alert(e.message); }
+    };
+    leitor.readAsDataURL(f);
   }));
   el.querySelectorAll("[data-ver-gestores]").forEach((b) => b.addEventListener("click", () =>
     gestoresDaEmpresa(Number(b.dataset.verGestores), el.querySelector("#gestores-empresa-" + b.dataset.verGestores))));

@@ -316,6 +316,77 @@ async function iniciarPainel() {
   }
   await carregarDados();
   desenharPainel();
+  // link direto vindo dos e-mails: /gestor#candidato=ID
+  const direto = location.hash.match(/^#candidato=(\d+)$/);
+  if (direto) {
+    history.replaceState(null, "", location.pathname);
+    abrirDetalheCandidato(Number(direto[1]));
+  }
+}
+
+const MARCA_TEXTOS = {
+  pt: { titulo: "Marca e idioma dos e-mails", logo: "Logo da empresa", logo_desc: "Aparece no topo dos e-mails aos candidatos e no relatório em PDF. Use PNG ou JPG (até 1 MB), de preferência com fundo transparente ou branco.", sem_logo: "Nenhuma logo enviada", enviar: "Enviar logo", remover: "Remover", so_admin: "Só o administrador da empresa pode trocar a logo.", idioma: "Idioma dos e-mails que eu recebo", salvo: "Salvo." },
+  en: { titulo: "Branding and email language", logo: "Company logo", logo_desc: "Shown at the top of candidate emails and in the PDF report. Use PNG or JPG (up to 1 MB), ideally with a transparent or white background.", sem_logo: "No logo uploaded", enviar: "Upload logo", remover: "Remove", so_admin: "Only the company admin can change the logo.", idioma: "Language of the emails I receive", salvo: "Saved." },
+  es: { titulo: "Marca e idioma de los correos", logo: "Logo de la empresa", logo_desc: "Aparece arriba en los correos a los candidatos y en el informe PDF. Usa PNG o JPG (hasta 1 MB), de preferencia con fondo transparente o blanco.", sem_logo: "Ningún logo enviado", enviar: "Enviar logo", remover: "Quitar", so_admin: "Solo el administrador de la empresa puede cambiar el logo.", idioma: "Idioma de los correos que recibo", salvo: "Guardado." },
+};
+
+async function secaoMarca(el) {
+  const r = await api("/api/gestor/empresa/marca");
+  const L = MARCA_TEXTOS[r.idioma] || MARCA_TEXTOS.pt;
+  const admin = !!infoGestor().admin;
+  el.innerHTML = `
+    <div class="card">
+      <h2 class="icone-titulo">${icone("engrenagem")}<span>${L.titulo}</span></h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>${L.logo}</h3>
+          <p class="desc" style="font-size:.82rem">${L.logo_desc}</p>
+          <div id="marca-preview" style="background:#fff;border:1px solid var(--line, #e4e9f0);border-radius:12px;padding:14px;min-height:60px;display:flex;align-items:center">
+            ${r.logo_url ? `<img src="${esc(r.logo_url)}" alt="" style="max-height:56px;max-width:240px">` : `<span class="desc">${L.sem_logo}</span>`}
+          </div>
+          ${admin ? `<div class="linha-acoes mt">
+            <label class="btn secondary small" style="cursor:pointer">${L.enviar}<input type="file" id="marca-arquivo" accept="image/png,image/jpeg" style="display:none"></label>
+            ${r.logo_url ? `<button class="btn secondary small" id="marca-remover">${L.remover}</button>` : ""}
+          </div>` : `<p class="desc" style="font-size:.8rem">${L.so_admin}</p>`}
+        </div>
+        <div>
+          <label class="field">${L.idioma}
+            <select id="marca-idioma">
+              ${[["pt", "Português"], ["en", "English"], ["es", "Español"]].map(([v, n]) => `<option value="${v}" ${r.idioma === v ? "selected" : ""}>${n}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="form-erro" id="marca-erro"></div>
+    </div>`;
+  const erro = document.getElementById("marca-erro");
+  const mostrar = (msg, ok) => { erro.style.color = ok ? "var(--ok)" : "var(--err)"; erro.textContent = msg; };
+  document.getElementById("marca-idioma").addEventListener("change", async (ev) => {
+    try {
+      await api("/api/gestor/idioma", { method: "POST", body: { idioma: ev.target.value } });
+      secaoMarca(el);
+    } catch (e) { mostrar(e.message); }
+  });
+  const arquivo = document.getElementById("marca-arquivo");
+  if (arquivo) arquivo.addEventListener("change", () => {
+    const f = arquivo.files[0];
+    if (!f) return;
+    const leitor = new FileReader();
+    leitor.onload = async () => {
+      try {
+        await api("/api/gestor/empresa/logo", { method: "POST", body: { filename: f.name, data: String(leitor.result).split(",")[1] } });
+        secaoMarca(el);
+      } catch (e) { mostrar(e.message); }
+    };
+    leitor.readAsDataURL(f);
+  });
+  const remover = document.getElementById("marca-remover");
+  if (remover) remover.addEventListener("click", async () => {
+    try {
+      await api("/api/gestor/empresa/logo", { method: "POST", body: { remover: true } });
+      secaoMarca(el);
+    } catch (e) { mostrar(e.message); }
+  });
 }
 
 function desenharPainel() {
@@ -1633,8 +1704,10 @@ async function abaConfig(el) {
         <button class="btn" id="cfg-salvar">Alterar senha</button>
       </div>
     </div>
+    <div id="cfg-marca"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
+  secaoMarca(document.getElementById("cfg-marca"));
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = "Copiado ✓";

@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 import empresas
+import mensagens
 import voz
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -344,6 +345,14 @@ def init_db():
     )
     voz.init_voz(c)
     empresas.init_empresas(c)
+    # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
+    for tabela, coluna, ddl in (
+        ("empresas", "logo", "TEXT DEFAULT ''"),
+        ("gestores", "idioma", "TEXT DEFAULT 'pt'"),
+        ("candidaturas", "aviso_pendente", "INTEGER DEFAULT 0"),
+    ):
+        if coluna not in {r[1] for r in c.execute("PRAGMA table_info(%s)" % tabela).fetchall()}:
+            c.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, coluna, ddl))
     conn.commit()
     conn.close()
 
@@ -767,9 +776,11 @@ def montar_email_html(assunto, corpo_texto):
     return modelo.replace("__HERO__", hero_html).replace("__CORPO__", corpo_html)
 
 
-def enviar_email(conn, para, assunto, corpo, anexos=None):
+def enviar_email(conn, para, assunto, corpo, anexos=None, html=None, marca=None, idioma="pt"):
     """Envia e-mail via SMTP configurado (HTML com a marca + texto). Retorna (ok, mensagem).
-    anexos: lista opcional de (nome_arquivo, bytes, mime), ex.: ('relatorio.pdf', b'...', 'application/pdf')."""
+    anexos: lista opcional de (nome_arquivo, bytes, mime), ex.: ('relatorio.pdf', b'...', 'application/pdf').
+    html: HTML pronto (senão é montado a partir do texto). marca: nome e logo da
+    empresa (mensagens.marca) para o cabeçalho; idioma: pt, en ou es."""
     host = config_get(conn, "smtp_host")
     if not host:
         return False, "SMTP não configurado"
@@ -786,7 +797,10 @@ def enviar_email(conn, para, assunto, corpo, anexos=None):
         # corpo em duas versões (texto puro de fallback + HTML da marca)
         corpo_msg = MIMEMultipart("alternative")
         corpo_msg.attach(MIMEText(corpo, "plain", "utf-8"))
-        corpo_msg.attach(MIMEText(montar_email_html(assunto, corpo), "html", "utf-8"))
+        if html is None:
+            html = (mensagens.html_email(assunto, corpo, idioma, marca) if marca
+                    else montar_email_html(assunto, corpo))
+        corpo_msg.attach(MIMEText(html, "html", "utf-8"))
         if anexos:
             msg = MIMEMultipart("mixed")
             msg.attach(corpo_msg)
@@ -820,11 +834,7 @@ def enviar_email(conn, para, assunto, corpo, anexos=None):
 
 # --------------------------------------------------- relatório em PDF
 FONTS_PDF_DIR = os.path.join(PUBLIC_DIR, "fonts", "pdf")
-MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
-            "agosto", "setembro", "outubro", "novembro", "dezembro"]
-DISC_NOMES_PDF = {"D": "Dominância", "I": "Influência", "S": "Estabilidade", "C": "Conformidade"}
 DISC_CORES_PDF = {"D": (59, 103, 202), "I": (155, 185, 221), "S": (118, 149, 180), "C": (94, 112, 134)}
-BASE_NOMES_PDF = {"B": "Bússola", "A": "Atuante", "S": "Sensível", "E": "Estudioso"}
 BASE_CORES_PDF = {"B": (59, 103, 202), "A": (224, 92, 46), "S": (46, 168, 123), "E": (139, 92, 246)}
 
 
@@ -832,8 +842,16 @@ def _lerp(c1, c2, t):
     return tuple(round(a + (b - a) * t) for a, b in zip(c1, c2))
 
 
-def gerar_pdf_resultado(conn, cand):
-    """Gera o relatório luxuoso do candidato em PDF. Retorna (bytes, None) ou (None, erro)."""
+def gerar_pdf_resultado(conn, cand, idioma_pdf="pt", para_candidato=False):
+    """Gera o relatório luxuoso do candidato em PDF. Retorna (bytes, None) ou (None, erro).
+    idioma_pdf: pt, en ou es. para_candidato: sem match e sem matriz de gaps (só a
+    equipe vê a compatibilidade com o cargo)."""
+    lang = mensagens.idioma(idioma_pdf)
+    tx = lambda chave, **kw: mensagens.t(lang, chave, **kw)  # noqa: E731
+    nomes_perfis = mensagens.perfis(lang)
+    nome_disc = {k: v["nome"] for k, v in nomes_perfis["DISC"].items()}
+    nome_base = {k: v["nome"] for k, v in nomes_perfis["BASE"].items()}
+    marca_pdf = mensagens.marca(conn, cand["empresa_id"]) if "empresa_id" in cand.keys() else None
     try:
         from fpdf import FPDF
     except ImportError:
@@ -853,15 +871,15 @@ def gerar_pdf_resultado(conn, cand):
             "SELECT nome FROM cargos WHERE id=?", (cand["cargo_desejado_id"],)
         ).fetchone()
         cargo_nome = cargo["nome"] if cargo else ""
-        gaps = matriz_gaps(conn, cand["id"], cand["cargo_desejado_id"])
-        # match_completo carrega os testes no seu próprio formato ({"payload": ...})
-        match = match_completo(conn, cand, cand["cargo_desejado_id"])
+        if not para_candidato:
+            gaps = matriz_gaps(conn, cand["id"], cand["cargo_desejado_id"])
+            # match_completo carrega os testes no seu próprio formato ({"payload": ...})
+            match = match_completo(conn, cand, cand["cargo_desejado_id"])
     if not testes and not match:
         return None, "O candidato ainda não tem resultados para gerar o relatório"
 
     iso = conn.execute("SELECT date('now')").fetchone()[0]
-    an, me, di = iso.split("-")
-    data_txt = "%d de %s de %s" % (int(di), MESES_PT[int(me) - 1], an)
+    data_txt = mensagens.data_extenso(lang, iso)
 
     NAVY, NAVY2 = (16, 27, 55), (24, 43, 84)
     AZUL, AZUL2, CLARO = (50, 88, 171), (59, 103, 202), (155, 185, 221)
@@ -928,12 +946,20 @@ def gerar_pdf_resultado(conn, cand):
     pdf.set_xy(M + 18, 24)
     pdf.set_font("Just", "", 8)
     pdf.set_text_color(*CLARO)
-    pdf.cell(0, 5, "RELATÓRIO DE AVALIAÇÃO")
+    pdf.cell(0, 5, tx("pdf_relatorio"))
     pdf.set_xy(0, 20)
     pdf.set_font("Just", "", 9)
     pdf.set_text_color(*CLARO)
     pdf.cell(210 - M, 6, data_txt, align="R")
     pdf.gradiente_h(0, 52, 210, 1.4, AZUL, CLARO)
+    # logo da empresa num cartão branco, no canto direito do topo
+    if marca_pdf and marca_pdf.get("logo"):
+        try:
+            pdf.set_fill_color(*BRANCO)
+            pdf.rect(210 - M - 52, 27, 52, 20, "F", round_corners=True, corner_radius=3)
+            pdf.image(mensagens.caminho_logo(marca_pdf["logo"]), x=210 - M - 49, y=29, h=16, keep_aspect_ratio=True, w=46)
+        except Exception:  # noqa: BLE001
+            pass
 
     # identidade
     y = 60
@@ -945,7 +971,7 @@ def gerar_pdf_resultado(conn, cand):
     pdf.set_xy(M, y)
     pdf.set_font("Just", "", 10.5)
     pdf.set_text_color(*MUTED)
-    sub = cargo_nome or "Sem cargo de interesse"
+    sub = cargo_nome or tx("pdf_sem_cargo")
     if cand["local"]:
         sub += "   ·   " + cand["local"]
     pdf.cell(0, 6, sub)
@@ -964,19 +990,18 @@ def gerar_pdf_resultado(conn, cand):
         pdf.set_xy(M + 4, y + 29)
         pdf.set_font("Just", "", 8.5)
         pdf.set_text_color(*MUTED)
-        pdf.cell(50, 5, "MATCH GERAL", align="C")
+        pdf.cell(50, 5, tx("pdf_match"), align="C")
         pdf.set_draw_color(*LINHA)
         pdf.line(M + 56, y + 7, M + 56, y + card_h - 7)
         cx = M + 62
         cw = 210 - M - cx - 6
-        rot = {"competencias": "Competências", "disc": "DISC", "base": "B.A.S.E.",
-               "conhecimento": "Conhecimento", "entrevista": "Entrevista"}
+        rot = tx("componentes")
         presentes = [k for k in ["competencias", "disc", "base", "conhecimento", "entrevista"]
                      if k in match["componentes"]]
         passo = (card_h - 12) / max(1, len(presentes))
         cy = y + 6
         for k in presentes:
-            pdf.barra_inline(cx, cy, cw, rot[k], match["componentes"][k], AZUL2)
+            pdf.barra_inline(cx, cy, cw, rot.get(k, k), match["componentes"][k], AZUL2)
             cy += passo
         y += card_h + 8
 
@@ -986,18 +1011,25 @@ def gerar_pdf_resultado(conn, cand):
         pdf.set_xy(M, y)
         pdf.set_font("Gab", "B", 13)
         pdf.set_text_color(*NAVY)
-        pdf.cell(0, 7, "Perfil comportamental DISC")
+        pdf.cell(0, 7, tx("pdf_disc"))
         y += 9
         col_w = (210 - 2 * M - 10) / 2
         for i, k in enumerate(["D", "I", "S", "C"]):
             pdf.barra(M + (i % 2) * (col_w + 10), y + (i // 2) * 11.5, col_w,
-                      DISC_NOMES_PDF[k], disc["pct"].get(k, 0), DISC_CORES_PDF[k])
+                      nome_disc[k], disc["pct"].get(k, 0), DISC_CORES_PDF[k])
         pdf.set_xy(M, y + 24)
         pdf.set_font("Just", "", 9.5)
         pdf.set_text_color(*TEXTO)
         dom = disc.get("dominante") or max(disc["pct"], key=disc["pct"].get)
-        pdf.cell(0, 5, "Perfil dominante: %s" % DISC_NOMES_PDF.get(dom, dom))
+        pdf.cell(0, 5, tx("pdf_disc_dom", nome=nome_disc.get(dom, dom)))
         y += 32
+        resumo_dom = nomes_perfis["DISC"].get(dom, {}).get("resumo")
+        if resumo_dom:
+            pdf.set_xy(M, y - 2)
+            pdf.set_font("Just", "", 9)
+            pdf.set_text_color(*MUTED)
+            pdf.multi_cell(210 - 2 * M, 4.6, resumo_dom)
+            y = pdf.get_y() + 6
 
     # BASE
     if "base" in testes and testes["base"].get("pct"):
@@ -1008,11 +1040,11 @@ def gerar_pdf_resultado(conn, cand):
         pdf.set_xy(M, y)
         pdf.set_font("Gab", "B", 13)
         pdf.set_text_color(*NAVY)
-        pdf.cell(0, 7, "Código de personalidade B.A.S.E.")
+        pdf.cell(0, 7, tx("pdf_base"))
         pdf.set_xy(M, y)
         pdf.set_font("Gab", "B", 13)
         pdf.set_text_color(*AZUL2)
-        pdf.cell(0, 7, "Código: %s" % codigo, align="R")
+        pdf.cell(0, 7, tx("pdf_codigo", codigo=codigo), align="R")
         y += 10
         cardw = (210 - 2 * M - 3 * 6) / 4
         for i, k in enumerate(ordem):
@@ -1025,7 +1057,7 @@ def gerar_pdf_resultado(conn, cand):
             pdf.set_xy(bx, y + 6)
             pdf.set_font("Gab", "B", 11)
             pdf.set_text_color(*_lerp(BASE_CORES_PDF[k], NAVY, 0.35))
-            pdf.cell(cardw, 6, BASE_NOMES_PDF[k], align="C")
+            pdf.cell(cardw, 6, nome_base[k], align="C")
             pdf.set_xy(bx, y + 12)
             pdf.set_font("Gab", "B", 15)
             pdf.set_text_color(*BASE_CORES_PDF[k])
@@ -1033,30 +1065,41 @@ def gerar_pdf_resultado(conn, cand):
         pdf.set_xy(M, y + 26)
         pdf.set_font("Just", "", 9.5)
         pdf.set_text_color(*TEXTO)
-        pdf.cell(0, 5, "Arquétipo dominante: %s. Complementado por %s."
-                 % (BASE_NOMES_PDF[ordem[0]], BASE_NOMES_PDF[ordem[1]]))
+        pdf.cell(0, 5, tx("pdf_arquetipo", a=nome_base[ordem[0]], b=nome_base[ordem[1]]))
         y += 36
+        principal = nomes_perfis["BASE"].get(ordem[0], {})
+        if principal.get("tagline"):
+            pdf.set_xy(M, y - 3)
+            if principal.get("titulo"):
+                pdf.set_font("Gab", "B", 10)
+                pdf.set_text_color(*BASE_CORES_PDF[ordem[0]])
+                pdf.cell(0, 5, principal["titulo"])
+                pdf.set_xy(M, y + 3)
+            pdf.set_font("Just", "", 9)
+            pdf.set_text_color(*MUTED)
+            pdf.multi_cell(210 - 2 * M, 4.6, principal["tagline"])
+            y = pdf.get_y() + 6
 
     # matriz de gaps
     if gaps and gaps.get("itens") and gaps.get("respondeu_autoavaliacao"):
         pdf.set_xy(M, y)
         pdf.set_font("Gab", "B", 13)
         pdf.set_text_color(*NAVY)
-        pdf.cell(0, 7, "Matriz de gaps: aderência ao cargo")
+        pdf.cell(0, 7, tx("pdf_gaps"))
         ad = gaps["aderencia"]
         cor_ad = (46, 158, 106) if ad >= 70 else (199, 154, 62) if ad >= 40 else (176, 74, 74)
         pdf.set_xy(M, y)
         pdf.set_font("Gab", "B", 13)
         pdf.set_text_color(*cor_ad)
-        pdf.cell(0, 7, "%d%% de aderência" % ad, align="R")
+        pdf.cell(0, 7, tx("pdf_aderencia", pct=ad), align="R")
         y += 9
         pdf.set_font("Just", "", 8)
         pdf.set_text_color(*MUTED)
         pdf.set_xy(M, y)
-        pdf.cell(96, 5, "COMPETÊNCIA")
-        pdf.cell(28, 5, "EXIGIDO", align="C")
-        pdf.cell(28, 5, "ATUAL", align="C")
-        pdf.cell(26, 5, "GAP", align="C")
+        pdf.cell(96, 5, tx("pdf_competencia"))
+        pdf.cell(28, 5, tx("pdf_exigido"), align="C")
+        pdf.cell(28, 5, tx("pdf_atual"), align="C")
+        pdf.cell(26, 5, tx("pdf_gap"), align="C")
         y += 5.5
         for item in gaps["itens"][:6]:
             pdf.set_draw_color(*LINHA)
@@ -1080,9 +1123,8 @@ def gerar_pdf_resultado(conn, cand):
     pdf.set_xy(M, 285)
     pdf.set_font("Just", "", 8)
     pdf.set_text_color(*MUTED)
-    pdf.cell(210 - 2 * M, 5,
-             "Bússola · metodologia B.A.S.E. e curadoria Tony Belleza · rh.tonybelleza.com",
-             align="C")
+    rodape_pdf = (tx("rodape_empresa", empresa=marca_pdf["nome"]) if marca_pdf else tx("rodape"))
+    pdf.cell(210 - 2 * M, 5, rodape_pdf + " · rh.tonybelleza.com", align="C")
 
     return bytes(pdf.output()), None
 
@@ -1178,6 +1220,33 @@ def renderizar(texto, variaveis):
     return texto.format_map(_DicionarioSeguro(variaveis))
 
 
+def idioma_do_candidato(cand):
+    return mensagens.idioma(cand["idioma"] if "idioma" in cand.keys() else "")
+
+
+def modelo_email(conn, empresa_id, chave, idioma="pt"):
+    """Modelo no idioma pedido (chave_en, chave_es); português é a chave sem sufixo."""
+    modelos = templates_email(conn, empresa_id)
+    idioma = mensagens.idioma(idioma)
+    if idioma != "pt" and (chave + "_" + idioma) in modelos:
+        return modelos[chave + "_" + idioma]
+    return modelos.get(chave) or modelos["etapa_inscrito"]
+
+
+def enviar_ao_candidato(conn, cand, chave, variaveis):
+    """Envia um modelo editável ao candidato, no idioma dele e com a marca da empresa."""
+    lang = idioma_do_candidato(cand)
+    modelo = modelo_email(conn, cand["empresa_id"], chave, lang)
+    variaveis = dict(variaveis)
+    if lang != "pt":
+        variaveis["link"] = variaveis.get("link", "") + ("&lang=" + lang if variaveis.get("link") else "")
+    return enviar_email(
+        conn, cand["email"], renderizar(modelo["assunto"], variaveis),
+        renderizar(modelo["corpo"], variaveis),
+        marca=mensagens.marca(conn, cand["empresa_id"]), idioma=lang,
+    )
+
+
 def url_publica(conn, host_header=None):
     configurada = (config_get(conn, "url_publica") or "").strip().rstrip("/")
     if configurada:
@@ -1268,51 +1337,45 @@ def avaliacao_ficou_completa(conn, cand):
 
 
 def notificar_avaliacao_completa(conn, cand):
-    """Ao completar a avaliação, marca o candidato e avisa os gestores com o match."""
+    """Ao completar a avaliação: um único e-mail de resultados ao candidato (no
+    idioma dele, com o PDF) e um único aviso a cada gestor (no idioma do gestor).
+    A marcação é atômica: dois envios simultâneos do último teste não duplicam e-mails."""
     if not avaliacao_ficou_completa(conn, cand):
         return
-    conn.execute(
-        "UPDATE candidatos SET notificado_completo=1 WHERE id=?", (cand["id"],)
-    )
+    marcou = conn.execute(
+        "UPDATE candidatos SET notificado_completo=1 WHERE id=? AND notificado_completo=0",
+        (cand["id"],),
+    ).rowcount
+    if not marcou:
+        return
+    conn.commit()
     registrar_evento(conn, cand["id"], "sistema", "Avaliação completa")
-    match = None
-    nome_cargo = ""
-    if cand["cargo_desejado_id"]:
-        match = match_completo(conn, cand, cand["cargo_desejado_id"])
-        cargo = conn.execute(
-            "SELECT nome FROM cargos WHERE id=?", (cand["cargo_desejado_id"],)
-        ).fetchone()
-        nome_cargo = cargo["nome"] if cargo else ""
-    linha_match = (
-        "Match geral com o cargo %s: %d%%\n" % (nome_cargo, match["geral"])
-        if match else ""
-    )
-    notificar_gestores(
-        conn, cand,
-        "Avaliação completa: %s" % cand["nome"],
-        ("O candidato %s (%s) concluiu toda a avaliação.\n%s\n"
-         "Acesse o painel do gestor para ver o relatório completo.")
-        % (cand["nome"], cand["local"] or "local não informado", linha_match),
-    )
-    # envia ao próprio candidato o relatório em PDF (uma vez, se houver e-mail e SMTP)
-    if (cand["email"] or "").strip() and config_get(conn, "smtp_host"):
-        pdf, erro_pdf = gerar_pdf_resultado(conn, cand)
-        if pdf and not erro_pdf:
-            primeiro = (cand["nome"] or "").split(" ")[0]
-            corpo = (
-                "Olá, %s!\n\nVocê concluiu toda a sua avaliação na Bússola. Parabéns!\n\n"
-                "Em anexo está o seu relatório completo em PDF: perfil comportamental "
-                "DISC, código de personalidade B.A.S.E. e o seu match com o cargo.\n\n"
-                "Você também pode acessar seus resultados a qualquer momento pelo seu "
-                "link pessoal.\n\nAtenciosamente,\nEquipe de Seleção"
-            ) % (primeiro or "tudo bem")
-            ok, _ = enviar_email(
-                conn, cand["email"], "Avaliação concluída: seu relatório Bússola",
-                corpo, anexos=[("relatorio-bussola.pdf", pdf, "application/pdf")],
-            )
-            if ok:
-                registrar_evento(conn, cand["id"], "email",
-                                 "Relatório em PDF enviado ao candidato")
+    cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (cand["id"],)).fetchone()
+    if not config_get(conn, "smtp_host"):
+        return
+    mensagens.avisar_gestores(conn, cand)
+    if (cand["email"] or "").strip():
+        assunto, texto, html, anexos = mensagens.email_resultado_candidato(conn, cand)
+        ok, _ = enviar_email(conn, cand["email"], assunto, texto, anexos=anexos or None, html=html)
+        if ok:
+            registrar_evento(conn, cand["id"], "email",
+                             "Resultados enviados ao candidato (%s)" % idioma_do_candidato(cand))
+
+
+def avisar_testes_pendentes(conn):
+    """Candidatos aprovados na triagem por voz (STRONG ou GOOD) que receberam o
+    convite e não concluíram os testes em 48 horas: um aviso único aos gestores."""
+    for r in conn.execute(
+        "SELECT ca.id, ca.candidato_id FROM candidaturas ca JOIN candidatos c ON c.id=ca.candidato_id"
+        " WHERE ca.voz_convite_enviado=1 AND ca.aviso_pendente=0 AND c.notificado_completo=0"
+        " AND c.anonimizado=0 AND ca.voz_tier IN ('STRONG','GOOD')"
+        " AND ca.voz_ultima != '' AND ca.voz_ultima <= datetime('now', '-48 hours')"
+    ).fetchall():
+        conn.execute("UPDATE candidaturas SET aviso_pendente=1 WHERE id=?", (r["id"],))
+        conn.commit()
+        cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (r["candidato_id"],)).fetchone()
+        mensagens.avisar_gestores(conn, cand, pendente=True)
+        conn.commit()
 
 
 def quiz_do_candidato(conn, candidato_id, cargo_id):
@@ -1455,6 +1518,7 @@ def resumo_candidato(conn, cand):
             "email": cand["email"],
             "local": cand["local"],
             "telefone": cand["telefone"] if "telefone" in cand.keys() else "",
+            "idioma": cand["idioma"] if "idioma" in cand.keys() else "",
             "funcao": cand["funcao"] if "funcao" in cand.keys() else "",
             "linkedin": cand["linkedin"],
             "instagram": cand["instagram"],
@@ -1653,6 +1717,9 @@ def rotina_automatica():
             sys.stderr.write("Backup diário falhou: %r\n" % exc)
         try:
             conn = db()
+            # aviso único aos gestores: aprovado na voz e sem testes há 48 horas
+            if config_get(conn, "smtp_host"):
+                avisar_testes_pendentes(conn)
             # lembrete para quem começou e não terminou em 2 dias
             if config_get(conn, "smtp_host"):
                 pendentes = conn.execute(
@@ -1662,14 +1729,9 @@ def rotina_automatica():
                 ).fetchall()
                 for cand in pendentes:
                     variaveis = variaveis_candidato(conn, cand)
-                    modelo = templates_email(conn, cand["empresa_id"])["lembrete"]
                     # envia o e-mail (I/O de rede) ANTES de qualquer escrita, para
                     # não segurar o lock do SQLite durante o SMTP.
-                    ok, _ = enviar_email(
-                        conn, cand["email"],
-                        renderizar(modelo["assunto"], variaveis),
-                        renderizar(modelo["corpo"], variaveis),
-                    )
+                    ok, _ = enviar_ao_candidato(conn, cand, "lembrete", variaveis)
                     if ok:
                         conn.execute(
                             "UPDATE candidatos SET lembrete_enviado=1 WHERE id=?",
@@ -2104,12 +2166,7 @@ class Handler(BaseHTTPRequestHandler):
             # e-mails automáticos (só quando o SMTP estiver configurado)
             if config_get(conn, "smtp_host"):
                 variaveis = variaveis_candidato(conn, novo, self.headers.get("Host"))
-                modelo = templates_email(conn, novo["empresa_id"])["confirmacao"]
-                ok, _ = enviar_email(
-                    conn, email,
-                    renderizar(modelo["assunto"], variaveis),
-                    renderizar(modelo["corpo"], variaveis),
-                )
+                ok, _ = enviar_ao_candidato(conn, novo, "confirmacao", variaveis)
                 if ok:
                     registrar_evento(conn, novo_id, "email",
                                      "E-mail de confirmação enviado ao candidato")
@@ -2164,6 +2221,22 @@ class Handler(BaseHTTPRequestHandler):
                 })
             return self._json(200, {"vagas": vagas, "pagina": pagina,
                                     "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]}})
+
+        m = re.match(r"^/api/empresa/([a-z0-9-]+)/logo$", path)
+        if method == "GET" and m:
+            emp = conn.execute("SELECT logo FROM empresas WHERE slug=?", (m.group(1),)).fetchone()
+            arquivo = mensagens.caminho_logo(emp["logo"]) if emp and emp["logo"] else ""
+            if not arquivo or not os.path.isfile(arquivo):
+                return self._json(404, {"erro": "Logo não encontrada"})
+            with open(arquivo, "rb") as f:
+                dados = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", mensagens.TIPOS_LOGO.get(arquivo.rsplit(".", 1)[-1], "image/png"))
+            self.send_header("Content-Length", str(len(dados)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(dados)
+            return None
 
         m = re.match(r"^/api/vaga/(\d+)$", path)
         if m and method == "GET":
@@ -2228,14 +2301,26 @@ class Handler(BaseHTTPRequestHandler):
             if not cand:
                 return self._json(401, {"erro": "Sessão inválida. Faça o cadastro novamente."})
 
+        if method == "POST" and path == "/api/candidato/idioma":
+            novo_idioma = mensagens.idioma(self._body().get("idioma"), "")
+            if not novo_idioma:
+                return self._json(400, {"erro": "Idioma inválido"})
+            conn.execute("UPDATE candidatos SET idioma=? WHERE id=?", (novo_idioma, cand["id"]))
+            conn.commit()
+            return self._json(200, {"ok": True, "idioma": novo_idioma})
+
         if method == "GET" and path == "/api/candidato/me":
-            return self._json(200, resumo_candidato(conn, cand))
+            resumo = resumo_candidato(conn, cand)
+            resumo["match"] = None  # a compatibilidade com o cargo fica só para a equipe
+            return self._json(200, resumo)
 
         if method == "GET" and path == "/api/candidato/relatorio.pdf":
-            dados, erro = gerar_pdf_resultado(conn, cand)
+            lang_pdf = mensagens.idioma(
+                parse_qs(urlparse(self.path).query).get("lang", [""])[0] or idioma_do_candidato(cand))
+            dados, erro = gerar_pdf_resultado(conn, cand, lang_pdf, para_candidato=True)
             if erro:
                 return self._json(400, {"erro": erro})
-            return self._baixar_pdf("relatorio-bussola.pdf", dados)
+            return self._baixar_pdf(mensagens.t(lang_pdf, "res_pdf"), dados)
 
         if method == "POST" and path == "/api/candidato/teste":
             d = self._body()
@@ -2832,6 +2917,35 @@ class Handler(BaseHTTPRequestHandler):
             if not gestor["is_admin"]:
                 return self._json(403, {"erro": "Apenas o administrador altera cargos e avaliações"})
 
+        if method == "POST" and path == "/api/gestor/idioma":
+            novo_idioma = mensagens.idioma(self._body().get("idioma"), "")
+            if not novo_idioma:
+                return self._json(400, {"erro": "Idioma inválido"})
+            conn.execute("UPDATE gestores SET idioma=? WHERE id=?", (novo_idioma, gestor["id"]))
+            conn.commit()
+            return self._json(200, {"ok": True, "idioma": novo_idioma})
+
+        if method == "GET" and path == "/api/gestor/empresa/marca":
+            m_emp = mensagens.marca(conn, gestor["empresa_id"]) or {}
+            return self._json(200, {"nome": m_emp.get("nome", ""), "logo_url": m_emp.get("logo_url", ""),
+                                    "idioma": gestor["idioma"] if "idioma" in gestor.keys() else "pt"})
+
+        if method == "POST" and path == "/api/gestor/empresa/logo":
+            if not gestor["is_admin"]:
+                return self._json(403, {"erro": "Apenas o administrador da empresa pode trocar a logo"})
+            d = self._body()
+            if d.get("remover"):
+                mensagens.remover_logo(conn, gestor["empresa_id"])
+                return self._json(200, {"ok": True, "logo_url": ""})
+            try:
+                dados = base64.b64decode(d.get("data") or "")
+            except ValueError:
+                return self._json(400, {"erro": "Arquivo inválido"})
+            erro = mensagens.salvar_logo(conn, gestor["empresa_id"], d.get("filename"), dados)
+            if erro:
+                return self._json(400, {"erro": erro})
+            return self._json(200, {"ok": True, "logo_url": mensagens.marca(conn, gestor["empresa_id"])["logo_url"]})
+
         if method == "POST" and path == "/api/gestor/senha":
             d = self._body()
             if not senha_confere(d.get("atual") or "", gestor["senha"]):
@@ -3212,14 +3326,7 @@ class Handler(BaseHTTPRequestHandler):
                 variaveis = variaveis_candidato(conn, cand_row, self.headers.get("Host"))
                 variaveis["vaga"] = ca["titulo"]
                 variaveis["etapa"] = NOMES_ETAPAS[etapa]
-                modelo = templates_email(conn, cand_row["empresa_id"]).get(
-                    "etapa_" + etapa, TEMPLATES_PADRAO["etapa_inscrito"]
-                )
-                ok, msg = enviar_email(
-                    conn, cand_row["email"],
-                    renderizar(modelo["assunto"], variaveis),
-                    renderizar(modelo["corpo"], variaveis),
-                )
+                ok, msg = enviar_ao_candidato(conn, cand_row, "etapa_" + etapa, variaveis)
                 registrar_evento(
                     conn, cand_row["id"], "email",
                     ("E-mail de atualização enviado" if ok
@@ -3664,7 +3771,8 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchone()
             if not cand_row or not gestor_ve_candidato(gestor, cand_row):
                 return self._json(404, {"erro": "Candidato não encontrado"})
-            dados, erro = gerar_pdf_resultado(conn, cand_row)
+            dados, erro = gerar_pdf_resultado(
+                conn, cand_row, gestor["idioma"] if "idioma" in gestor.keys() else "pt")
             if erro:
                 return self._json(400, {"erro": erro})
             nome_arq = "relatorio-%s.pdf" % re.sub(r"[^a-zA-Z0-9]+", "-", cand_row["nome"] or "candidato").strip("-").lower()
@@ -3881,6 +3989,7 @@ def backup_diario():
 
 
 voz.ligar(sys.modules[__name__])
+mensagens.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
 
 

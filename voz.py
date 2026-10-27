@@ -1060,7 +1060,7 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
 
     if destaque and not row["voz_convite_enviado"]:
         enviar_convite(conn, row, fatos.get("preferred_language") or row["idioma"] or cfg["idioma_padrao"])
-        avisar_gestores(conn, row, resultado, fatos)
+        # os gestores recebem um aviso único quando os testes terminam (ou após 48 horas sem eles)
 
 
 def enviar_convite(conn, row, idioma):
@@ -1068,34 +1068,25 @@ def enviar_convite(conn, row, idioma):
     if not (row["email"] or "").strip() or not srv.config_get(conn, "smtp_host"):
         return
     idioma = idioma if idioma in IDIOMAS_LIGACAO else "es"
+    # o idioma da ligação passa a ser o do candidato (portal, resultados e e-mails)
+    conn.execute("UPDATE candidatos SET idioma=? WHERE id=? AND (idioma IS NULL OR idioma='')",
+                 (idioma, row["candidato_id"]))
     cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (row["candidato_id"],)).fetchone()
     variaveis = srv.variaveis_candidato(conn, cand)
     variaveis["vaga"] = row["vaga_titulo"]
     variaveis["nome"] = (row["nome"] or "").split(" ")[0] or row["nome"]
     modelo = srv.templates_email(conn, row["empresa_id"])["voz_convite_" + idioma]
+    variaveis["link"] = variaveis["link"] + "&lang=" + idioma
     ok, msg = srv.enviar_email(
         conn, row["email"], srv.renderizar(modelo["assunto"], variaveis),
         srv.renderizar(modelo["corpo"], variaveis),
+        marca=srv.mensagens.marca(conn, row["empresa_id"]), idioma=idioma,
     )
     if ok:
         conn.execute("UPDATE candidaturas SET voz_convite_enviado=1 WHERE id=?", (row["id"],))
     srv.registrar_evento(
         conn, row["candidato_id"], "email",
         "Convite para os testes enviado (%s)" % idioma if ok else "Falha ao enviar convite: %s" % msg,
-    )
-    conn.commit()
-
-
-def avisar_gestores(conn, row, resultado, fatos):
-    cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (row["candidato_id"],)).fetchone()
-    srv.notificar_gestores(
-        conn, cand,
-        "Triagem por voz %s: %s" % (resultado["tier"], row["nome"]),
-        ("%s passou na triagem por voz da vaga %s.\n\nTier: %s (%d pontos)\nCidade: %s\n"
-         "Janelas para entrevista: %s\n\nO convite para os testes já foi enviado. "
-         "Veja a ligação completa no painel do gestor.")
-        % (row["nome"], row["vaga_titulo"], resultado["tier"], resultado["score"],
-           fatos.get("city") or "-", fatos.get("interview_windows") or "-"),
     )
     conn.commit()
 
