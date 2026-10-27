@@ -44,6 +44,7 @@ async function api(caminho, opcoes = {}) {
   const headers = { "Content-Type": "application/json" };
   const token = localStorage.getItem("cand_token");
   if (token) headers["X-Token"] = token;
+  if (typeof idiomaCand !== "undefined") headers["X-Idioma"] = idiomaCand;
   const resp = await fetch(caminho, {
     method: opcoes.method || "GET",
     headers,

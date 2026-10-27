@@ -200,6 +200,16 @@ class TestGestores(Base):
         self.assertEqual(self.enviados, [])
 
 
+class TestNovoCandidato(Base):
+    def test_aviso_de_cadastro_no_idioma_de_cada_gestor(self):
+        cand = self.candidato("es", testes=False)
+        mensagens.avisar_novo_candidato(self.conn, cand, "House Cleaning Technician")
+        self.assertEqual(self.para("tony@example.com")[0]["assunto"], "Novo candidato: Maria Lopez")
+        self.assertEqual(self.para("carine@example.com")[0]["assunto"], "New candidate: Maria Lopez")
+        self.assertEqual(self.para("ana@example.com")[0]["assunto"], "Nuevo candidato: Maria Lopez")
+        self.assertIn("House Cleaning Technician", self.para("carine@example.com")[0]["html"])
+
+
 class TestModelos(Base):
     def test_confirmacao_no_idioma_e_com_marca(self):
         for lang, inicio in (("pt", "Inscrição confirmada"), ("en", "Application received"), ("es", "Solicitud recibida")):

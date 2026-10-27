@@ -1285,22 +1285,6 @@ def emails_gestores_do_local(conn, cand):
     return sorted(set(emails))
 
 
-def notificar_gestores(conn, cand, assunto, corpo):
-    """Envia e-mail aos gestores responsáveis pelo local do candidato (best-effort)."""
-    if not config_get(conn, "smtp_host"):
-        return
-    enviados = 0
-    for email in emails_gestores_do_local(conn, cand):
-        ok, _ = enviar_email(conn, email, assunto, corpo)
-        if ok:
-            enviados += 1
-    if enviados:
-        registrar_evento(
-            conn, cand["id"], "email",
-            "Gestores notificados por e-mail (%d): %s" % (enviados, assunto),
-        )
-
-
 def avaliacao_ficou_completa(conn, cand):
     """True na primeira vez em que o candidato conclui DISC + B.A.S.E. +
     autoavaliação (e o quiz, quando o cargo tiver questões)."""
@@ -2170,14 +2154,7 @@ class Handler(BaseHTTPRequestHandler):
                 if ok:
                     registrar_evento(conn, novo_id, "email",
                                      "E-mail de confirmação enviado ao candidato")
-                notificar_gestores(
-                    conn, novo,
-                    "Novo candidato: %s" % nome,
-                    ("Novo cadastro no sistema de RH.\n\nNome: %s\nE-mail: %s\n"
-                     "Local: %s\n%s\nAcesse o painel do gestor para acompanhar.")
-                    % (nome, email, local,
-                       ("Vaga: %s\n" % vaga["titulo"]) if vaga else ""),
-                )
+                mensagens.avisar_novo_candidato(conn, novo, vaga["titulo"] if vaga else "")
             conn.commit()
             return self._json(200, {"token": token})
 
@@ -2805,6 +2782,7 @@ class Handler(BaseHTTPRequestHandler):
                 "local": gestor_row["local"],
                 "modulos": empresas.modulos(empresa_row),
                 "admin": bool(gestor_row["is_admin"]),
+                "idioma": mensagens.idioma(gestor_row["idioma"] if "idioma" in gestor_row.keys() else ""),
                 "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]},
             })
 

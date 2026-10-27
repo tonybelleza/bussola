@@ -57,6 +57,11 @@ T = {
         "g_disc_titulo": "Perfil DISC",
         "g_base_titulo": "Código B.A.S.E.",
         "g_botao": "Abrir a ficha no painel",
+        "n_assunto": "Novo candidato: {nome}",
+        "n_titulo": "Novo candidato",
+        "n_intro": "{nome} acabou de se inscrever.",
+        "n_vaga": "Vaga",
+        "n_sem_vaga": "Sem vaga específica",
         "idiomas": {"pt": "Português", "en": "Inglês", "es": "Espanhol"},
         "componentes": {"competencias": "Competências", "disc": "DISC", "base": "B.A.S.E.",
                         "conhecimento": "Conhecimento", "entrevista": "Entrevista", "voz": "Triagem por voz"},
@@ -120,6 +125,11 @@ T = {
         "g_disc_titulo": "DISC profile",
         "g_base_titulo": "B.A.S.E. code",
         "g_botao": "Open the candidate in the panel",
+        "n_assunto": "New candidate: {nome}",
+        "n_titulo": "New candidate",
+        "n_intro": "{nome} just applied.",
+        "n_vaga": "Position",
+        "n_sem_vaga": "No specific position",
         "idiomas": {"pt": "Portuguese", "en": "English", "es": "Spanish"},
         "componentes": {"competencias": "Skills", "disc": "DISC", "base": "B.A.S.E.",
                         "conhecimento": "Knowledge", "entrevista": "Interview", "voz": "Phone screening"},
@@ -182,6 +192,11 @@ T = {
         "g_disc_titulo": "Perfil DISC",
         "g_base_titulo": "Código B.A.S.E.",
         "g_botao": "Abrir la ficha en el panel",
+        "n_assunto": "Nuevo candidato: {nome}",
+        "n_titulo": "Nuevo candidato",
+        "n_intro": "{nome} acaba de postularse.",
+        "n_vaga": "Vacante",
+        "n_sem_vaga": "Sin vacante específica",
         "idiomas": {"pt": "Portugués", "en": "Inglés", "es": "Español"},
         "componentes": {"competencias": "Competencias", "disc": "DISC", "base": "B.A.S.E.",
                         "conhecimento": "Conocimiento", "entrevista": "Entrevista", "voz": "Entrevista telefónica"},
@@ -797,4 +812,42 @@ def avisar_gestores(conn, cand, pendente=False):
     if enviados:
         srv.registrar_evento(conn, cand["id"], "email",
                              "Gestores notificados por e-mail (%d): %s" % (enviados, "testes pendentes" if pendente else "avaliação completa"))
+    return enviados
+
+
+def email_novo_candidato(conn, cand, vaga_titulo, lang):
+    """(assunto, texto, html) do aviso de novo cadastro, no idioma do gestor."""
+    lang = idioma(lang)
+    m = marca(conn, cand["empresa_id"])
+    link = "%s/gestor#candidato=%d" % (srv.url_publica(conn), cand["id"])
+    nome = cand["nome"] or ""
+    intro = t(lang, "n_intro", nome=nome)
+    idioma_cand = t(lang, "idiomas").get(idioma(cand["idioma"] if "idioma" in cand.keys() else "", ""), "")
+    linhas = (_linha(t(lang, "n_vaga"), vaga_titulo or t(lang, "n_sem_vaga"))
+              + _linha(t(lang, "g_cidade"), cand["local"]) + _linha(t(lang, "g_telefone"), cand["telefone"])
+              + _linha(t(lang, "g_email"), cand["email"]) + _linha(t(lang, "g_idioma"), idioma_cand))
+    corpo = (_paragrafo(intro) + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+             + linhas + '</table><div style="height:14px"></div>' + _botao(link, t(lang, "g_botao")))
+    texto = "\n".join([intro, "", "%s: %s" % (t(lang, "n_vaga"), vaga_titulo or t(lang, "n_sem_vaga")),
+                       "%s: %s" % (t(lang, "g_email"), cand["email"] or "-"), "", link])
+    return (t(lang, "n_assunto", nome=nome), texto,
+            layout(corpo, lang, m, ("👤", t(lang, "n_titulo"), "#3B67CA")))
+
+
+def avisar_novo_candidato(conn, cand, vaga_titulo=""):
+    """Aviso de novo cadastro a cada gestor da empresa que enxerga o candidato, no idioma dele."""
+    if not srv.config_get(conn, "smtp_host"):
+        return 0
+    enviados = 0
+    for g in conn.execute(
+        "SELECT email, local, is_admin, empresa_id, idioma FROM gestores WHERE empresa_id=? AND aprovado=1",
+        (cand["empresa_id"],),
+    ).fetchall():
+        if not (g["email"] or "").strip() or not srv.empresas.ve_local(g, cand["local"]):
+            continue
+        assunto, texto, html = email_novo_candidato(conn, cand, vaga_titulo, g["idioma"])
+        ok, _ = srv.enviar_email(conn, g["email"].strip(), assunto, texto, html=html)
+        enviados += 1 if ok else 0
+    if enviados:
+        srv.registrar_evento(conn, cand["id"], "email", "Gestores notificados por e-mail (%d): novo candidato" % enviados)
     return enviados
