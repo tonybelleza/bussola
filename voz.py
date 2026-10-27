@@ -228,6 +228,7 @@ CAMPOS_FATOS = {
     "candidate_questions": ("string", None, "Questions the candidate asked."),
     "notes": ("string", None, "Short factual notes."),
     "extra_answers": ("string", None, "Answers to the role's extra screening questions."),
+    "previous_jobs": ("string", None, "Previous jobs the candidate described."),
     "resume_check": ("string", None, "What was confirmed or contradicted about the resume."),
 }
 
@@ -834,17 +835,34 @@ def variaveis_da_ligacao(conn, row, cfg, roteiro, idioma="es"):
         area.append("Main area (about 25 miles): " + ", ".join(roteiro["cidades_25"]))
     if roteiro.get("cidades_40"):
         area.append("Extended area (about 40 miles): " + ", ".join(roteiro["cidades_40"]))
-    resumo_cv = "none"
-    cand = conn.execute("SELECT analise_ia FROM candidatos WHERE id=?", (row["candidato_id"],)).fetchone()
+    cand = conn.execute(
+        "SELECT analise_ia, cargo_atual FROM candidatos WHERE id=?", (row["candidato_id"],)
+    ).fetchone()
+    partes = []
+    if cand and (cand["cargo_atual"] or "").strip():
+        partes.append("Current job (from the application): " + cand["cargo_atual"].strip())
     if cand and cand["analise_ia"]:
         try:
             a = json.loads(cand["analise_ia"])
-            partes = [a.get("resumo") or ""]
+            if a.get("resumo"):
+                partes.append("Summary: " + a["resumo"])
             if a.get("experiencias"):
-                partes.append("Experience listed: " + "; ".join(a["experiencias"][:6]))
-            resumo_cv = " ".join(p for p in partes if p).strip()[:1500] or "none"
+                partes.append("Experience: " + "; ".join(a["experiencias"][:6]))
+            if a.get("formacoes"):
+                partes.append("Training: " + "; ".join(a["formacoes"][:3]))
+            if a.get("pontos_fortes"):
+                partes.append("Strengths: " + "; ".join(a["pontos_fortes"][:3]))
         except (ValueError, AttributeError, TypeError):
-            resumo_cv = "none"
+            pass
+    resumo_cv = "\n".join(partes)[:2000] or "none"
+    # anotações internas da equipe (só orientam as perguntas; nunca são lidas ao candidato)
+    notas = [
+        n["texto"] for n in conn.execute(
+            "SELECT texto FROM eventos WHERE candidato_id=? AND tipo='anotacao' ORDER BY criado_em DESC, id DESC LIMIT 5",
+            (row["candidato_id"],),
+        ).fetchall() if (n["texto"] or "").strip()
+    ]
+    notas_equipe = "\n".join("- " + n.strip()[:300] for n in notas) or "none"
     return {
         "candidate_name": row["nome"],
         "company_name": nome_empresa,
@@ -858,6 +876,7 @@ def variaveis_da_ligacao(conn, row, cfg, roteiro, idioma="es"):
         "requirements": _texto_lista(requisitos),
         "service_area": "\n".join(area) or "none",
         "resume_summary": resumo_cv,
+        "team_notes": notas_equipe,
         "voicemail_message": recado_correio_voz(
             idioma, row["nome"], nome_empresa, row["cargo_nome"], cfg.get("telefone_retorno") or ""),
     }

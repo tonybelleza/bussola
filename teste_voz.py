@@ -310,9 +310,13 @@ class TestFluxo(unittest.TestCase):
             "perguntas": ["Can you start at 7:30 am?"], "exige_carro": False}), self.cargo))
         self.conn.execute("UPDATE candidatos SET analise_ia=? WHERE id=?",
                           (json.dumps({"resumo": "5 years cleaning homes.", "experiencias": ["Maid Pro 2019-2024"]}), a))
+        self.conn.execute("UPDATE candidatos SET cargo_atual='Cleaner at Maid Pro' WHERE id=?", (a,))
+        server.registrar_evento(self.conn, a, "anotacao", "Ask why she left the last job after 2 months", "Carine")
         self.conn.commit()
         voz.tick(self.conn, self.TERCA_10H)
         v = self.falso.ultimas_variaveis
+        self.assertIn("Current job (from the application): Cleaner at Maid Pro", v["resume_summary"])
+        self.assertIn("Ask why she left", v["team_notes"])
         self.assertEqual((v["company_name"], v["company_city"], v["hiring_manager"]), ("Belleza's Home Services", "Hartford", "Carine"))
         self.assertIn("$18", v["job_facts"])
         self.assertIn("Q: Uniform?", v["faq"])
