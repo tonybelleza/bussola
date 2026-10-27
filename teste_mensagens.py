@@ -17,13 +17,14 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="msg-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
 
 import empresas  # noqa: E402
 import mensagens  # noqa: E402
+import erros_i18n  # noqa: E402
 import server  # noqa: E402
 
 DISC = {"pct": {"D": 20, "I": 25, "S": 40, "C": 15}, "dominante": "S"}
@@ -198,6 +199,16 @@ class TestGestores(Base):
         self.conn.commit()
         server.avisar_testes_pendentes(self.conn)
         self.assertEqual(self.enviados, [])
+
+
+class TestErros(unittest.TestCase):
+    def test_erros_traduzidos(self):
+        self.assertEqual(erros_i18n.traduzir("Senha atual incorreta", "pt"), "Senha atual incorreta")
+        self.assertNotEqual(erros_i18n.traduzir("Senha atual incorreta", "en"), "Senha atual incorreta")
+        self.assertIn("12", erros_i18n.traduzir("A senha deve ter ao menos 12 caracteres", "es"))
+        self.assertEqual(erros_i18n.traduzir(None, "en"), None)
+        textos = json.dumps([erros_i18n.ERROS, erros_i18n.CODIGOS], ensure_ascii=False)
+        self.assertIsNone(TRACOS.search(textos))
 
 
 class TestNovoCandidato(Base):

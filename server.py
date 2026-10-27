@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 import empresas
+import erros_i18n
 import mensagens
 import voz
 
@@ -1827,6 +1828,11 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- utilitários ----------
     def _json(self, status, data):
+        # mensagens de erro no idioma de quem pediu (cabeçalho X-Idioma: pt, en ou es)
+        if status >= 400 and isinstance(data, dict) and isinstance(data.get("erro"), str):
+            idioma_req = (self.headers.get("X-Idioma") or "") if getattr(self, "headers", None) else ""
+            if idioma_req:
+                data = dict(data, erro=erros_i18n.traduzir(data["erro"], idioma_req))
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
