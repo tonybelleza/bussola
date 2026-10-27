@@ -81,7 +81,10 @@ class FalsoElevenLabs:
         self.conversas = {}
         self.falhar = False
 
-    def iniciar(self, telefone, nome, idioma, candidato_id):
+    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
+        nome = variaveis["candidate_name"]
+        self.ultimas_variaveis = variaveis
+        self.ultima_abertura = abertura
         if self.falhar:
             self.falhar = False
             raise RuntimeError("twilio fora do ar")
@@ -98,6 +101,34 @@ class FalsoElevenLabs:
 
 
 # ================================================================ regras puras
+
+class TestRoteiro(unittest.TestCase):
+    def test_validacao_e_limites(self):
+        r, erro = voz.validar_roteiro({
+            "fatos": "Pay $18/h", "faqs": [{"pergunta": "Uniform?", "resposta": "Yes"}, {"pergunta": "", "resposta": "x"}],
+            "perguntas": ["Do you speak English?", "  "], "exige_carro": False, "cidades_25": ["Hartford", ""],
+        })
+        self.assertIsNone(erro)
+        self.assertEqual(r["faqs"], [{"pergunta": "Uniform?", "resposta": "Yes"}])
+        self.assertEqual(r["perguntas"], ["Do you speak English?"])
+        self.assertEqual((r["exige_carro"], r["exige_carteira"]), (False, True))
+        self.assertEqual(r["cidades_25"], ["Hartford"])
+        self.assertEqual(voz.validar_roteiro({"fatos": "x" * 7000})[1], "text_too_long")
+
+    def test_cargo_sem_exigencia_de_carro_nao_reprova(self):
+        sem_carro = dict(FATOS_FORTES, own_car="no")
+        self.assertEqual(voz.pontuar(sem_carro)["outcome"], "NOT_QUALIFIED")
+        r = voz.pontuar(sem_carro, dict(voz.ROTEIRO_PADRAO, exige_carro=False))
+        self.assertEqual((r["outcome"], r["score"]), ("QUALIFIED", 100))
+
+    def test_area_propria_do_cargo(self):
+        roteiro = dict(voz.ROTEIRO_PADRAO, cidades_25=["Sacramento"], cidades_40=["Davis"])
+        self.assertEqual(voz.faixa_da_cidade("sacramento, CA", roteiro), "25mi")
+        self.assertEqual(voz.faixa_da_cidade("Davis", roteiro), "40mi")
+        self.assertIsNone(voz.faixa_da_cidade("Hartford", roteiro))
+        r = voz.pontuar(dict(FATOS_FORTES, city="Davis", distance_band="unknown"), roteiro)
+        self.assertEqual(r["pontos"]["location"], 10)
+
 
 class TestScorecard(unittest.TestCase):
     def test_candidato_ideal(self):
@@ -269,6 +300,27 @@ class TestFluxo(unittest.TestCase):
 
     def candidatura(self, cid):
         return self.conn.execute("SELECT * FROM candidaturas WHERE candidato_id=?", (cid,)).fetchone()
+
+    def test_variaveis_levam_identidade_roteiro_e_curriculo(self):
+        a = self.candidato()
+        voz.salvar_config(self.conn, self.empresa, {"nome_ligacao": "Belleza's Home Services", "cidade": "Hartford",
+                                                    "telefone_retorno": "860-790-9545", "gerente": "Carine"})
+        self.conn.execute("UPDATE cargos SET roteiro_voz=? WHERE id=?", (json.dumps({
+            "fatos": "Pay starts at $18 per hour.", "faqs": [{"pergunta": "Uniform?", "resposta": "Provided."}],
+            "perguntas": ["Can you start at 7:30 am?"], "exige_carro": False}), self.cargo))
+        self.conn.execute("UPDATE candidatos SET analise_ia=? WHERE id=?",
+                          (json.dumps({"resumo": "5 years cleaning homes.", "experiencias": ["Maid Pro 2019-2024"]}), a))
+        self.conn.commit()
+        voz.tick(self.conn, self.TERCA_10H)
+        v = self.falso.ultimas_variaveis
+        self.assertEqual((v["company_name"], v["company_city"], v["hiring_manager"]), ("Belleza's Home Services", "Hartford", "Carine"))
+        self.assertIn("$18", v["job_facts"])
+        self.assertIn("Q: Uniform?", v["faq"])
+        self.assertIn("7:30", v["extra_questions"])
+        self.assertIn("NOT required", v["requirements"])
+        self.assertIn("Maid Pro", v["resume_summary"])
+        self.assertIn("Belleza's Home Services en Hartford", self.falso.ultima_abertura)
+        self.assertTrue(all(isinstance(x, str) for x in v.values()))
 
     def test_entra_na_fila_so_com_voz_ativa(self):
         cid = self.candidato()
@@ -552,6 +604,17 @@ class TestHTTP(unittest.TestCase):
                                   {"cargo_id": self.cargo_a, "nome": "x"}, b)[0], 404)
         _, g = self.req("GET", "/api/gestor/gestores", cabecalhos=b)
         self.assertEqual(sorted(x["login"] for x in g["gestores"]), ["admin.b", "outro"])
+
+    def test_roteiro_so_admin_edita_e_outra_empresa_nao_ve(self):
+        caminho = "/api/gestor/voz/cargo/%d/roteiro" % self.cargo_a
+        self.assertEqual(self.req("GET", caminho, cabecalhos=self.token("carine"))[0], 200)
+        self.assertEqual(self.req("POST", caminho, {"fatos": "x"}, self.token("carine"))[0], 403)
+        status, d = self.req("POST", caminho, {"fatos": "Pay $18", "faqs": [{"pergunta": "A?", "resposta": "B"}]},
+                             self.token("admin"))
+        self.assertEqual((status, d["roteiro"]["fatos"]), (200, "Pay $18"))
+        self.assertEqual(self.req("GET", caminho, cabecalhos=self.token("admin.b"))[0], 403)  # sem o módulo
+        _, lido = self.req("GET", caminho, cabecalhos=self.token("admin"))
+        self.assertEqual(lido["roteiro"]["faqs"], [{"pergunta": "A?", "resposta": "B"}])
 
     def test_portal_publico_exige_o_link_da_empresa(self):
         _, sem = self.req("GET", "/api/vagas")

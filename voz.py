@@ -68,17 +68,25 @@ OUTCOME_STATUS = {
 IDIOMAS_LIGACAO = ("es", "en", "pt")
 CODIGO_ELEVENLABS = {"es": "es", "en": "en", "pt": "pt-br"}
 
+# abertura da ligação; {empresa} e {cidade} vêm da identidade configurada pela empresa
 PRIMEIRAS_FRASES = {
-    "es": ("Hola, soy Francisca, la asistente virtual de reclutamiento de Belleza's Home "
-           "Services en Hartford. Soy una asistente automatizada, no una persona. "
-           "¿Hablo con {{candidate_name}}?"),
-    "en": ("Hi, this is Francisca, the AI recruiting assistant for Belleza's Home Services "
-           "in Hartford. I'm an automated assistant, not a person. Am I speaking with "
-           "{{candidate_name}}?"),
-    "pt": ("Oi, aqui é a Francisca, a assistente virtual de recrutamento da Belleza's Home "
-           "Services, em Hartford. Sou uma assistente automatizada, não uma pessoa. "
-           "Estou falando com {{candidate_name}}?"),
+    "es": ("Hola, soy Francisca, la asistente virtual de reclutamiento de {empresa}{em_cidade_es}. "
+           "Soy una asistente automatizada, no una persona. ¿Hablo con {{{{candidate_name}}}}?"),
+    "en": ("Hi, this is Francisca, the AI recruiting assistant for {empresa}{em_cidade_en}. "
+           "I'm an automated assistant, not a person. Am I speaking with {{{{candidate_name}}}}?"),
+    "pt": ("Oi, aqui é a Francisca, a assistente virtual de recrutamento da {empresa}{em_cidade_pt}. "
+           "Sou uma assistente automatizada, não uma pessoa. Estou falando com {{{{candidate_name}}}}?"),
 }
+
+
+def primeira_frase(idioma, empresa, cidade):
+    cidade = (cidade or "").strip()
+    return PRIMEIRAS_FRASES[idioma].format(
+        empresa=empresa,
+        em_cidade_es=(" en " + cidade) if cidade else "",
+        em_cidade_en=(" in " + cidade) if cidade else "",
+        em_cidade_pt=(", em " + cidade) if cidade else "",
+    )
 
 CONFIG_PADRAO = {
     "ativo": 1,
@@ -91,7 +99,25 @@ CONFIG_PADRAO = {
     "simultaneas": 1,
     "intervalo_horas": 4,
     "idioma_padrao": "es",
+    # identidade usada na ligação (vazio = nome da empresa no cadastro)
+    "nome_ligacao": "",
+    "cidade": "",
+    "telefone_retorno": "",
+    "gerente": "",
 }
+
+# roteiro da Francisca por cargo: cada empresa edita no painel
+ROTEIRO_PADRAO = {
+    "fatos": "",
+    "faqs": [],
+    "perguntas": [],
+    "exige_carro": True,
+    "exige_carteira": True,
+    "exige_smartphone": True,
+    "cidades_25": [],
+    "cidades_40": [],
+}
+LIMITES_ROTEIRO = {"fatos": 6000, "faqs": 40, "perguntas": 10, "cidades": 300, "texto": 600}
 
 # ------------------------------------------------------------ distância
 
@@ -114,12 +140,22 @@ DENTRO_40 = [
 ]
 
 
+SIGLAS_ESTADOS = set(
+    "al ak az ar ca co ct de fl ga hi id il in ia ks ky la me md ma mi mn ms mo mt ne nv nh nj nm ny "
+    "nc nd oh ok or pa ri sc sd tn tx ut vt va wa wv wi wy dc".split()
+)
+
+
 def normalizar_cidade(texto):
     t = unicodedata.normalize("NFD", texto or "")
     t = "".join(ch for ch in t if unicodedata.category(ch) != "Mn").lower()
     t = re.sub(r"[,.]", " ", t)
-    t = re.sub(r"\b(ct|connecticut|ma|massachusetts|usa)\b", " ", t)
-    return re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"\b(connecticut|massachusetts|california|usa|us)\b", " ", t)
+    palavras = t.split()
+    # retira a sigla de estado no fim ("Hartford CT", "Sacramento, CA")
+    while len(palavras) > 1 and palavras[-1] in SIGLAS_ESTADOS:
+        palavras.pop()
+    return " ".join(palavras)
 
 
 FAIXAS = {}
@@ -129,8 +165,19 @@ for _c in DENTRO_25:
     FAIXAS[normalizar_cidade(_c)] = "25mi"
 
 
-def faixa_da_cidade(cidade):
-    return FAIXAS.get(normalizar_cidade(cidade)) if cidade else None
+def faixa_da_cidade(cidade, roteiro=None):
+    """Faixa de distância da cidade. Se o cargo define a própria área atendida,
+    ela vale no lugar das listas padrão (Hartford)."""
+    if not cidade:
+        return None
+    if roteiro and (roteiro.get("cidades_25") or roteiro.get("cidades_40")):
+        alvo = normalizar_cidade(cidade)
+        if alvo in {normalizar_cidade(c) for c in roteiro.get("cidades_25") or []}:
+            return "25mi"
+        if alvo in {normalizar_cidade(c) for c in roteiro.get("cidades_40") or []}:
+            return "40mi"
+        return None
+    return FAIXAS.get(normalizar_cidade(cidade))
 
 
 # ------------------------------------------------------------ fatos da ligação
@@ -163,6 +210,8 @@ CAMPOS_FATOS = {
     "interview_windows": ("string", None, "Days and times offered for a talk with the hiring manager."),
     "candidate_questions": ("string", None, "Questions the candidate asked."),
     "notes": ("string", None, "Short factual notes."),
+    "extra_answers": ("string", None, "Answers to the role's extra screening questions."),
+    "resume_check": ("string", None, "What was confirmed or contradicted about the resume."),
 }
 
 
@@ -243,10 +292,13 @@ def tier_do_score(score):
     return "LOW"
 
 
-def pontuar(fatos):
-    """Scorecard determinístico. Mesmas regras do prompt da Francisca:
-    gates (carteira e carro), pontos (máximo 100), tier e resultado final."""
-    faixa = faixa_da_cidade(fatos.get("city")) or fatos.get("distance_band") or "unknown"
+def pontuar(fatos, roteiro=None):
+    """Scorecard determinístico: gates (os requisitos que o cargo exige), pontos
+    (máximo 100), tier e resultado final."""
+    roteiro = roteiro or ROTEIRO_PADRAO
+    exige_carteira = roteiro.get("exige_carteira", True)
+    exige_carro = roteiro.get("exige_carro", True)
+    faixa = faixa_da_cidade(fatos.get("city"), roteiro) or fatos.get("distance_band") or "unknown"
     gates = {"license": fatos.get("license") == "yes", "vehicle": fatos.get("own_car") == "yes"}
     base = {"faixa": faixa, "gates": gates, "score": None, "tier": None, "pontos": None}
     outcome = fatos.get("outcome")
@@ -255,13 +307,13 @@ def pontuar(fatos):
         return dict(base, outcome="NEEDS_REVIEW", motivos=["no_outcome"])
     if outcome not in SCORED_OUTCOMES:
         return dict(base, outcome=outcome, motivos=[])
-    if fatos.get("license") == "no" or fatos.get("own_car") == "no":
+    if (exige_carteira and fatos.get("license") == "no") or (exige_carro and fatos.get("own_car") == "no"):
         return dict(base, outcome="NOT_QUALIFIED", motivos=[])
 
     motivos = []
-    if fatos.get("license") != "yes":
+    if exige_carteira and fatos.get("license") != "yes":
         motivos.append("license_unclear")
-    if fatos.get("own_car") != "yes":
+    if exige_carro and fatos.get("own_car") != "yes":
         motivos.append("car_unclear")
     if outcome == "NOT_QUALIFIED":
         motivos.append("not_qualified_without_gate")
@@ -293,7 +345,8 @@ def pontuar(fatos):
         smartphone = 10
     else:
         smartphone = 0
-        motivos.append("no_smartphone")
+        if roteiro.get("exige_smartphone", True):
+            motivos.append("no_smartphone")
 
     prazo = fatos.get("start_timeframe")
     inicio = faltou("start_date") if prazo is None else {"within_1_week": 10, "within_2_weeks": 7, "later": 3}[prazo]
@@ -468,6 +521,8 @@ def init_voz(c):
     if "voz_ativa" not in colunas:
         c.execute("ALTER TABLE cargos ADD COLUMN voz_ativa INTEGER DEFAULT 0")
         c.execute("ALTER TABLE cargos ADD COLUMN peso_voz REAL DEFAULT 0.30")
+    if "roteiro_voz" not in colunas:
+        c.execute("ALTER TABLE cargos ADD COLUMN roteiro_voz TEXT DEFAULT ''")
     colunas = {r[1] for r in c.execute("PRAGMA table_info(candidatos)").fetchall()}
     if "idioma" not in colunas:
         c.execute("ALTER TABLE candidatos ADD COLUMN idioma TEXT DEFAULT ''")
@@ -475,6 +530,50 @@ def init_voz(c):
 
 def chave_empresa(empresa_id):
     return "empresa:%d" % int(empresa_id) if empresa_id else ""
+
+
+def _lista_textos(valor, limite, tamanho):
+    itens = [str(x).strip()[:tamanho] for x in (valor or []) if str(x).strip()]
+    return itens[:limite]
+
+
+def validar_roteiro(d):
+    """Aceita só campos conhecidos, com limites; devolve (roteiro, erro)."""
+    if not isinstance(d, dict):
+        return None, "invalid_data"
+    lim = LIMITES_ROTEIRO
+    fatos = str(d.get("fatos") or "").strip()
+    if len(fatos) > lim["fatos"]:
+        return None, "text_too_long"
+    faqs = []
+    for item in (d.get("faqs") or [])[: lim["faqs"]]:
+        if not isinstance(item, dict):
+            continue
+        pergunta = str(item.get("pergunta") or "").strip()[: lim["texto"]]
+        resposta = str(item.get("resposta") or "").strip()[: lim["texto"] * 2]
+        if pergunta and resposta:
+            faqs.append({"pergunta": pergunta, "resposta": resposta})
+    return {
+        "fatos": fatos,
+        "faqs": faqs,
+        "perguntas": _lista_textos(d.get("perguntas"), lim["perguntas"], lim["texto"]),
+        "exige_carro": bool(d.get("exige_carro", True)),
+        "exige_carteira": bool(d.get("exige_carteira", True)),
+        "exige_smartphone": bool(d.get("exige_smartphone", True)),
+        "cidades_25": _lista_textos(d.get("cidades_25"), lim["cidades"], 60),
+        "cidades_40": _lista_textos(d.get("cidades_40"), lim["cidades"], 60),
+    }, None
+
+
+def roteiro_do_cargo(conn, cargo_id):
+    r = conn.execute("SELECT roteiro_voz FROM cargos WHERE id=?", (cargo_id,)).fetchone()
+    roteiro = dict(ROTEIRO_PADRAO)
+    if r and r["roteiro_voz"]:
+        try:
+            roteiro.update(json.loads(r["roteiro_voz"]))
+        except ValueError:
+            pass
+    return roteiro
 
 
 def config_empresa(conn, empresa_id):
@@ -521,6 +620,12 @@ def validar_config(d):
             if not minimo <= v <= maximo:
                 return None, "invalid_number"
             saida[chave] = v
+    for chave in ("nome_ligacao", "cidade", "telefone_retorno", "gerente"):
+        if chave in d:
+            texto = str(d[chave] or "").strip()
+            if len(texto) > 120:
+                return None, "text_too_long"
+            saida[chave] = texto
     if "idioma_padrao" in d:
         if d["idioma_padrao"] not in IDIOMAS_LIGACAO:
             return None, "invalid_language"
@@ -605,7 +710,7 @@ class ElevenLabs:
                 metodo, caminho, exc.code, exc.read()[:300].decode("utf-8", "replace")))
         return bruto if binario else json.loads(bruto.decode("utf-8"))
 
-    def iniciar(self, telefone, nome, idioma, candidato_id):
+    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
         r = self._req("POST", "/twilio/outbound-call", {
             "agent_id": self.agent_id,
             "agent_phone_number_id": self.phone_number_id,
@@ -613,10 +718,10 @@ class ElevenLabs:
             "call_recording_enabled": True,
             "conversation_initiation_client_data": {
                 "user_id": str(candidato_id),
-                "dynamic_variables": {"candidate_name": nome},
+                "dynamic_variables": variaveis,
                 "conversation_config_override": {"agent": {
                     "language": CODIGO_ELEVENLABS[idioma],
-                    "first_message": PRIMEIRAS_FRASES[idioma],
+                    "first_message": abertura,
                 }},
             },
         })
@@ -689,6 +794,56 @@ def visivel_para(gestor, row):
     return srv.gestor_ve_candidato(gestor, {"empresa_id": row["empresa_id"], "local": row["cand_local"]})
 
 
+def _texto_lista(itens, vazio="none"):
+    return "\n".join("- " + i for i in itens) if itens else vazio
+
+
+def variaveis_da_ligacao(conn, row, cfg, roteiro):
+    """Tudo que a Francisca precisa saber desta empresa, deste cargo e deste
+    candidato. Vai como variáveis dinâmicas do ElevenLabs; nada fica fixo no prompt."""
+    empresa = conn.execute("SELECT nome FROM empresas WHERE id=?", (row["empresa_id"],)).fetchone()
+    nome_empresa = cfg.get("nome_ligacao") or (empresa["nome"] if empresa else "")
+    requisitos = []
+    if roteiro.get("exige_carteira", True):
+        requisitos.append("valid driver's license (required, a clear no means not qualified)")
+    if roteiro.get("exige_carro", True):
+        requisitos.append("own reliable car (required, a clear no means not qualified)")
+    if roteiro.get("exige_smartphone", True):
+        requisitos.append("smartphone (needed for the work app)")
+    if not roteiro.get("exige_carro", True):
+        requisitos.append("own car is NOT required for this role: ask, but never disqualify for it")
+    area = []
+    if roteiro.get("cidades_25"):
+        area.append("Main area (about 25 miles): " + ", ".join(roteiro["cidades_25"]))
+    if roteiro.get("cidades_40"):
+        area.append("Extended area (about 40 miles): " + ", ".join(roteiro["cidades_40"]))
+    resumo_cv = "none"
+    cand = conn.execute("SELECT analise_ia FROM candidatos WHERE id=?", (row["candidato_id"],)).fetchone()
+    if cand and cand["analise_ia"]:
+        try:
+            a = json.loads(cand["analise_ia"])
+            partes = [a.get("resumo") or ""]
+            if a.get("experiencias"):
+                partes.append("Experience listed: " + "; ".join(a["experiencias"][:6]))
+            resumo_cv = " ".join(p for p in partes if p).strip()[:1500] or "none"
+        except (ValueError, AttributeError, TypeError):
+            resumo_cv = "none"
+    return {
+        "candidate_name": row["nome"],
+        "company_name": nome_empresa,
+        "company_city": cfg.get("cidade") or "",
+        "callback_phone": cfg.get("telefone_retorno") or "",
+        "hiring_manager": cfg.get("gerente") or "the hiring manager",
+        "role_name": row["cargo_nome"],
+        "job_facts": roteiro.get("fatos") or "none",
+        "faq": "\n".join("Q: %s\nA: %s" % (f["pergunta"], f["resposta"]) for f in roteiro.get("faqs") or []) or "none",
+        "extra_questions": _texto_lista(roteiro.get("perguntas") or []),
+        "requirements": _texto_lista(requisitos),
+        "service_area": "\n".join(area) or "none",
+        "resume_summary": resumo_cv,
+    }
+
+
 def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False):
     """Liga para o candidato desta candidatura. Lança ErroVoz com um código."""
     row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (candidatura_id,)).fetchone()
@@ -720,8 +875,10 @@ def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False):
     conn.commit()  # libera o SQLite antes da chamada de rede
 
     telefone = para_e164(row["telefone"])
+    variaveis = variaveis_da_ligacao(conn, row, cfg, roteiro_do_cargo(conn, row["cargo_id"]))
+    abertura = primeira_frase(idioma, variaveis["company_name"], variaveis["company_city"])
     try:
-        conversation_id, call_sid = gw.iniciar(telefone, row["nome"], idioma, row["candidato_id"])
+        conversation_id, call_sid = gw.iniciar(telefone, variaveis, idioma, row["candidato_id"], abertura)
     except Exception as exc:  # noqa: BLE001
         conn.execute(
             "UPDATE voz_chamadas SET status='falhou', erro=?, terminada_em=datetime('now') WHERE id=?",
@@ -790,7 +947,7 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
     candidato_falou = any(t.get("role") == "user" for t in falas)
     fatos, invalidos = extrair_fatos(conversa)
     atendeu = conversa.get("status") == "done" and (candidato_falou or fatos.get("outcome") == "VOICEMAIL")
-    resultado = pontuar(fatos) if atendeu else None
+    resultado = pontuar(fatos, roteiro_do_cargo(conn, row["cargo_id"])) if atendeu else None
     novo_status, tentar_de_novo, nota = transicao(
         resultado["outcome"] if resultado else None, row["voz_tentativas"] or 0, cfg["max_tentativas"]
     )
@@ -1192,6 +1349,24 @@ def rotear_gestor(h, method, path, conn, gestor):
     if path == "/api/gestor/voz/integracao":
         return _resp(h, 403, {"erro": "A integração com o ElevenLabs é configurada no painel do administrador do sistema.",
                               "codigo": "forbidden"})
+
+    m = re.match(r"^/api/gestor/voz/cargo/(\d+)/roteiro$", path)
+    if m:
+        cargo_id = int(m.group(1))
+        if not srv.cargo_do_gestor(conn, gestor, cargo_id):
+            return _resp(h, 404, {"erro": "not_found", "codigo": "not_found"})
+        if method == "GET":
+            return _resp(h, 200, {"roteiro": roteiro_do_cargo(conn, cargo_id), "limites": LIMITES_ROTEIRO})
+        if method == "POST":
+            if not gestor["is_admin"]:
+                return _resp(h, 403, {"erro": "Apenas o administrador da empresa edita o roteiro.", "codigo": "forbidden"})
+            roteiro, erro = validar_roteiro(h._body())
+            if erro:
+                return _resp(h, 400, {"erro": erro, "codigo": erro})
+            conn.execute("UPDATE cargos SET roteiro_voz=? WHERE id=?",
+                         (json.dumps(roteiro, ensure_ascii=False), cargo_id))
+            conn.commit()
+            return _resp(h, 200, {"ok": True, "roteiro": roteiro})
 
     m = re.match(r"^/api/gestor/voz/cargo/(\d+)$", path)
     if m and method == "POST":
