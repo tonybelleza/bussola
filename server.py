@@ -19,6 +19,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+import voz
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -39,7 +41,10 @@ def db():
     return conn
 
 
-MODULOS_DISPONIVEIS = {"diagnostico": "Diagnóstico de Competências"}
+MODULOS_DISPONIVEIS = {
+    "diagnostico": "Diagnóstico de Competências",
+    "voz": "Triagem por Voz",
+}
 
 # arquivos de referência do módulo Diagnóstico (servidos só a gestores com o módulo)
 ARQUIVOS_DIAGNOSTICO = {
@@ -325,6 +330,7 @@ def init_db():
         "DELETE FROM gestores WHERE login='admin' AND nome='Administrador' AND senha=?",
         (_sha256_hex(SENHA_GESTOR_PADRAO),),
     )
+    voz.init_voz(c)
     if not c.execute("SELECT 1 FROM cargos LIMIT 1").fetchone():
         seed_cargos(c)
     conn.commit()
@@ -1323,9 +1329,10 @@ def entrevista_do_candidato(conn, candidato_id, cargo_id):
     }
 
 
-def calcular_match(cargo_row, testes, gaps, quiz=None, entrevista=None):
+def calcular_match(cargo_row, testes, gaps, quiz=None, entrevista=None, voz_resultado=None):
     """Cruza TUDO num índice único: competências, DISC, B.A.S.E.,
-    teste de conhecimento e entrevista estruturada."""
+    teste de conhecimento, entrevista estruturada e, quando o cargo usa,
+    a triagem por voz (com o peso definido no próprio cargo)."""
     if not cargo_row:
         return None
     componentes = {}
@@ -1343,10 +1350,18 @@ def calcular_match(cargo_row, testes, gaps, quiz=None, entrevista=None):
         componentes["conhecimento"] = quiz["pct"]
     if entrevista:
         componentes["entrevista"] = entrevista["pct"]
-    if not componentes:
+    if not componentes and not voz_resultado:
         return None
-    peso_total = sum(PESOS_MATCH[k] for k in componentes)
-    geral = round(sum(v * PESOS_MATCH[k] for k, v in componentes.items()) / peso_total)
+    if componentes:
+        peso_total = sum(PESOS_MATCH[k] for k in componentes)
+        geral = sum(v * PESOS_MATCH[k] for k, v in componentes.items()) / peso_total
+    if voz_resultado:
+        # a voz entra com o peso do cargo e os demais componentes dividem o resto
+        peso_voz = voz_resultado["peso"]
+        geral = (voz_resultado["pct"] if not componentes
+                 else (1 - peso_voz) * geral + peso_voz * voz_resultado["pct"])
+        componentes["voz"] = voz_resultado["pct"]
+    geral = round(geral)
     return {
         "geral": geral,
         "componentes": componentes,
@@ -1372,7 +1387,8 @@ def match_completo(conn, cand, cargo_id, testes=None, gaps=None):
         gaps = matriz_gaps(conn, cand["id"], cargo_id)
     quiz = quiz_do_candidato(conn, cand["id"], cargo_id)
     entrevista = entrevista_do_candidato(conn, cand["id"], cargo_id)
-    return calcular_match(cargo_row, testes, gaps, quiz, entrevista)
+    voz_resultado = voz.voz_para_match(conn, cand["id"], cargo_id)
+    return calcular_match(cargo_row, testes, gaps, quiz, entrevista, voz_resultado)
 
 
 def resumo_candidato(conn, cand):
@@ -1402,6 +1418,9 @@ def resumo_candidato(conn, cand):
             "etapa": r["etapa"],
             "etapa_nome": NOMES_ETAPAS.get(r["etapa"], r["etapa"]),
             "motivo_reprovacao": r["motivo_reprovacao"],
+            "voz_status": r["voz_status"] or "",
+            "voz_score": r["voz_score"],
+            "voz_tier": r["voz_tier"] or "",
         }
         for r in conn.execute(
             "SELECT ca.*, v.titulo, v.status FROM candidaturas ca"
@@ -1571,6 +1590,7 @@ def anonimizar_candidato(conn, cand, autor="sistema"):
         (secrets.token_urlsafe(24), cand["id"]),
     )
     conn.execute("DELETE FROM eventos WHERE candidato_id=?", (cand["id"],))
+    voz.anonimizar(conn, cand["id"])
     registrar_evento(conn, cand["id"], "sistema",
                      "Dados pessoais anonimizados (LGPD)", autor)
 
@@ -1882,6 +1902,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def route(self, method, path, conn):
         # ---- público ----
+        if voz.rotear_publico(self, method, path, conn):
+            return None
         if method == "GET" and path == "/api/cargos":
             cargos = [
                 cargo_com_competencias(conn, r["id"])
@@ -1931,6 +1953,7 @@ class Handler(BaseHTTPRequestHandler):
                         conn, existente["id"], "candidatura",
                         "Nova inscrição na vaga: %s" % vaga["titulo"],
                     )
+                    voz.nova_candidatura(conn, existente["id"], vaga["id"])
                 enviou = False
                 if config_get(conn, "smtp_host"):
                     variaveis = variaveis_candidato(conn, existente, self.headers.get("Host"))
@@ -1998,6 +2021,9 @@ class Handler(BaseHTTPRequestHandler):
             conn.execute(
                 "UPDATE candidatos SET tipo=? WHERE token=?", (tipo, token)
             )
+            idioma = (d.get("idioma") or "").strip().lower()[:2]
+            if idioma in voz.IDIOMAS_LIGACAO:
+                conn.execute("UPDATE candidatos SET idioma=? WHERE token=?", (idioma, token))
             novo = conn.execute(
                 "SELECT * FROM candidatos WHERE token=?", (token,)
             ).fetchone()
@@ -2016,6 +2042,7 @@ class Handler(BaseHTTPRequestHandler):
                     conn, novo_id, "candidatura",
                     "Inscrição na vaga: %s" % vaga["titulo"],
                 )
+                voz.nova_candidatura(conn, novo_id, vaga["id"])
             # e-mails automáticos (só quando o SMTP estiver configurado)
             if config_get(conn, "smtp_host"):
                 variaveis = variaveis_candidato(conn, novo, self.headers.get("Host"))
@@ -2666,6 +2693,10 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
+        # -- módulo Triagem por Voz --
+        if voz.rotear_gestor(self, method, path, conn, gestor):
+            return None
+
         # -- módulo Diagnóstico de Competências (liberado pelo dono) --
         if path.startswith("/api/gestor/diagnostico"):
             if "diagnostico" not in modulos_do_gestor(gestor):
@@ -3035,6 +3066,7 @@ class Handler(BaseHTTPRequestHandler):
                 conn, cand_row["id"], "candidatura",
                 "Adicionado à vaga: %s" % vaga["titulo"], gestor["nome"],
             )
+            voz.nova_candidatura(conn, cand_row["id"], vaga["id"])
             conn.commit()
             return self._json(200, {"ok": True})
 
@@ -3664,12 +3696,17 @@ def backup_diario():
         os.remove(os.path.join(BACKUP_DIR, velho))
 
 
+voz.ligar(sys.modules[__name__])
+
+
 def main():
     porta = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
     backup_diario()
     init_db()
     import threading
     threading.Thread(target=rotina_automatica, daemon=True).start()
+    if os.environ.get("VOZ_FILA_DESLIGADA") != "1":
+        threading.Thread(target=voz.rotina_voz, daemon=True).start()
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)
     print("Sistema de RH rodando em http://localhost:%d" % porta)
     servidor.serve_forever()
