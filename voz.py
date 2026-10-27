@@ -19,6 +19,7 @@ import threading
 import time
 import unicodedata
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
@@ -234,6 +235,7 @@ CAMPOS_FATOS = {
     "ok_to_text": ("boolean", None, "Agreed to receive texts?"),
     "interview_windows": ("string", None, "Days and times offered for a talk with the hiring manager."),
     "candidate_questions": ("string", None, "Questions the candidate asked."),
+    "callback_time": ("string", None, "When the candidate asked to be called back, in English."),
     "notes": ("string", None, "Short factual notes."),
     "extra_answers": ("string", None, "Answers to the role's extra screening questions."),
     "previous_work": ("string", None, "Previous jobs described and what was confirmed or contradicted about the resume."),
@@ -450,8 +452,13 @@ def dentro_da_janela(agora, cfg):
 def proxima_tentativa(agora, cfg):
     """Pelo menos intervalo_horas depois, empurrada para a próxima abertura da
     janela quando cair fora dela (outro turno ou outro dia)."""
+    return ajustar_para_janela(agora + timedelta(hours=cfg["intervalo_horas"]), cfg)
+
+
+def ajustar_para_janela(quando, cfg):
+    """O próprio horário, se cair dentro da janela de ligações; senão, a próxima abertura."""
     zona = _zona(cfg)
-    t = agora.astimezone(zona) + timedelta(hours=cfg["intervalo_horas"])
+    t = quando.astimezone(zona)
     ini = _minutos(cfg["inicio"])
     fim = _minutos(cfg["fim"])
     for _ in range(14):
@@ -494,6 +501,64 @@ def motivo_bloqueio(c, cfg, agora, manual=False):
     if not dentro_da_janela(agora, cfg):
         return "outside_window"
     return None
+
+
+DIAS_SEMANA = {
+    "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7,
+    "lunes": 1, "martes": 2, "miercoles": 3, "miércoles": 3, "jueves": 4, "viernes": 5, "sabado": 6, "sábado": 6, "domingo": 7,
+    "segunda": 1, "terca": 2, "terça": 2, "quarta": 3, "quinta": 4, "sexta": 5,
+}
+PERIODOS = {"morning": 10, "manha": 10, "manhã": 10, "noon": 12, "mediodia": 12, "mediodía": 12, "meio-dia": 12,
+            "afternoon": 14, "tarde": 14, "evening": 18, "noche": 18, "noite": 18}
+
+
+def horario_de_retorno(texto, agora, cfg):
+    """Converte o horário pedido pelo candidato ('tomorrow 3 pm', 'Thursday morning',
+    'hoy a las 5') num instante UTC dentro da janela de ligações, ou None."""
+    t = (texto or "").strip().lower()
+    if not t:
+        return None
+    # "por la mañana" é período; "mañana" sozinho é o dia seguinte
+    t = re.sub(r"\b(en|por|de) la mañana\b", " morning ", t)
+    zona = _zona(cfg)
+    local = agora.astimezone(zona)
+    dia = None
+    if re.search(r"\b(today|tonight|hoy|hoje)\b", t):
+        dia = 0
+    elif re.search(r"\b(tomorrow|amanh[ãa]|mañana)\b", t):
+        dia = 1
+    else:
+        for nome, n in DIAS_SEMANA.items():
+            if re.search(r"\b%s\b" % nome, t):
+                dia = (n - local.isoweekday()) % 7
+                break
+    hora = minuto = None
+    m = re.search(r"\b(\d{1,2})(?:[:h](\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?", t)
+    if m and 0 < int(m.group(1)) <= 23:
+        hora, minuto = int(m.group(1)), int(m.group(2) or 0)
+        sufixo = (m.group(3) or "").replace(".", "").replace(" ", "")
+        if sufixo == "pm" and hora < 12:
+            hora += 12
+        elif sufixo == "am" and hora == 12:
+            hora = 0
+        elif not sufixo and 1 <= hora <= 7:
+            hora += 12  # "às 3" em horário comercial é de tarde
+    else:
+        for nome, h in PERIODOS.items():
+            if re.search(r"\b%s\b" % re.escape(nome), t):
+                hora, minuto = h, 0
+                break
+    if hora is None and dia is None:
+        return None
+    if hora is None:
+        hora, minuto = _minutos(cfg["inicio"]) // 60 + 1, 0
+    alvo = local.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+    if dia is None:
+        dia = 0 if alvo > local else 1
+    alvo = alvo + timedelta(days=dia)
+    if alvo <= local:
+        alvo += timedelta(days=7)
+    return ajustar_para_janela(alvo, cfg)
 
 
 def transicao(outcome, tentativas, max_tentativas):
@@ -600,6 +665,16 @@ def validar_roteiro(d):
         "cidades_25": _lista_textos(d.get("cidades_25"), lim["cidades"], 60),
         "cidades_40": _lista_textos(d.get("cidades_40"), lim["cidades"], 60),
     }, None
+
+
+DIAS_VALIDADE_ROTEIRO = 60
+
+
+def _revisado_em(roteiro_json):
+    try:
+        return (json.loads(roteiro_json or "{}") or {}).get("revisado_em") or ""
+    except ValueError:
+        return ""
 
 
 def roteiro_do_cargo(conn, cargo_id):
@@ -746,6 +821,11 @@ class ElevenLabs:
             raise RuntimeError("ElevenLabs %s %s: HTTP %s %s" % (
                 metodo, caminho, exc.code, exc.read()[:300].decode("utf-8", "replace")))
         return bruto if binario else json.loads(bruto.decode("utf-8"))
+
+    def link_assinado(self):
+        """URL assinada para uma conversa pelo navegador (simulação no painel)."""
+        r = self._req("GET", "/conversation/get_signed_url?agent_id=" + urllib.parse.quote(self.agent_id))
+        return r.get("signed_url") or ""
 
     def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
         r = self._req("POST", "/twilio/outbound-call", {
@@ -903,13 +983,13 @@ def variaveis_da_ligacao(conn, row, cfg, roteiro, idioma="es"):
     }
 
 
-def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False):
+def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False, agora=None):
     """Liga para o candidato desta candidatura. Lança ErroVoz com um código."""
     row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (candidatura_id,)).fetchone()
     if not row:
         raise ErroVoz("not_found")
     cfg = config_empresa(conn, row["empresa_id"])
-    motivo = motivo_bloqueio(row, cfg, _agora_utc(), manual)
+    motivo = motivo_bloqueio(row, cfg, agora or _agora_utc(), manual)
     if motivo:
         raise ErroVoz(motivo)
     gw = gateway(conn)
@@ -1019,6 +1099,13 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
     novo_status, tentar_de_novo, nota = transicao(
         resultado["outcome"] if resultado else None, row["voz_tentativas"] or 0, cfg["max_tentativas"]
     )
+    retorno = None
+    if resultado and resultado["outcome"] in ("CALLBACK", "NOT_AVAILABLE") and fatos.get("callback_time"):
+        retorno = horario_de_retorno(fatos["callback_time"], _agora_utc(), cfg)
+        if retorno:
+            # liga de novo no horário pedido; não gasta tentativa
+            novo_status, tentar_de_novo, nota = "para_ligar", False, "callback_scheduled"
+            conn.execute("UPDATE candidaturas SET voz_tentativas=MAX(COALESCE(voz_tentativas,0)-1,0) WHERE id=?", (row["id"],))
     transcricao = [
         {"papel": t.get("role"), "texto": limpar_marcas_de_voz(t.get("message")),
          "t": int(round(t.get("time_in_call_secs") or 0))}
@@ -1048,7 +1135,7 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
         " voz_tier=?, voz_resultado=?, atualizado_em=datetime('now') WHERE id=?",
         (
             novo_status,
-            _sql(proxima_tentativa(_agora_utc(), cfg)) if tentar_de_novo else "",
+            _sql(retorno) if retorno else (_sql(proxima_tentativa(_agora_utc(), cfg)) if tentar_de_novo else ""),
             resultado["outcome"] if resultado else (row["voz_outcome"] or ""),
             resultado["score"] if pontuou else row["voz_score"],
             resultado["tier"] if pontuou else (row["voz_tier"] or ""),
@@ -1189,7 +1276,7 @@ def tick(conn, agora=None, empresa_id=None):
                 relatorio["locais"].setdefault(str(chave), motivo)
                 continue
             try:
-                iniciar_ligacao(conn, row["id"], "fila")
+                iniciar_ligacao(conn, row["id"], "fila", agora=agora)
                 em_curso[chave] = em_curso.get(chave, 0) + 1
                 relatorio["iniciadas"] += 1
             except ErroVoz as exc:
@@ -1389,9 +1476,10 @@ def rotear_gestor(h, method, path, conn, gestor):
                     if res.get("tier") == "GOOD":
                         stats["good"] += 1
         cargos = [
-            {"id": g["id"], "nome": g["nome"], "voz_ativa": bool(g["voz_ativa"]), "peso_voz": g["peso_voz"]}
+            {"id": g["id"], "nome": g["nome"], "voz_ativa": bool(g["voz_ativa"]), "peso_voz": g["peso_voz"],
+             "revisado_em": _revisado_em(g["roteiro_voz"])}
             for g in conn.execute(
-                "SELECT id, nome, voz_ativa, peso_voz FROM cargos WHERE empresa_id=? ORDER BY nome", (empresa_id,)
+                "SELECT id, nome, voz_ativa, peso_voz, roteiro_voz FROM cargos WHERE empresa_id=? ORDER BY nome", (empresa_id,)
             ).fetchall()
         ]
         recentes = []
@@ -1436,6 +1524,32 @@ def rotear_gestor(h, method, path, conn, gestor):
         return _resp(h, 403, {"erro": "A integração com o ElevenLabs é configurada no painel do administrador do sistema.",
                               "codigo": "forbidden"})
 
+    # simulação: conversa com a Francisca pelo navegador, com o roteiro salvo do cargo
+    m = re.match(r"^/api/gestor/voz/cargo/(\d+)/simular$", path)
+    if m and method == "POST":
+        cargo_id = int(m.group(1))
+        cargo = conn.execute("SELECT nome FROM cargos WHERE id=?", (cargo_id,)).fetchone()
+        if not cargo or not srv.cargo_do_gestor(conn, gestor, cargo_id):
+            return _resp(h, 404, {"erro": "not_found", "codigo": "not_found"})
+        if not gestor["is_admin"]:
+            return _resp(h, 403, {"erro": "forbidden", "codigo": "forbidden"})
+        gw = gateway(conn)
+        if gw is None or not hasattr(gw, "link_assinado"):
+            return _resp(h, 503, {"erro": "not_configured", "codigo": "not_configured"})
+        cfg = config_empresa(conn, empresa_id)
+        idioma = (h._body().get("idioma") or cfg["idioma_padrao"])
+        idioma = idioma if idioma in IDIOMAS_LIGACAO else "es"
+        linha = {"nome": "Test Candidate", "empresa_id": empresa_id, "candidato_id": 0, "cargo_nome": cargo["nome"]}
+        variaveis = variaveis_da_ligacao(conn, linha, cfg, roteiro_do_cargo(conn, cargo_id), idioma)
+        try:
+            url = gw.link_assinado()
+        except Exception as exc:  # noqa: BLE001
+            return _resp(h, 502, {"erro": "start_failed: %s" % str(exc)[:160], "codigo": "start_failed"})
+        return _resp(h, 200, {
+            "signed_url": url, "dynamic_variables": variaveis, "language": CODIGO_ELEVENLABS[idioma],
+            "first_message": primeira_frase(idioma, variaveis["company_name"], variaveis["company_city"]),
+        })
+
     m = re.match(r"^/api/gestor/voz/cargo/(\d+)/roteiro$", path)
     if m:
         cargo_id = int(m.group(1))
@@ -1449,6 +1563,8 @@ def rotear_gestor(h, method, path, conn, gestor):
             roteiro, erro = validar_roteiro(h._body())
             if erro:
                 return _resp(h, 400, {"erro": erro, "codigo": erro})
+            roteiro["revisado_em"] = _agora_utc().strftime("%Y-%m-%d")
+            roteiro["revisado_por"] = gestor["nome"]
             conn.execute("UPDATE cargos SET roteiro_voz=? WHERE id=?",
                          (json.dumps(roteiro, ensure_ascii=False), cargo_id))
             conn.commit()

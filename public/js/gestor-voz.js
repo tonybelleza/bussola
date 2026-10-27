@@ -27,7 +27,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos na triagem", todos: "Todos os status", vazio: "Nenhum candidato na triagem por voz.",
     col: { nome: "Candidato", vaga: "Vaga", status: "Status", tier: "Resultado", tentativas: "Tentativas", proxima: "Próxima" },
     ligar: "Ligar agora", naoLigar: "Não ligar", voltarFila: "Voltar à fila", zerar: "Zerar tentativas",
-    entrarFila: "Colocar na fila",     encerrados: "Encerrados", encerradosDesc: "Número errado, sem interesse, pediram para não ligar ou não qualificados. Saem da lista principal e do pipeline ativo da vaga.", semEncerrados: "Nenhum candidato encerrado.", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
+    entrarFila: "Colocar na fila",     revisadoHa: "fatos revisados há {n} dia(s)", revisarFatos: "revise os fatos (mais de 60 dias)", nuncaRevisado: "fatos ainda não revisados", ultimaRevisao: "Última revisão dos fatos: {d} por {p}.", avisoRevisao: "Salário, horário e regras mudam: revise os fatos da vaga pelo menos a cada 60 dias.", simular: "Simular ligação", simTitulo: "Simular ligação: {cargo}", simDesc: "Converse com a Francisca pelo microfone do computador, como se fosse um candidato. Usa o roteiro salvo (salve antes de simular) e não liga para ninguém. Conta como poucos minutos na ElevenLabs.", simIniciar: "Começar conversa", simEncerrar: "Encerrar", simConectando: "Conectando...", simFalando: "Francisca falando", simOuvindo: "Ouvindo você", simEncerrada: "Conversa encerrada.", simMic: "Permita o uso do microfone no navegador.", simVoce: "Você", simIdioma: "Idioma da simulação",     encerrados: "Encerrados", encerradosDesc: "Número errado, sem interesse, pediram para não ligar ou não qualificados. Saem da lista principal e do pipeline ativo da vaga.", semEncerrados: "Nenhum candidato encerrado.", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
     confirmaLigar: "Ligar agora para {nome}? A ligação sai na hora, mesmo fora da janela.",
     ligacaoIniciada: "Ligação iniciada. O resultado aparece em alguns minutos.",
     recentes: "Últimas ligações", semLigacoes: "Nenhuma ligação ainda.",
@@ -70,7 +70,7 @@ const VOZ_TEXTOS = {
     fila: "Candidates in screening", todos: "All statuses", vazio: "No candidates in voice screening.",
     col: { nome: "Candidate", vaga: "Job", status: "Status", tier: "Result", tentativas: "Attempts", proxima: "Next" },
     ligar: "Call now", naoLigar: "Do not call", voltarFila: "Back to queue", zerar: "Reset attempts",
-    entrarFila: "Add to queue",     encerrados: "Closed", encerradosDesc: "Wrong number, not interested, asked not to be called or not qualified. They leave the main list and the active job pipeline.", semEncerrados: "No closed candidates.", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
+    entrarFila: "Add to queue",     revisadoHa: "facts reviewed {n} day(s) ago", revisarFatos: "review the facts (over 60 days)", nuncaRevisado: "facts not reviewed yet", ultimaRevisao: "Facts last reviewed: {d} by {p}.", avisoRevisao: "Pay, schedule and rules change: review the job facts at least every 60 days.", simular: "Simulate call", simTitulo: "Simulate call: {cargo}", simDesc: "Talk to Francisca with your computer microphone, as if you were a candidate. It uses the saved script (save before simulating) and calls nobody. It uses a few ElevenLabs minutes.", simIniciar: "Start conversation", simEncerrar: "End", simConectando: "Connecting...", simFalando: "Francisca speaking", simOuvindo: "Listening to you", simEncerrada: "Conversation ended.", simMic: "Allow microphone access in the browser.", simVoce: "You", simIdioma: "Simulation language",     encerrados: "Closed", encerradosDesc: "Wrong number, not interested, asked not to be called or not qualified. They leave the main list and the active job pipeline.", semEncerrados: "No closed candidates.", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
     confirmaLigar: "Call {nome} now? The call goes out right away, even outside the window.",
     ligacaoIniciada: "Call started. The result shows up in a few minutes.",
     recentes: "Latest calls", semLigacoes: "No calls yet.",
@@ -113,7 +113,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos en evaluación", todos: "Todos los estados", vazio: "Ningún candidato en evaluación por voz.",
     col: { nome: "Candidato", vaga: "Vacante", status: "Estado", tier: "Resultado", tentativas: "Intentos", proxima: "Próximo" },
     ligar: "Llamar ahora", naoLigar: "No llamar", voltarFila: "Volver a la cola", zerar: "Reiniciar intentos",
-    entrarFila: "Agregar a la cola",     encerrados: "Cerrados", encerradosDesc: "Número equivocado, sin interés, pidieron no ser llamados o no calificados. Salen de la lista principal y del pipeline activo de la vacante.", semEncerrados: "Ningún candidato cerrado.", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
+    entrarFila: "Agregar a la cola",     revisadoHa: "datos revisados hace {n} día(s)", revisarFatos: "revisa los datos (más de 60 días)", nuncaRevisado: "datos aún no revisados", ultimaRevisao: "Última revisión de los datos: {d} por {p}.", avisoRevisao: "El pago, el horario y las reglas cambian: revisa los datos de la vacante al menos cada 60 días.", simular: "Simular llamada", simTitulo: "Simular llamada: {cargo}", simDesc: "Habla con Francisca con el micrófono de la computadora, como si fueras un candidato. Usa el guion guardado (guarda antes de simular) y no llama a nadie. Usa pocos minutos de ElevenLabs.", simIniciar: "Empezar conversación", simEncerrar: "Terminar", simConectando: "Conectando...", simFalando: "Francisca hablando", simOuvindo: "Escuchándote", simEncerrada: "Conversación terminada.", simMic: "Permite el uso del micrófono en el navegador.", simVoce: "Tú", simIdioma: "Idioma de la simulación",     encerrados: "Cerrados", encerradosDesc: "Número equivocado, sin interés, pidieron no ser llamados o no calificados. Salen de la lista principal y del pipeline activo de la vacante.", semEncerrados: "Ningún candidato cerrado.", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
     confirmaLigar: "¿Llamar ahora a {nome}? La llamada sale de inmediato, incluso fuera del horario.",
     ligacaoIniciada: "Llamada iniciada. El resultado aparece en unos minutos.",
     recentes: "Últimas llamadas", semLigacoes: "Ninguna llamada todavía.",
@@ -156,9 +156,9 @@ const VOZ_PONTOS = {
 };
 
 const VOZ_FATOS = {
-  pt: { license: "Carteira de motorista", own_car: "Carro próprio", city: "Cidade", weekdays_available: "Dias úteis disponíveis", days_available: "Dias (palavras do candidato)", saturdays_ok: "Aceita sábado", experience: "Experiência", works_alone: "Trabalha sozinho", has_smartphone: "Tem smartphone", start_date: "Início", pets: "Pets", standards: "Padrões", interview_windows: "Janelas para entrevista", text_phone: "Telefone para SMS", ok_to_text: "Aceita SMS", candidate_questions: "Perguntas do candidato", notes: "Notas da agente", extra_answers: "Respostas às perguntas extras", previous_work: "Trabalhos anteriores e currículo" },
-  en: { license: "Driver's license", own_car: "Own car", city: "Town", weekdays_available: "Weekdays available", days_available: "Days (candidate's words)", saturdays_ok: "Open to Saturdays", experience: "Experience", works_alone: "Works alone", has_smartphone: "Has a smartphone", start_date: "Start", pets: "Pets", standards: "Standards", interview_windows: "Interview windows", text_phone: "Phone for texts", ok_to_text: "OK to text", candidate_questions: "Candidate questions", notes: "Agent notes", extra_answers: "Answers to extra questions", previous_work: "Previous work and resume" },
-  es: { license: "Licencia de conducir", own_car: "Carro propio", city: "Ciudad", weekdays_available: "Días entre semana", days_available: "Días (palabras del candidato)", saturdays_ok: "Acepta sábados", experience: "Experiencia", works_alone: "Trabaja solo", has_smartphone: "Tiene smartphone", start_date: "Inicio", pets: "Mascotas", standards: "Normas", interview_windows: "Horarios para entrevista", text_phone: "Teléfono para mensajes", ok_to_text: "Acepta mensajes", candidate_questions: "Preguntas del candidato", notes: "Notas de la agente", extra_answers: "Respuestas a preguntas extra", previous_work: "Trabajos anteriores y currículum" },
+  pt: { license: "Carteira de motorista", own_car: "Carro próprio", city: "Cidade", weekdays_available: "Dias úteis disponíveis", days_available: "Dias (palavras do candidato)", saturdays_ok: "Aceita sábado", experience: "Experiência", works_alone: "Trabalha sozinho", has_smartphone: "Tem smartphone", start_date: "Início", pets: "Pets", standards: "Padrões", interview_windows: "Janelas para entrevista", text_phone: "Telefone para SMS", ok_to_text: "Aceita SMS", candidate_questions: "Perguntas do candidato", callback_time: "Pediu retorno em", notes: "Notas da agente", extra_answers: "Respostas às perguntas extras", previous_work: "Trabalhos anteriores e currículo" },
+  en: { license: "Driver's license", own_car: "Own car", city: "Town", weekdays_available: "Weekdays available", days_available: "Days (candidate's words)", saturdays_ok: "Open to Saturdays", experience: "Experience", works_alone: "Works alone", has_smartphone: "Has a smartphone", start_date: "Start", pets: "Pets", standards: "Standards", interview_windows: "Interview windows", text_phone: "Phone for texts", ok_to_text: "OK to text", candidate_questions: "Candidate questions", callback_time: "Callback requested for", notes: "Agent notes", extra_answers: "Answers to extra questions", previous_work: "Previous work and resume" },
+  es: { license: "Licencia de conducir", own_car: "Carro propio", city: "Ciudad", weekdays_available: "Días entre semana", days_available: "Días (palabras del candidato)", saturdays_ok: "Acepta sábados", experience: "Experiencia", works_alone: "Trabaja solo", has_smartphone: "Tiene smartphone", start_date: "Inicio", pets: "Mascotas", standards: "Normas", interview_windows: "Horarios para entrevista", text_phone: "Teléfono para mensajes", ok_to_text: "Acepta mensajes", candidate_questions: "Preguntas del candidato", callback_time: "Pidió que le llamen", notes: "Notas de la agente", extra_answers: "Respuestas a preguntas extra", previous_work: "Trabajos anteriores y currículum" },
 };
 
 const VOZ_VALORES = {
@@ -499,10 +499,23 @@ function vozHtmlCargos(r) {
     <h3 style="margin-top:0">${vt("cargos")}</h3>
     <p class="desc">${vt("cargosDesc")}</p>
     <div class="tabela-wrap"><table class="tabela"><tbody>${r.cargos.map((c) => `
-      <tr><td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-voz-cargo="${c.id}" ${c.voz_ativa ? "checked" : ""}> ${esc(c.nome)}</label></td>
+      <tr><td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-voz-cargo="${c.id}" ${c.voz_ativa ? "checked" : ""}> ${esc(c.nome)}</label>
+        ${c.voz_ativa ? vozSeloRevisao(c.revisado_em) : ""}</td>
         <td class="num">${vt("peso")} <input type="number" min="0" max="80" step="5" style="width:70px" data-voz-peso="${c.id}" value="${Math.round((c.peso_voz || 0) * 100)}">%</td>
         <td class="num"><button class="btn secondary small" data-voz-roteiro="${c.id}" data-nome="${esc(c.nome)}">${vt("roteiro")}</button></td></tr>`).join("")}
     </tbody></table></div></div>`;
+}
+
+function vozDiasDesde(data) {
+  if (!data) return null;
+  return Math.floor((Date.now() - new Date(data + "T12:00:00Z").getTime()) / 86400000);
+}
+
+function vozSeloRevisao(data) {
+  const dias = vozDiasDesde(data);
+  if (dias === null) return `<div><span class="badge warn">${vt("nuncaRevisado")}</span></div>`;
+  if (dias > 60) return `<div><span class="badge warn">${vt("revisarFatos")}</span></div>`;
+  return `<div class="hint">${vt("revisadoHa", { n: Math.max(0, dias) })}</div>`;
 }
 
 function vozLigarCargos(el, redesenhar) {
@@ -537,6 +550,8 @@ async function vozEditarRoteiro(cargoId, nomeCargo) {
     <button class="btn ghost small fechar" id="vr-fechar">${vt("fechar")}</button>
     <h2 style="margin-top:0">${esc(vt("roteiroTitulo", { cargo: nomeCargo }))}</h2>
     <p class="desc">${vt("roteiroDesc")}</p>
+    ${rot.revisado_em ? `<p class="hint">${esc(vt("ultimaRevisao", { d: rot.revisado_em, p: rot.revisado_por || "" }))}</p>` : ""}
+    ${vozDiasDesde(rot.revisado_em) === null || vozDiasDesde(rot.revisado_em) > 60 ? `<p class="form-erro" style="color:var(--warn, #b7791f)">${vt("avisoRevisao")}</p>` : ""}
     <label class="field">${vt("fatosVaga")}<textarea id="vr-fatos" rows="7" maxlength="${r.limites.fatos}">${esc(rot.fatos || "")}</textarea></label>
     <h3>${vt("requisitos")}</h3>
     <div class="linha-acoes">
@@ -556,7 +571,9 @@ async function vozEditarRoteiro(cargoId, nomeCargo) {
     </div>
     <p class="hint">${vt("areaDica")}</p>
     <p class="form-erro" id="vr-erro"></p>
-    <button class="btn" id="vr-salvar">${vt("salvar")}</button> <span class="desc" id="vr-ok" style="margin:0"></span>
+    <button class="btn" id="vr-salvar">${vt("salvar")}</button>
+    <button class="btn secondary" id="vr-simular">${vt("simular")}</button>
+    <span class="desc" id="vr-ok" style="margin:0"></span>
   </div>`;
   document.body.appendChild(fundo);
   const q = (sel) => fundo.querySelector(sel);
@@ -566,6 +583,7 @@ async function vozEditarRoteiro(cargoId, nomeCargo) {
   };
   ligarRemover();
   q("#vr-fechar").addEventListener("click", () => fundo.remove());
+  q("#vr-simular").addEventListener("click", () => vozSimular(cargoId, nomeCargo));
   q("#vr-add-faq").addEventListener("click", () => {
     q("#vr-faqs").insertAdjacentHTML("beforeend", linhaFaq({}));
     ligarRemover();
@@ -696,4 +714,75 @@ function vozHtmlChamadaFicha(c) {
         <strong>${l.papel === "agent" ? vt("francisca") : vt("candidato")}:</strong> ${esc(l.texto)}</p>`).join("")}
     </div>
   </div>`;
+}
+
+
+// ------------------------------------------------ simulação pelo navegador
+let vozSessaoSimulacao = null;
+
+async function vozSimular(cargoId, nomeCargo) {
+  const fundo = document.createElement("div");
+  fundo.className = "modal-fundo";
+  fundo.innerHTML = `<div class="modal" style="max-width:620px">
+    <button class="btn ghost small fechar" id="vs-fechar">${vt("fechar")}</button>
+    <h2 style="margin-top:0">${esc(vt("simTitulo", { cargo: nomeCargo }))}</h2>
+    <p class="desc">${vt("simDesc")}</p>
+    <label class="field" style="max-width:240px">${vt("simIdioma")}
+      <select id="vs-idioma">${["es", "en", "pt"].map((l) => `<option value="${l}" ${l === "es" ? "selected" : ""}>${esc(VOZ_TEXTOS[vozIdioma].idiomaLigacao[l] || l)}</option>`).join("")}</select></label>
+    <div class="linha-acoes">
+      <button class="btn" id="vs-iniciar">${vt("simIniciar")}</button>
+      <button class="btn secondary" id="vs-encerrar" disabled>${vt("simEncerrar")}</button>
+      <span class="badge" id="vs-estado"></span>
+    </div>
+    <p class="form-erro" id="vs-erro"></p>
+    <div id="vs-conversa" style="max-height:320px;overflow:auto;margin-top:10px"></div>
+  </div>`;
+  document.body.appendChild(fundo);
+  const q = (s) => fundo.querySelector(s);
+  const estado = (t) => { q("#vs-estado").textContent = t; };
+  const fala = (quem, texto) => {
+    const d = document.createElement("div");
+    d.className = "sub-card";
+    d.style.margin = "6px 0";
+    d.innerHTML = `<strong>${esc(quem)}:</strong> ${esc(texto)}`;
+    q("#vs-conversa").appendChild(d);
+    q("#vs-conversa").scrollTop = 1e6;
+  };
+  const encerrar = async () => {
+    if (vozSessaoSimulacao) { try { await vozSessaoSimulacao.endSession(); } catch (e) { /* já encerrada */ } }
+    vozSessaoSimulacao = null;
+  };
+  q("#vs-fechar").addEventListener("click", async () => { await encerrar(); fundo.remove(); });
+  q("#vs-encerrar").addEventListener("click", encerrar);
+  q("#vs-iniciar").addEventListener("click", async () => {
+    q("#vs-erro").textContent = "";
+    q("#vs-iniciar").disabled = true;
+    estado(vt("simConectando"));
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      q("#vs-erro").textContent = vt("simMic");
+      q("#vs-iniciar").disabled = false;
+      estado("");
+      return;
+    }
+    try {
+      const r = await vozApi("/api/gestor/voz/cargo/" + cargoId + "/simular", { method: "POST", body: { idioma: q("#vs-idioma").value } });
+      const sdk = await import("https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm");
+      vozSessaoSimulacao = await sdk.Conversation.startSession({
+        signedUrl: r.signed_url,
+        dynamicVariables: r.dynamic_variables,
+        overrides: { agent: { language: r.language, firstMessage: r.first_message } },
+        onConnect: () => { q("#vs-encerrar").disabled = false; estado(vt("simOuvindo")); },
+        onDisconnect: () => { estado(vt("simEncerrada")); q("#vs-iniciar").disabled = false; q("#vs-encerrar").disabled = true; vozSessaoSimulacao = null; },
+        onModeChange: (m) => estado(m && m.mode === "speaking" ? vt("simFalando") : vt("simOuvindo")),
+        onMessage: (m) => { if (m && m.message) fala(m.source === "user" ? vt("simVoce") : "Francisca", m.message); },
+        onError: (e) => { q("#vs-erro").textContent = String((e && e.message) || e); },
+      });
+    } catch (e) {
+      q("#vs-erro").textContent = e.message || String(e);
+      q("#vs-iniciar").disabled = false;
+      estado("");
+    }
+  });
 }
