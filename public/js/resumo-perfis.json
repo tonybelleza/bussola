@@ -1,0 +1,128 @@
+{
+  "pt": {
+    "DISC": {
+      "D": {
+        "nome": "Dominância",
+        "resumo": "Perfil orientado a resultados, desafios e decisões rápidas. Pessoas com alta Dominância são diretas, competitivas e assumem o controle das situações."
+      },
+      "I": {
+        "nome": "Influência",
+        "resumo": "Perfil comunicativo, entusiasmado e persuasivo. Pessoas com alta Influência motivam equipes, criam conexões e vendem ideias com facilidade."
+      },
+      "S": {
+        "nome": "Estabilidade",
+        "resumo": "Perfil paciente, leal e colaborativo. Pessoas com alta Estabilidade sustentam o time, mantêm a harmonia e entregam com consistência."
+      },
+      "C": {
+        "nome": "Conformidade",
+        "resumo": "Perfil analítico, preciso e orientado à qualidade. Pessoas com alta Conformidade seguem padrões, analisam dados e garantem excelência técnica."
+      }
+    },
+    "BASE": {
+      "B": {
+        "nome": "Bússola",
+        "titulo": "O Guardião dos Sistemas",
+        "tagline": "Você é a âncora que mantém tudo no lugar. Responsável, detalhista e orientado a processos, sua força está em criar sistemas confiáveis, cumprir compromissos e garantir que cada engrenagem funcione com precisão. Quando você dá sua palavra, ela é lei."
+      },
+      "A": {
+        "nome": "Atuante",
+        "titulo": "O Realizador Implacável",
+        "tagline": "Você não tem medo de arriscar e está sempre em busca da próxima grande oportunidade. Sua energia, confiança e capacidade de ação fazem de você um líder natural que cria momentum onde quer que vá."
+      },
+      "S": {
+        "nome": "Sensível",
+        "titulo": "O Construtor de Pontes",
+        "tagline": "Você coloca as pessoas em primeiro lugar. Sua presença ilumina qualquer ambiente, cria comunidade onde não existia e desperta o potencial que os outros nem sabiam que tinham. Conexões genuínas são sua superpotência."
+      },
+      "E": {
+        "nome": "Estudioso",
+        "titulo": "O Arquiteto de Ideias",
+        "tagline": "Sua mente é sua maior ferramenta. Você valoriza a razão acima de tudo, toma decisões baseadas em fatos e ciência, nunca em emoção. Enxerga padrões onde os outros veem apenas informação e transforma complexidade em estratégia."
+      }
+    }
+  },
+  "en": {
+    "DISC": {
+      "D": {
+        "nome": "Dominance",
+        "resumo": "A profile driven by results, challenges and quick decisions. People high in Dominance are direct, competitive and take charge of situations."
+      },
+      "I": {
+        "nome": "Influence",
+        "resumo": "A communicative, enthusiastic and persuasive profile. People high in Influence motivate teams, build connections and sell ideas with ease."
+      },
+      "S": {
+        "nome": "Steadiness",
+        "resumo": "A patient, loyal and collaborative profile. People high in Steadiness hold the team together, keep the peace and deliver consistently."
+      },
+      "C": {
+        "nome": "Conscientiousness",
+        "resumo": "An analytical, precise and quality-focused profile. People high in Conscientiousness follow standards, analyze data and ensure technical excellence."
+      }
+    },
+    "BASE": {
+      "B": {
+        "nome": "Bearing",
+        "titulo": "The Guardian of Systems",
+        "tagline": "You are the anchor that keeps everything in place. Responsible, detail-oriented and process-driven, your strength lies in building reliable systems, keeping commitments and making sure every gear runs with precision. When you give your word, it is law."
+      },
+      "A": {
+        "nome": "Achiever",
+        "titulo": "The Relentless Doer",
+        "tagline": "You are not afraid to take risks and you are always looking for the next big opportunity. Your energy, confidence and drive to act make you a natural leader who creates momentum wherever you go."
+      },
+      "S": {
+        "nome": "Sensitive",
+        "titulo": "The Bridge Builder",
+        "tagline": "You put people first. Your presence lights up any room, builds community where there was none and awakens potential others did not know they had. Genuine connection is your superpower."
+      },
+      "E": {
+        "nome": "Explorer",
+        "titulo": "The Architect of Ideas",
+        "tagline": "Your mind is your greatest tool. You value reason above all, and make decisions based on facts and science, never on emotion. You see patterns where others see only information, and you turn complexity into strategy."
+      }
+    }
+  },
+  "es": {
+    "DISC": {
+      "D": {
+        "nome": "Dominancia",
+        "resumo": "Un perfil enfocado en resultados, retos y decisiones rápidas. Las personas con alta Dominancia son directas, competitivas y toman el control de las situaciones."
+      },
+      "I": {
+        "nome": "Influencia",
+        "resumo": "Un perfil comunicativo, entusiasta y persuasivo. Las personas con alta Influencia motivan a los equipos, crean conexiones y venden ideas con facilidad."
+      },
+      "S": {
+        "nome": "Estabilidad",
+        "resumo": "Un perfil paciente, leal y colaborador. Las personas con alta Estabilidad sostienen al equipo, mantienen la armonía y cumplen con constancia."
+      },
+      "C": {
+        "nome": "Cumplimiento",
+        "resumo": "Un perfil analítico, preciso y enfocado en la calidad. Las personas con alto Cumplimiento siguen normas, analizan datos y aseguran un trabajo excelente."
+      }
+    },
+    "BASE": {
+      "B": {
+        "nome": "Brújula",
+        "titulo": "El Guardián de los Sistemas",
+        "tagline": "Eres el ancla que mantiene todo en su lugar. Responsable, detallista y ordenado, tu fuerza está en crear sistemas confiables, cumplir tus compromisos y asegurar que cada pieza funcione con precisión. Cuando das tu palabra, la cumples."
+      },
+      "A": {
+        "nome": "Activo",
+        "titulo": "El Realizador Imparable",
+        "tagline": "No te da miedo arriesgarte y siempre estás buscando la próxima gran oportunidad. Tu energía, tu confianza y tus ganas de actuar te hacen un líder natural que pone todo en movimiento a donde vayas."
+      },
+      "S": {
+        "nome": "Sensible",
+        "titulo": "El Constructor de Puentes",
+        "tagline": "Pones a las personas en primer lugar. Tu presencia ilumina cualquier lugar, crea comunidad donde no la había y despierta en los demás un potencial que ni sabían que tenían. Las conexiones sinceras son tu superpoder."
+      },
+      "E": {
+        "nome": "Estudioso",
+        "titulo": "El Arquitecto de Ideas",
+        "tagline": "Tu mente es tu mejor herramienta. Valoras la razón por encima de todo y tomas decisiones con base en hechos y ciencia, nunca en emociones. Ves patrones donde otros solo ven información y conviertes lo complicado en estrategia."
+      }
+    }
+  }
+}

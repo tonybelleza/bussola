@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bússola · Área do Candidato</title>
+  <title data-i18n="titulo_pagina">Bússola · Área do Candidato</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/tema.js"></script>
 </head>
@@ -15,23 +15,26 @@
         <div class="sep"></div>
         <div>
           <h1>Bússola</h1>
-          <div class="sub" id="topo-sub">Área do candidato</div>
+          <div class="sub" id="topo-sub" data-i18n="topo_sub">Área do candidato</div>
         </div>
       </div>
       <div class="actions">
-        <a class="btn on-dark small" href="/">Início</a>
-        <button class="btn on-dark small oculto" id="btn-sair">Sair</button>
+        <a class="btn on-dark small" href="/" data-i18n="inicio">Início</a>
+        <button class="btn on-dark small oculto" id="btn-sair" data-i18n="sair">Sair</button>
       </div>
     </div>
   </div>
 
   <div class="container narrow" id="app">
-    <div class="card texto-centro"><p>Carregando…</p></div>
+    <div class="card texto-centro"><p data-i18n="carregando">Carregando…</p></div>
   </div>
 
   <script src="js/icons.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/dados-en.js"></script>
+  <script src="js/dados-es.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/i18n-candidato.js"></script>
   <script src="js/candidato.js"></script>
 </body>
 </html>

@@ -1,11 +1,14 @@
 /* =====================================================================
-   Dados dos testes: DISC (24 blocos) e B.A.S.E. (6 rodadas de cartas)
+   Dados dos testes: DISC (24 blocos) e B.A.S.E. (8 rodadas de cartas)
+   Os textos aqui estão em português. A área do candidato e a página de
+   vagas também carregam dados-en.js e dados-es.js e trocam o idioma com
+   aplicarIdiomaDados(lang) (as constantes são "var" para viver em window).
    ===================================================================== */
 
 // ---------------------------------------------------------- DISC
 // Em cada bloco o candidato escolhe a palavra que MAIS se parece com ele
 // e a que MENOS se parece. Cada palavra pontua em uma dimensão D, I, S ou C.
-const DISC_BLOCOS = [
+var DISC_BLOCOS = [
   [{ t: "Decidido", d: "D" }, { t: "Comunicativo", d: "I" }, { t: "Paciente", d: "S" }, { t: "Detalhista", d: "C" }],
   [{ t: "Competitivo", d: "D" }, { t: "Entusiasmado", d: "I" }, { t: "Leal", d: "S" }, { t: "Analítico", d: "C" }],
   [{ t: "Direto", d: "D" }, { t: "Sociável", d: "I" }, { t: "Calmo", d: "S" }, { t: "Preciso", d: "C" }],
@@ -32,7 +35,7 @@ const DISC_BLOCOS = [
   [{ t: "Toma a frente", d: "D" }, { t: "Motiva o grupo", d: "I" }, { t: "Apoia o grupo", d: "S" }, { t: "Garante a qualidade", d: "C" }],
 ];
 
-const DISC_PERFIS = {
+var DISC_PERFIS = {
   D: {
     nome: "Dominância",
     cor: "var(--d-color)",
@@ -71,8 +74,8 @@ const DISC_PERFIS = {
 // Teste B.A.S.E. original de tonybelleza.com/base: 8 rodadas em que o
 // candidato ordena 4 cartas da que MAIS combina com ele para a que MENOS
 // combina. Pontuação por posição: 1º = 4, 2º = 3, 3º = 2, 4º = 1.
-const BASE_INSTRUCAO = "Clique nas 4 cartas em ordem, da que mais combina com você até a que menos combina";
-const BASE_RODADAS = [
+var BASE_INSTRUCAO = "Clique nas 4 cartas em ordem, da que mais combina com você até a que menos combina";
+var BASE_RODADAS = [
   {
     pergunta: "O que mais te impulsiona no trabalho e na vida?",
     cartas: [
@@ -148,14 +151,14 @@ const BASE_RODADAS = [
 ];
 
 // Rótulos das 4 posições do código completo (relatório original)
-const BASE_POSICOES = [
+var BASE_POSICOES = [
   "1ª posição · Seu motor principal",
   "2ª posição · Sua influência secundária",
   "3ª posição · Seu modo sob estresse",
   "4ª posição · Seus valores menos prioritários",
 ];
 
-const BASE_PERFIS = {
+var BASE_PERFIS = {
   B: {
     nome: "Bússola",
     titulo: "O Guardião dos Sistemas",
@@ -247,10 +250,13 @@ const BASE_PERFIS = {
 };
 
 // ---------------------------------------------------------- países das vagas
-const PAISES = ["Angola", "Brasil", "Espanha", "Estados Unidos", "França", "Portugal"];
+// os valores ficam sempre em português (são gravados nas vagas);
+// PAISES_NOMES só traduz o nome exibido (vazio = mostra o próprio valor)
+var PAISES = ["Angola", "Brasil", "Espanha", "Estados Unidos", "França", "Portugal"];
+var PAISES_NOMES = {};
 
 // ---------------------------------------------------------- escala da autoavaliação
-const ESCALA_NIVEIS = [
+var ESCALA_NIVEIS = [
   { v: 0, rot: "0 · Não possuo" },
   { v: 1, rot: "1 · Básico" },
   { v: 2, rot: "2 · Em desenvolvimento" },
@@ -259,9 +265,45 @@ const ESCALA_NIVEIS = [
   { v: 5, rot: "5 · Especialista" },
 ];
 
-const TIPOS_COMPETENCIA = {
+var TIPOS_COMPETENCIA = {
   tecnica: "Técnica",
   relacional: "Relacional",
   formacao: "Formação / Certificação",
   experiencia: "Experiência",
 };
+
+// ---------------------------------------------------------- traduções
+// dados-en.js e dados-es.js registram aqui um objeto com os mesmos nomes
+// das constantes acima, só com os textos (cores, ícones, letras e
+// dimensões vêm do português e são mantidos na mesclagem).
+var DADOS_I18N = { pt: null };
+var NOMES_DADOS_I18N = [
+  "DISC_BLOCOS", "DISC_PERFIS", "BASE_INSTRUCAO", "BASE_RODADAS", "BASE_POSICOES",
+  "BASE_PERFIS", "PAISES_NOMES", "ESCALA_NIVEIS", "TIPOS_COMPETENCIA",
+];
+
+function mesclarDadosI18n(base, trad) {
+  if (trad === undefined || trad === null) return base;
+  if (Array.isArray(base) && Array.isArray(trad)) {
+    return base.map((item, i) => mesclarDadosI18n(item, trad[i]));
+  }
+  if (base && typeof base === "object" && typeof trad === "object" && !Array.isArray(trad)) {
+    const saida = {};
+    Object.keys(base).forEach((k) => { saida[k] = mesclarDadosI18n(base[k], trad[k]); });
+    Object.keys(trad).forEach((k) => { if (!(k in saida)) saida[k] = trad[k]; });
+    return saida;
+  }
+  return trad;
+}
+
+function aplicarIdiomaDados(lang) {
+  // guarda o português original na primeira troca para poder voltar
+  if (!DADOS_I18N.pt) {
+    DADOS_I18N.pt = {};
+    NOMES_DADOS_I18N.forEach((n) => { DADOS_I18N.pt[n] = window[n]; });
+  }
+  const trad = lang !== "pt" ? DADOS_I18N[lang] : null;
+  NOMES_DADOS_I18N.forEach((n) => {
+    window[n] = trad ? mesclarDadosI18n(DADOS_I18N.pt[n], trad[n]) : DADOS_I18N.pt[n];
+  });
+}

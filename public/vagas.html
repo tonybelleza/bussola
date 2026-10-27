@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bússola · Vagas Abertas</title>
+  <title data-i18n="v_titulo_pagina">Bússola · Vagas Abertas</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/tema.js"></script>
 </head>
@@ -19,43 +19,74 @@
         </div>
       </div>
       <div class="actions">
-        <a class="btn on-dark small" href="/">Início</a>
+        <a class="btn on-dark small" href="/" data-i18n="inicio">Início</a>
       </div>
     </div>
   </div>
 
   <div class="container narrow">
     <div class="hero" style="padding-bottom:24px">
-      <h2>Vagas abertas</h2>
-      <p>Candidate-se a uma vaga e faça a avaliação completa: testes comportamentais,
+      <h2 id="hero-titulo">Vagas abertas</h2>
+      <p data-i18n="v_hero_p">Candidate-se a uma vaga e faça a avaliação completa: testes comportamentais,
         competências e teste de conhecimento.</p>
     </div>
     <div class="card" id="filtro-paises-card" style="display:none;padding:16px 24px">
       <div class="linha-acoes" style="margin:0;align-items:center">
-        <span class="desc" style="margin:0">País:</span>
+        <span class="desc" style="margin:0" data-i18n="v_pais">País:</span>
         <select id="filtro-pais" style="max-width:260px;margin:0"></select>
       </div>
     </div>
     <div id="lista-vagas">
-      <div class="card texto-centro"><p>Carregando vagas…</p></div>
+      <div class="card texto-centro"><p data-i18n="v_carregando">Carregando vagas…</p></div>
     </div>
   </div>
 
   <script src="js/data.js"></script>
+  <script src="js/dados-en.js"></script>
+  <script src="js/dados-es.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/i18n-candidato.js"></script>
   <script>
     const gestorPagina = new URLSearchParams(location.search).get("g") || "";
     let empresaPagina = new URLSearchParams(location.search).get("e") || "";
     let todasVagas = [];
+    let dadosPagina = null; // resposta de /api/vagas (empresa e página do gestor)
+    let mensagemLista = ""; // chave de aviso no lugar da lista (erro, sem link)
+
+    // cabeçalho: nome da empresa ou do gestor e título com o local
+    function desenharCabecalho() {
+      const sub = document.getElementById("sub-vagas");
+      const titulo = document.getElementById("hero-titulo");
+      const pagina = dadosPagina && dadosPagina.pagina;
+      if (pagina) {
+        sub.textContent = t("v_de", { nome: pagina.gestor_nome }) + (pagina.local ? " · " + pagina.local : "");
+        titulo.textContent = pagina.local ? t("v_hero_h_local", { local: pagina.local }) : t("v_hero_h");
+      } else {
+        sub.textContent = dadosPagina && dadosPagina.empresa ? dadosPagina.empresa.nome : t("v_sub");
+        titulo.textContent = t("v_hero_h");
+      }
+    }
+
+    function desenharFiltro() {
+      const filtro = document.getElementById("filtro-pais");
+      const atual = filtro.value;
+      filtro.innerHTML = `<option value="">${esc(t("v_todos_paises"))}</option>` +
+        PAISES.map((p) => `<option value="${esc(p)}">${esc(nomePais(p))}</option>`).join("");
+      filtro.value = atual;
+    }
 
     function desenharVagas() {
       const el = document.getElementById("lista-vagas");
+      if (mensagemLista) {
+        el.innerHTML = '<div class="card texto-centro"><p class="desc">' + esc(t(mensagemLista)) + "</p></div>";
+        return;
+      }
       const pais = document.getElementById("filtro-pais").value;
       const vagas = pais ? todasVagas.filter((v) => v.pais === pais) : todasVagas;
       if (!vagas.length) {
         el.innerHTML = '<div class="card texto-centro"><p class="desc">' +
-          (pais ? "Nenhuma vaga aberta neste país no momento." : "Nenhuma vaga aberta no momento. Volte em breve.") +
+          esc(pais ? t("v_nenhuma_pais") : t("v_nenhuma")) +
           "</p></div>";
         return;
       }
@@ -63,44 +94,47 @@
         <div class="vaga-card">
           <div class="info-vaga">
             <h2>${esc(v.titulo)}</h2>
-            <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(v.pais) : ""}</div>
+            <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(nomePais(v.pais)) : ""}</div>
             ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
           </div>
-          <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}">Candidatar-se</a>
+          <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}">${esc(t("v_candidatar"))}</a>
         </div>`).join("");
     }
+
+    function redesenharPagina() {
+      desenharCabecalho();
+      desenharFiltro();
+      if (dadosPagina || mensagemLista) desenharVagas();
+    }
+
+    montarSeletorIdioma(redesenharPagina);
+    desenharCabecalho();
+    document.getElementById("filtro-pais").addEventListener("change", desenharVagas);
 
     fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina)
                                : "?e=" + encodeURIComponent(empresaPagina)))
       .then((r) => r.json()).then((d) => {
       const el = document.getElementById("lista-vagas");
       if (d.erro) {
+        // mensagem do servidor (em português), exibida como veio
         el.innerHTML = '<div class="card texto-centro"><p class="desc">' + esc(d.erro) + "</p></div>";
         return;
       }
-      if (d.empresa) {
-        empresaPagina = d.empresa.slug;
-        document.getElementById("sub-vagas").textContent = d.empresa.nome;
-      } else {
-        el.innerHTML = '<div class="card texto-centro"><p class="desc">Use o link de vagas enviado pela empresa.</p></div>';
+      if (!d.empresa) {
+        mensagemLista = "v_use_link";
+        desenharVagas();
         return;
       }
-      if (d.pagina) {
-        document.getElementById("sub-vagas").textContent =
-          "Vagas de " + d.pagina.gestor_nome + (d.pagina.local ? " · " + d.pagina.local : "");
-        document.querySelector(".hero h2").textContent =
-          d.pagina.local ? "Vagas abertas · " + d.pagina.local : "Vagas abertas";
-      }
+      empresaPagina = d.empresa.slug;
+      dadosPagina = d;
       todasVagas = d.vagas;
-      const filtro = document.getElementById("filtro-pais");
-      filtro.innerHTML = '<option value="">Todos os países</option>' +
-        PAISES.map((p) => `<option value="${p}">${p}</option>`).join("");
-      filtro.addEventListener("change", desenharVagas);
+      desenharCabecalho();
+      desenharFiltro();
       if (todasVagas.length) document.getElementById("filtro-paises-card").style.display = "";
       desenharVagas();
     }).catch(() => {
-      document.getElementById("lista-vagas").innerHTML =
-        '<div class="card"><p class="form-erro">Erro ao carregar as vagas.</p></div>';
+      mensagemLista = "v_erro";
+      desenharVagas();
     });
   </script>
 </body>
