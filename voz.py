@@ -210,7 +210,6 @@ CAMPOS_FATOS = {
     "license": ("string", _SIM_NAO_INCERTO, "Does the candidate have a valid driver's license?"),
     "own_car": ("string", _SIM_NAO_INCERTO, "Does the candidate have their own car?"),
     "city": ("string", None, "Town or city where the candidate lives."),
-    "distance_band": ("string", ("25mi", "40mi", "outside", "unknown"), "Rough distance from Hartford, CT."),
     "weekdays_available": ("integer", None, "How many weekdays (0 to 5) the candidate can work."),
     "days_available": ("string", None, "Weekdays available, in the candidate's words."),
     "saturdays_ok": ("boolean", None, "Open to an occasional Saturday?"),
@@ -228,8 +227,7 @@ CAMPOS_FATOS = {
     "candidate_questions": ("string", None, "Questions the candidate asked."),
     "notes": ("string", None, "Short factual notes."),
     "extra_answers": ("string", None, "Answers to the role's extra screening questions."),
-    "previous_jobs": ("string", None, "Previous jobs the candidate described."),
-    "resume_check": ("string", None, "What was confirmed or contradicted about the resume."),
+    "previous_work": ("string", None, "Previous jobs described and what was confirmed or contradicted about the resume."),
 }
 
 
