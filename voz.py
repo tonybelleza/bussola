@@ -1362,6 +1362,10 @@ def rotear_gestor(h, method, path, conn, gestor):
             "config": cfg,
             "empresa": gestor["empresa_nome"] if "empresa_nome" in gestor.keys() else "",
             "fila": [_candidatura_publica(r) for r in linhas],
+            "fora": [_candidatura_publica(r) for r in conn.execute(
+                _SQL_CANDIDATURA + " WHERE ca.voz_status='' AND g.voz_ativa=1 AND c.anonimizado=0"
+                " AND c.empresa_id=? ORDER BY ca.criado_em DESC LIMIT 500", (empresa_id,),
+            ).fetchall() if visivel(r)],
             "recentes": recentes,
             "hoje": stats,
             "ativas": sum(1 for c in chamadas if c["status"] in ("iniciando", "em_andamento", "processando")),
@@ -1427,6 +1431,21 @@ def rotear_gestor(h, method, path, conn, gestor):
         conn.commit()
         return _resp(h, 200, {"ok": True})
 
+    # coloca na fila várias candidaturas de uma vez (ex.: candidatos importados)
+    if method == "POST" and path == "/api/gestor/voz/fila":
+        ids = [int(i) for i in (h._body().get("ids") or []) if str(i).isdigit()][:500]
+        colocados = 0
+        for cid in ids:
+            row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (cid,)).fetchone()
+            if not row or not visivel(row) or row["voz_status"] != "" or row["anonimizado"]:
+                continue
+            conn.execute("UPDATE candidaturas SET voz_status='para_ligar', voz_proxima='' WHERE id=? AND voz_status=''",
+                         (cid,))
+            srv.registrar_evento(conn, row["candidato_id"], "voz", "Entrou na fila da triagem por voz", gestor["nome"])
+            colocados += 1
+        conn.commit()
+        return _resp(h, 200, {"ok": True, "colocados": colocados})
+
     m = re.match(r"^/api/gestor/voz/candidatura/(\d+)(/ligar)?$", path)
     if m and method == "POST":
         row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (int(m.group(1)),)).fetchone()
@@ -1463,7 +1482,7 @@ def rotear_gestor(h, method, path, conn, gestor):
             return _resp(h, 404, {"erro": "not_found", "codigo": "not_found"})
         candidaturas = [
             _candidatura_publica(r) for r in conn.execute(
-                _SQL_CANDIDATURA + " WHERE ca.candidato_id=? AND ca.voz_status != ''"
+                _SQL_CANDIDATURA + " WHERE ca.candidato_id=? AND (ca.voz_status != '' OR g.voz_ativa=1)"
                 " ORDER BY ca.criado_em DESC", (cand["id"],),
             ).fetchall()
         ]

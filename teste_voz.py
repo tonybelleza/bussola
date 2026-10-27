@@ -571,6 +571,32 @@ class TestHTTP(unittest.TestCase):
         status, _ = self.req("POST", "/api/voz/webhook", bruto=corpo, cabecalhos={"ElevenLabs-Signature": assinatura})
         self.assertEqual(status, 200)
 
+    def test_importados_aparecem_fora_da_triagem_e_entram_na_fila(self):
+        conn = server.db()
+        ids = []
+        for nome, tel in (("Importada Um", "+18605550111"), ("Importada Dois", "8605550112"), ("Sem Fone", "")):
+            cid = conn.execute("INSERT INTO candidatos (token, nome, email, local, telefone, empresa_id) VALUES (?,?,?,?,?,?)",
+                               ("imp" + nome, nome, "", "BHS CT", tel, self.ea)).lastrowid
+            ids.append(conn.execute("INSERT INTO candidaturas (candidato_id, vaga_id) VALUES (?,?)",
+                                    (cid, self.vaga_a)).lastrowid)
+        conn.commit()
+        admin = self.token("admin")
+        status, d = self.req("GET", "/api/gestor/voz", cabecalhos=admin)
+        fora = {f["id"]: f for f in d["fora"]}
+        self.assertTrue(set(ids) <= set(fora))
+        self.assertFalse(fora[ids[2]]["telefone_valido"])
+        self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("admin.b"))[0], 403)
+        status, d = self.req("POST", "/api/gestor/voz/fila", {"ids": ids[:2]}, admin)
+        self.assertEqual((status, d["colocados"]), (200, 2))
+        status, d = self.req("POST", "/api/gestor/voz/fila", {"ids": ids[:2]}, admin)
+        self.assertEqual(d["colocados"], 0)
+        st = conn.execute("SELECT voz_status FROM candidaturas WHERE id=?", (ids[0],)).fetchone()[0]
+        self.assertEqual(st, "para_ligar")
+        cand = conn.execute("SELECT candidato_id FROM candidaturas WHERE id=?", (ids[2],)).fetchone()[0]
+        status, d = self.req("GET", "/api/gestor/voz/candidato/%d" % cand, cabecalhos=admin)
+        self.assertEqual([c["voz_status"] for c in d["candidaturas"]], [""])
+        conn.close()
+
     def test_modulo_liberado_por_empresa(self):
         self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("admin.b"))[0], 403)
         status, d = self.req("GET", "/api/gestor/voz", cabecalhos=self.token("carine"))

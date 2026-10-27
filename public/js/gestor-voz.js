@@ -27,6 +27,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos na triagem", todos: "Todos os status", vazio: "Nenhum candidato na triagem por voz.",
     col: { nome: "Candidato", vaga: "Vaga", status: "Status", tier: "Resultado", tentativas: "Tentativas", proxima: "Próxima" },
     ligar: "Ligar agora", naoLigar: "Não ligar", voltarFila: "Voltar à fila", zerar: "Zerar tentativas",
+    entrarFila: "Colocar na fila", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
     confirmaLigar: "Ligar agora para {nome}? A ligação sai na hora, mesmo fora da janela.",
     ligacaoIniciada: "Ligação iniciada. O resultado aparece em alguns minutos.",
     recentes: "Últimas ligações", semLigacoes: "Nenhuma ligação ainda.",
@@ -69,6 +70,7 @@ const VOZ_TEXTOS = {
     fila: "Candidates in screening", todos: "All statuses", vazio: "No candidates in voice screening.",
     col: { nome: "Candidate", vaga: "Job", status: "Status", tier: "Result", tentativas: "Attempts", proxima: "Next" },
     ligar: "Call now", naoLigar: "Do not call", voltarFila: "Back to queue", zerar: "Reset attempts",
+    entrarFila: "Add to queue", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
     confirmaLigar: "Call {nome} now? The call goes out right away, even outside the window.",
     ligacaoIniciada: "Call started. The result shows up in a few minutes.",
     recentes: "Latest calls", semLigacoes: "No calls yet.",
@@ -111,6 +113,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos en evaluación", todos: "Todos los estados", vazio: "Ningún candidato en evaluación por voz.",
     col: { nome: "Candidato", vaga: "Vacante", status: "Estado", tier: "Resultado", tentativas: "Intentos", proxima: "Próximo" },
     ligar: "Llamar ahora", naoLigar: "No llamar", voltarFila: "Volver a la cola", zerar: "Reiniciar intentos",
+    entrarFila: "Agregar a la cola", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
     confirmaLigar: "¿Llamar ahora a {nome}? La llamada sale de inmediato, incluso fuera del horario.",
     ligacaoIniciada: "Llamada iniciada. El resultado aparece en unos minutos.",
     recentes: "Últimas llamadas", semLigacoes: "Ninguna llamada todavía.",
@@ -221,7 +224,7 @@ function vozData(texto) {
 
 function vozBadgeStatus(s) {
   const cor = { concluida: "ok", ligando: "info", para_ligar: "info", revisar: "warn", callback: "warn", nao_ligar: "err", nao_qualificado: "err" }[s] || "";
-  return `<span class="badge ${cor}">${esc(VOZ_STATUS[vozIdioma][s] || s)}</span>`;
+  return `<span class="badge ${cor}">${esc(VOZ_STATUS[vozIdioma][s] || (s ? s : vt("fora")))}</span>`;
 }
 
 function vozBadgeTier(tier, score) {
@@ -304,6 +307,7 @@ async function abaVoz(el) {
             <td style="white-space:nowrap">${vozBotoesCandidatura(f)}</td>
           </tr>`).join("")}</tbody></table></div>` : `<p class="desc">${vt("vazio")}</p>`}
     </div>
+    ${vozHtmlFora(r.fora || [])}
     <div class="card">
       <h3 style="margin-top:0">${vt("recentes")}</h3>
       ${r.recentes.length ? `<div class="tabela-wrap"><table class="tabela"><tbody>${r.recentes.map((c) => `
@@ -339,17 +343,58 @@ async function abaVoz(el) {
     abrirDetalheCandidato(Number(a.dataset.vozCand));
   }));
   vozLigarBotoesCandidatura(el, redesenhar, aviso);
+  vozLigarFora(el, redesenhar, aviso);
   if (r.admin) {
     vozLigarConfig(el, r, redesenhar);
     vozLigarCargos(el, redesenhar);
   }
 }
 
+function vozHtmlFora(fora) {
+  return `<div class="card" id="voz-fora">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="margin:0">${vt("fora")} (${fora.length})</h3>
+      ${fora.length ? `<button class="btn small" id="voz-fora-fila">${vt("filaSelecionados")}</button>` : ""}
+    </div>
+    <p class="desc">${vt("foraDesc")}</p>
+    ${fora.length ? `<div class="tabela-wrap"><table class="tabela">
+      <thead><tr><th><input type="checkbox" id="voz-fora-todos" title="${esc(vt("selecionarTodos"))}"></th>
+        <th>${vt("col").nome}</th><th>${vt("col").vaga}</th><th></th></tr></thead>
+      <tbody>${fora.map((f) => `
+        <tr>
+          <td><input type="checkbox" data-voz-fora="${f.id}" ${f.telefone_valido ? "" : "disabled"}></td>
+          <td><a href="#" data-voz-cand="${f.candidato_id}"><strong>${esc(f.nome)}</strong></a>
+            ${f.telefone_valido ? "" : ` <span class="badge err">${esc(vt("semTelefone"))}</span>`}</td>
+          <td>${esc(f.vaga)}<div class="hint">${esc(f.local || "")}</div></td>
+          <td style="white-space:nowrap">${f.telefone_valido ? `<button class="btn small" data-voz-ligar="${f.id}" data-nome="${esc(f.nome)}">${vt("ligar")}</button>
+            <button class="btn secondary small" data-voz-acao="fila" data-id="${f.id}">${vt("entrarFila")}</button>` : ""}</td>
+        </tr>`).join("")}</tbody></table></div>` : `<p class="desc">${vt("foraVazio")}</p>`}
+  </div>`;
+}
+
+function vozLigarFora(el, redesenhar, aviso) {
+  const todos = el.querySelector("#voz-fora-todos");
+  if (todos) todos.addEventListener("change", () => {
+    el.querySelectorAll("[data-voz-fora]:not([disabled])").forEach((c) => { c.checked = todos.checked; });
+  });
+  const botao = el.querySelector("#voz-fora-fila");
+  if (botao) botao.addEventListener("click", async () => {
+    const ids = [...el.querySelectorAll("[data-voz-fora]:checked")].map((c) => Number(c.dataset.vozFora));
+    if (!ids.length) return aviso(vt("nenhumSelecionado"), true);
+    botao.disabled = true;
+    try {
+      const r = await vozApi("/api/gestor/voz/fila", { method: "POST", body: { ids } });
+      aviso(vt("colocados", { n: r.colocados }));
+      setTimeout(redesenhar, 900);
+    } catch (e) { aviso(e.message, true); botao.disabled = false; }
+  });
+}
+
 function vozBotoesCandidatura(f) {
   const b = [];
   if (f.voz_status !== "ligando") {
     b.push(`<button class="btn small" data-voz-ligar="${f.id}" data-nome="${esc(f.nome)}">${vt("ligar")}</button>`);
-    if (f.voz_status === "nao_ligar" || f.voz_status !== "para_ligar") b.push(`<button class="btn secondary small" data-voz-acao="fila" data-id="${f.id}">${vt("voltarFila")}</button>`);
+    if (f.voz_status !== "para_ligar") b.push(`<button class="btn secondary small" data-voz-acao="fila" data-id="${f.id}">${f.voz_status === "" ? vt("entrarFila") : vt("voltarFila")}</button>`);
     if (f.voz_status !== "nao_ligar") b.push(`<button class="btn ghost small" data-voz-acao="nao_ligar" data-id="${f.id}">${vt("naoLigar")}</button>`);
     if (f.voz_tentativas) b.push(`<button class="btn ghost small" data-voz-acao="zerar" data-id="${f.id}">${vt("zerar")}</button>`);
   }
