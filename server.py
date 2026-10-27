@@ -1184,15 +1184,16 @@ def variaveis_candidato(conn, cand, host_header=None):
 
 
 def emails_gestores_do_local(conn, local_candidato):
-    """Gestores que devem ser avisados sobre um candidato: administradores,
-    gestores sem local definido e gestores do mesmo local."""
+    """Gestores que devem ser avisados sobre um candidato: administradores e
+    gestores do mesmo local. Gestor sem local não recebe dados de ninguém
+    (isolamento entre empresas)."""
     alvo = (local_candidato or "").strip().lower()
     emails = []
     for g in conn.execute("SELECT email, local, is_admin FROM gestores").fetchall():
         if not (g["email"] or "").strip():
             continue
-        if g["is_admin"] or not (g["local"] or "").strip() \
-                or (g["local"] or "").strip().lower() == alvo:
+        local_g = (g["local"] or "").strip().lower()
+        if g["is_admin"] or (local_g and local_g == alvo):
             emails.append(g["email"].strip())
     return sorted(set(emails))
 
@@ -1674,18 +1675,17 @@ def rotina_automatica():
 
 
 def gestor_ve_candidato(gestor, cand):
-    """Gestor vinculado a um local enxerga apenas candidatos daquele local."""
-    if gestor["is_admin"] or not (gestor["local"] or "").strip():
-        return True
-    return (cand["local"] or "").strip().lower() == gestor["local"].strip().lower()
+    """Isolamento entre empresas: só o administrador vê tudo. Um gestor vê
+    apenas candidatos do próprio local; gestor sem local não vê ninguém."""
+    return gestor_ve_local(gestor, cand["local"])
 
 
 def gestor_ve_local(gestor, local):
-    """Mesma regra de escopo por local, aplicada a um valor de local avulso
-    (usada nas sessões do módulo Diagnóstico)."""
-    if gestor["is_admin"] or not (gestor["local"] or "").strip():
+    """Mesma regra de escopo por local, aplicada a um valor de local avulso."""
+    if gestor["is_admin"]:
         return True
-    return (local or "").strip().lower() == gestor["local"].strip().lower()
+    proprio = (gestor["local"] or "").strip().lower()
+    return bool(proprio) and (local or "").strip().lower() == proprio
 
 
 # ------------------------------------------------------------ servidor

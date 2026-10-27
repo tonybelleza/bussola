@@ -389,6 +389,39 @@ class TestFluxo(unittest.TestCase):
         self.assertEqual((ch["transcricao"], ch["fatos"]), ("[]", ""))
 
 
+# ================================================================ isolamento entre empresas
+
+class TestIsolamento(unittest.TestCase):
+    def test_so_admin_ve_tudo(self):
+        admin = {"is_admin": 1, "local": ""}
+        bhs = {"is_admin": 0, "local": "BHS Connecticut"}
+        sem_local = {"is_admin": 0, "local": ""}
+        cand_bhs = {"local": "bhs connecticut "}
+        cand_outra = {"local": "Empresa B"}
+        self.assertTrue(server.gestor_ve_candidato(admin, cand_outra))
+        self.assertTrue(server.gestor_ve_candidato(bhs, cand_bhs))
+        self.assertFalse(server.gestor_ve_candidato(bhs, cand_outra))
+        self.assertFalse(server.gestor_ve_candidato(sem_local, cand_bhs))
+        self.assertFalse(server.gestor_ve_local(sem_local, ""))
+
+    def test_avisos_so_para_admin_e_gestor_do_local(self):
+        if os.path.exists(server.DB_PATH):
+            os.remove(server.DB_PATH)
+        server.init_db()
+        conn = server.db()
+        for login, local, admin in (("dono", "", 1), ("bhs", "BHS Connecticut", 0),
+                                    ("outra", "Empresa B", 0), ("solta", "", 0)):
+            conn.execute(
+                "INSERT INTO gestores (login, senha, nome, email, local, is_admin) VALUES (?,?,?,?,?,?)",
+                (login, "x", login, login + "@example.com", local, admin),
+            )
+        conn.commit()
+        self.assertEqual(server.emails_gestores_do_local(conn, "BHS Connecticut"),
+                         ["bhs@example.com", "dono@example.com"])
+        self.assertEqual(server.emails_gestores_do_local(conn, ""), ["dono@example.com"])
+        conn.close()
+
+
 # ================================================================ HTTP
 
 class TestHTTP(unittest.TestCase):
