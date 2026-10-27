@@ -27,7 +27,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos na triagem", todos: "Todos os status", vazio: "Nenhum candidato na triagem por voz.",
     col: { nome: "Candidato", vaga: "Vaga", status: "Status", tier: "Resultado", tentativas: "Tentativas", proxima: "Próxima" },
     ligar: "Ligar agora", naoLigar: "Não ligar", voltarFila: "Voltar à fila", zerar: "Zerar tentativas",
-    entrarFila: "Colocar na fila", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
+    entrarFila: "Colocar na fila",     encerrados: "Encerrados", encerradosDesc: "Número errado, sem interesse, pediram para não ligar ou não qualificados. Saem da lista principal e do pipeline ativo da vaga.", semEncerrados: "Nenhum candidato encerrado.", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
     confirmaLigar: "Ligar agora para {nome}? A ligação sai na hora, mesmo fora da janela.",
     ligacaoIniciada: "Ligação iniciada. O resultado aparece em alguns minutos.",
     recentes: "Últimas ligações", semLigacoes: "Nenhuma ligação ainda.",
@@ -70,7 +70,7 @@ const VOZ_TEXTOS = {
     fila: "Candidates in screening", todos: "All statuses", vazio: "No candidates in voice screening.",
     col: { nome: "Candidate", vaga: "Job", status: "Status", tier: "Result", tentativas: "Attempts", proxima: "Next" },
     ligar: "Call now", naoLigar: "Do not call", voltarFila: "Back to queue", zerar: "Reset attempts",
-    entrarFila: "Add to queue", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
+    entrarFila: "Add to queue",     encerrados: "Closed", encerradosDesc: "Wrong number, not interested, asked not to be called or not qualified. They leave the main list and the active job pipeline.", semEncerrados: "No closed candidates.", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
     confirmaLigar: "Call {nome} now? The call goes out right away, even outside the window.",
     ligacaoIniciada: "Call started. The result shows up in a few minutes.",
     recentes: "Latest calls", semLigacoes: "No calls yet.",
@@ -113,7 +113,7 @@ const VOZ_TEXTOS = {
     fila: "Candidatos en evaluación", todos: "Todos los estados", vazio: "Ningún candidato en evaluación por voz.",
     col: { nome: "Candidato", vaga: "Vacante", status: "Estado", tier: "Resultado", tentativas: "Intentos", proxima: "Próximo" },
     ligar: "Llamar ahora", naoLigar: "No llamar", voltarFila: "Volver a la cola", zerar: "Reiniciar intentos",
-    entrarFila: "Agregar a la cola", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
+    entrarFila: "Agregar a la cola",     encerrados: "Cerrados", encerradosDesc: "Número equivocado, sin interés, pidieron no ser llamados o no calificados. Salen de la lista principal y del pipeline activo de la vacante.", semEncerrados: "Ningún candidato cerrado.", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
     confirmaLigar: "¿Llamar ahora a {nome}? La llamada sale de inmediato, incluso fuera del horario.",
     ligacaoIniciada: "Llamada iniciada. El resultado aparece en unos minutos.",
     recentes: "Últimas llamadas", semLigacoes: "Ninguna llamada todavía.",
@@ -256,7 +256,9 @@ async function abaVoz(el) {
     return;
   }
   const cfg = r.config;
-  const fila = r.fila.filter((f) => !vozFiltro || f.voz_status === vozFiltro);
+  const ENCERRADOS = ["numero_errado", "nao_interessado", "nao_ligar", "nao_qualificado"];
+  const encerrados = r.fila.filter((f) => ENCERRADOS.includes(f.voz_status));
+  const fila = r.fila.filter((f) => !ENCERRADOS.includes(f.voz_status) && (!vozFiltro || f.voz_status === vozFiltro));
   const estado = !cfg.ativo ? vt("desligado") : cfg.pausado ? vt("pausado") : vt("ativo");
 
   el.innerHTML = `
@@ -289,7 +291,7 @@ async function abaVoz(el) {
         <h3 style="margin:0">${vt("fila")} (${fila.length})</h3>
         <select id="voz-filtro" style="max-width:220px">
           <option value="">${vt("todos")}</option>
-          ${Object.entries(VOZ_STATUS[vozIdioma]).map(([k, v]) => `<option value="${k}" ${vozFiltro === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
+          ${Object.entries(VOZ_STATUS[vozIdioma]).filter(([k]) => !ENCERRADOS.includes(k)).map(([k, v]) => `<option value="${k}" ${vozFiltro === k ? "selected" : ""}>${esc(v)}</option>`).join("")}
         </select>
       </div>
       ${fila.length ? `<div class="tabela-wrap"><table class="tabela">
@@ -308,6 +310,16 @@ async function abaVoz(el) {
           </tr>`).join("")}</tbody></table></div>` : `<p class="desc">${vt("vazio")}</p>`}
     </div>
     ${vozHtmlFora(r.fora || [])}
+    <details class="card" id="voz-encerrados">
+      <summary style="cursor:pointer"><h3 style="display:inline;margin:0">${vt("encerrados")} (${encerrados.length})</h3></summary>
+      <p class="desc">${vt("encerradosDesc")}</p>
+      ${encerrados.length ? `<div class="tabela-wrap"><table class="tabela"><tbody>${encerrados.map((f) => `
+        <tr>
+          <td><a href="#" data-voz-cand="${f.candidato_id}"><strong>${esc(f.nome)}</strong></a><div class="hint">${esc(f.vaga)}</div></td>
+          <td>${vozBadgeStatus(f.voz_status)}</td>
+          <td style="white-space:nowrap">${f.voz_status !== "ligando" ? `<button class="btn secondary small" data-voz-acao="fila" data-id="${f.id}">${vt("voltarFila")}</button>` : ""}</td>
+        </tr>`).join("")}</tbody></table></div>` : `<p class="desc">${vt("semEncerrados")}</p>`}
+    </details>
     <div class="card">
       <h3 style="margin-top:0">${vt("recentes")}</h3>
       ${r.recentes.length ? `<div class="tabela-wrap"><table class="tabela"><tbody>${r.recentes.map((c) => `

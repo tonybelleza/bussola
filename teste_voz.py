@@ -443,6 +443,21 @@ class TestFluxo(unittest.TestCase):
         ca = self.candidatura(a)
         self.assertEqual((ca["voz_status"], ca["voz_tentativas"]), ("para_ligar", 1))
 
+    def test_numero_errado_e_sem_interesse_saem_do_pipeline(self):
+        for outcome, etiqueta in (("WRONG_NUMBER", "número errado"), ("NOT_INTERESTED", "sem interesse")):
+            a = self.candidato(nome="Pessoa " + outcome, telefone="+1 86055501%02d" % len(outcome))
+            voz.tick(self.conn, self.TERCA_10H)
+            self.conn.execute("UPDATE voz_chamadas SET iniciada_em=datetime('now','-10 minutes')")
+            self.conn.commit()
+            conv = [c for c in self.conn.execute("SELECT conversation_id FROM voz_chamadas WHERE candidato_id=?", (a,))][-1][0]
+            self.falso.conversas[conv] = conversa(dict(FATOS_FORTES, outcome=outcome))
+            voz.reconciliar(self.conn)
+            ca = self.candidatura(a)
+            self.assertEqual(ca["etapa"], "reprovado")
+            self.assertIn("triagem por voz", ca["motivo_reprovacao"])
+            tags = json.loads(self.conn.execute("SELECT tags FROM candidatos WHERE id=?", (a,)).fetchone()[0])
+            self.assertIn(etiqueta, tags)
+
     def test_reconcilia_webhook_perdido(self):
         a = self.candidato()
         voz.tick(self.conn, self.TERCA_10H)

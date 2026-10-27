@@ -55,6 +55,15 @@ STATUS_VOZ = (
     "nao_interessado", "correio_voz", "numero_errado", "nao_ligar", "revisar",
 )
 
+# quem disse na ligação que é número errado, que não procura trabalho ou que não
+# quer ser chamado sai do pipeline ativo (etapa Reprovado, sem e-mail) e ganha uma etiqueta
+ENCERRAMENTOS = {
+    "WRONG_NUMBER": ("número errado", "Número errado (triagem por voz)"),
+    "NOT_INTERESTED": ("sem interesse", "Sem interesse na vaga (triagem por voz)"),
+    "DO_NOT_CALL": ("não ligar", "Pediu para não ser chamado (triagem por voz)"),
+}
+STATUS_ENCERRADOS = ("numero_errado", "nao_interessado", "nao_ligar", "nao_qualificado")
+
 OUTCOME_STATUS = {
     "QUALIFIED": "concluida",
     "NOT_QUALIFIED": "nao_qualificado",
@@ -1046,6 +1055,9 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
         texto += " [%s]" % nota
     srv.registrar_evento(conn, row["candidato_id"], "voz", texto)
 
+    if resultado and resultado["outcome"] in ENCERRAMENTOS:
+        encerrar_candidatura(conn, row, resultado["outcome"])
+
     destaque = pontuou and resultado["outcome"] == "QUALIFIED" and resultado["tier"] in ("STRONG", "GOOD")
     if destaque and row["etapa"] == "inscrito":
         conn.execute(
@@ -1061,6 +1073,26 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
     if destaque and not row["voz_convite_enviado"]:
         enviar_convite(conn, row, fatos.get("preferred_language") or row["idioma"] or cfg["idioma_padrao"])
         # os gestores recebem um aviso único quando os testes terminam (ou após 48 horas sem eles)
+
+
+def encerrar_candidatura(conn, row, outcome):
+    """Tira a candidatura do pipeline ativo (Reprovado, sem e-mail) e etiqueta o candidato."""
+    etiqueta, motivo = ENCERRAMENTOS[outcome]
+    if row["etapa"] not in ("proposta", "contratado", "reprovado"):
+        conn.execute(
+            "UPDATE candidaturas SET etapa='reprovado', motivo_reprovacao=?, atualizado_em=datetime('now') WHERE id=?",
+            (motivo, row["id"]),
+        )
+        srv.registrar_evento(conn, row["candidato_id"], "etapa",
+                             "Vaga %s: movido para %s (%s)" % (row["vaga_titulo"], srv.NOMES_ETAPAS["reprovado"], motivo))
+    cand = conn.execute("SELECT tags FROM candidatos WHERE id=?", (row["candidato_id"],)).fetchone()
+    try:
+        tags = json.loads(cand["tags"] or "[]") if cand else []
+    except ValueError:
+        tags = []
+    if etiqueta not in tags:
+        tags.append(etiqueta)
+        conn.execute("UPDATE candidatos SET tags=? WHERE id=?", (json.dumps(tags, ensure_ascii=False), row["candidato_id"]))
 
 
 def enviar_convite(conn, row, idioma):
