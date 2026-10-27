@@ -682,7 +682,9 @@ def email_resultado_candidato(conn, cand):
         texto.append(t(lang, "base_titulo") + ": " + (b.get("codigo") or "".join(ordem)))
         texto.append(t(lang, "base_principal", nome=p["BASE"][ordem[0]]["nome"]))
         texto.append("")
-    texto += [t(lang, "res_proximos", empresa=empresa), "", t(lang, "res_link"), "", link, "",
+    # agenda de entrevistas (agenda.py): botão "Escolher horário" quando a empresa usa e o candidato se qualifica
+    agenda_texto, agenda_html = srv.agenda.bloco_resultado(conn, cand, lang)
+    texto += [t(lang, "res_proximos", empresa=empresa), ""] + agenda_texto + [t(lang, "res_link"), "", link, "",
               t(lang, "assinatura", empresa=empresa)]
     texto = "\n".join(texto)
 
@@ -692,6 +694,7 @@ def email_resultado_candidato(conn, cand):
              + bloco_base(testes.get("base"), lang)
              + '<div style="height:18px"></div>'
              + _paragrafo(t(lang, "res_proximos", empresa=empresa))
+             + agenda_html
              + _paragrafo(t(lang, "res_link"), "#4a5568", 14)
              + _botao(link, t(lang, "acessar"))
              + _paragrafo(t(lang, "assinatura", empresa=empresa), "#4a5568", 14))

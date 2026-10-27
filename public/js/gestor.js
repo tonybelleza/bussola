@@ -680,6 +680,7 @@ function abaVisao(el) {
 
   el.innerHTML = `
     <div class="card" id="quadro-dia"></div>
+    <div class="card" id="agenda-hoje"></div>
     <div class="metricas">
       <div class="metrica"><div class="num">${fmtNum(candidatos.length)}</div><div class="rot">${tg("v_m_cadastrados")}</div></div>
       <div class="metrica"><div class="num">${fmtNum(comDisc)}</div><div class="rot">${tg("v_m_disc")}</div></div>
@@ -699,6 +700,7 @@ function abaVisao(el) {
     </div>`;
   ligarLinhasCandidato(el);
   quadroDoDia(document.getElementById("quadro-dia"));
+  if (typeof agendaHoje === "function") agendaHoje(document.getElementById("agenda-hoje")); // agenda de entrevistas (gestor-agenda.js)
   api("/api/gestor/atividades").then((r) => {
     const alvo = document.getElementById("feed-atividades");
     if (!alvo) return;
@@ -1178,6 +1180,7 @@ async function abrirDetalheCandidato(id) {
   if (c.match) blocos.push(`<div class="card">${htmlMatch(c.match, c.gaps ? c.gaps.cargo.nome : "")}</div>`);
   const comVoz = typeof vozModuloAtivo === "function" && vozModuloAtivo();
   if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
+  blocos.push('<div class="card" id="bloco-agenda"></div>'); // agenda de entrevistas (gestor-agenda.js)
   if (c.testes.disc) blocos.push(`<div class="card">${htmlResultadoDisc(c.testes.disc.payload)}</div>`);
   if (c.testes.base) blocos.push(`<div class="card">${htmlResultadoBase(c.testes.base.payload)}</div>`);
   if (c.quiz) blocos.push(`<div class="card">${tituloIcone("bloco", tg("quiz_titulo"))}
@@ -1298,6 +1301,7 @@ async function abrirDetalheCandidato(id) {
   fundo.addEventListener("click", (ev) => { if (ev.target === fundo) fundo.remove(); });
   fundo.querySelector("#modal-fechar").addEventListener("click", () => fundo.remove());
   if (comVoz) vozPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-voz"));
+  if (typeof agendaPreencherFicha === "function") agendaPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-agenda"));
   const baixar = fundo.querySelector("#baixar-cv");
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {
@@ -1853,10 +1857,12 @@ async function abaConfig(el) {
     </div>
     <div id="cfg-marca"></div>
     <div id="cfg-entrada"></div>
+    <div id="cfg-agenda"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
   secaoMarca(document.getElementById("cfg-marca"));
   secaoEntrada(document.getElementById("cfg-entrada"));
+  if (typeof secaoAgenda === "function") secaoAgenda(document.getElementById("cfg-agenda")); // agenda de entrevistas
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = tg("copiado");

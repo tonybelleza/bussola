@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Bússola · Entrevista</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/tema.js"></script>
+  <style>
+    .ag-marca { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .ag-marca img { max-height: 52px; max-width: 200px; border-radius: 8px; background: #fff; padding: 4px; }
+    .ag-marca .nome { font-size: 1.15rem; font-weight: 700; }
+    .ag-info { display: grid; gap: 6px; margin: 12px 0 4px; font-size: .92rem; }
+    .ag-info div { display: grid; grid-template-columns: 130px 1fr; gap: 10px; }
+    .ag-info .rot { color: var(--muted); }
+    .ag-dias { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x mandatory; }
+    .ag-dia { flex: 0 0 auto; scroll-snap-align: start; min-width: 74px; text-align: center; padding: 10px 8px;
+      border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+    .ag-dia .sem { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
+    .ag-dia .num { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+    .ag-dia .mes { font-size: .74rem; color: var(--text-2); }
+    .ag-dia.ativo { border-color: var(--accent); background: rgba(59, 103, 202, .18); }
+    .ag-horas { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 6px; }
+    .ag-hora { padding: 12px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+      color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+    .ag-hora:hover { border-color: var(--blue-250); }
+    .ag-hora.ativo { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .ag-fuso { font-size: .8rem; color: var(--muted); margin: 8px 0 0; }
+    .ag-confirmar { position: sticky; bottom: 0; padding: 12px 0 4px; background: linear-gradient(transparent, var(--bg) 30%); }
+    .ag-ok { text-align: center; }
+    .ag-ok .icone-ok { font-size: 2.4rem; }
+    .ag-quando { font-size: 1.15rem; font-weight: 700; margin: 6px 0 2px; }
+    .ag-msg { min-height: 1.2em; margin: 8px 0; font-size: .9rem; }
+    @media (max-width: 520px) { .ag-info div { grid-template-columns: 105px 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="inner">
+      <div class="brand">
+        <img src="img/logo-white.svg" alt="Tony Belleza">
+        <div class="sep"></div>
+        <div>
+          <h1>Bússola</h1>
+          <div class="sub" id="topo-sub">Entrevista</div>
+        </div>
+      </div>
+      <div class="actions"></div>
+    </div>
+  </div>
+
+  <div class="container narrow" id="app">
+    <div class="card texto-centro"><p>…</p></div>
+  </div>
+
+  <script src="js/agendar.js"></script>
+</body>
+</html>

@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="voz-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
@@ -81,6 +81,9 @@ class FalsoElevenLabs:
         self.conversas = {}
         self.falhar = False
 
+    def link_assinado(self):
+        return "wss://exemplo/assinado"
+
     def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
         nome = variaveis["candidate_name"]
         self.ultimas_variaveis = variaveis
@@ -128,6 +131,30 @@ class TestRoteiro(unittest.TestCase):
         self.assertIsNone(voz.faixa_da_cidade("Hartford", roteiro))
         r = voz.pontuar(dict(FATOS_FORTES, city="Davis", distance_band="unknown"), roteiro)
         self.assertEqual(r["pontos"]["location"], 10)
+
+
+class TestRetorno(unittest.TestCase):
+    CFG = {"fuso": "America/New_York", "inicio": "09:00", "fim": "19:30", "dias": [1, 2, 3, 4, 5, 6], "intervalo_horas": 4}
+
+    def quando(self, texto, agora="2026-10-27 14:00"):
+        r = voz.horario_de_retorno(texto, ct(agora), self.CFG)
+        return r.astimezone(CT).strftime("%a %H:%M") if r else None
+
+    def test_frases_comuns(self):
+        self.assertEqual(self.quando("tomorrow 3 pm"), "Wed 15:00")
+        self.assertEqual(self.quando("Thursday morning"), "Thu 10:00")
+        self.assertEqual(self.quando("today 5 pm"), "Tue 17:00")
+        self.assertEqual(self.quando("mañana en la mañana"), "Wed 10:00")
+        self.assertEqual(self.quando("viernes por la tarde"), "Fri 14:00")
+        self.assertEqual(self.quando("amanhã às 10h"), "Wed 10:00")
+
+    def test_fora_da_janela_vai_para_a_proxima_abertura(self):
+        self.assertEqual(self.quando("Sunday 10 am"), "Mon 09:00")
+        self.assertEqual(self.quando("today 9 pm"), "Wed 09:00")
+
+    def test_sem_horario_reconhecivel(self):
+        self.assertIsNone(self.quando("later"))
+        self.assertIsNone(self.quando(""))
 
 
 class TestScorecard(unittest.TestCase):
@@ -478,6 +505,27 @@ class TestFluxo(unittest.TestCase):
         self.falso.conversas["conv_1"] = {"status": "initiated", "transcript": []}
         self.assertEqual(voz.reconciliar(self.conn), 0)
 
+    def test_callback_com_horario_volta_para_a_fila_no_horario(self):
+        a = self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE voz_chamadas SET iniciada_em=datetime('now','-10 minutes')")
+        self.conn.commit()
+        self.falso.conversas["conv_1"] = conversa(dict(FATOS_FORTES, outcome="CALLBACK", callback_time="Friday 10 am"))
+        voz.reconciliar(self.conn)
+        ca = self.candidatura(a)
+        self.assertEqual((ca["voz_status"], ca["voz_tentativas"]), ("para_ligar", 0))
+        proxima = voz._de_sql(ca["voz_proxima"]).astimezone(CT)
+        self.assertEqual((proxima.isoweekday(), proxima.hour), (5, 10))
+
+    def test_callback_sem_horario_fica_para_o_gestor(self):
+        a = self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE voz_chamadas SET iniciada_em=datetime('now','-10 minutes')")
+        self.conn.commit()
+        self.falso.conversas["conv_1"] = conversa(dict(FATOS_FORTES, outcome="CALLBACK", callback_time=None))
+        voz.reconciliar(self.conn)
+        self.assertEqual(self.candidatura(a)["voz_status"], "callback")
+
     def test_reconcilia_webhook_perdido(self):
         a = self.candidato()
         voz.tick(self.conn, self.TERCA_10H)
@@ -631,6 +679,21 @@ class TestHTTP(unittest.TestCase):
         status, d = self.req("GET", "/api/gestor/voz/candidato/%d" % cand, cabecalhos=admin)
         self.assertEqual([c["voz_status"] for c in d["candidaturas"]], [""])
         conn.close()
+
+    def test_simulacao_e_revisao_do_roteiro(self):
+        admin, carine = self.token("admin"), self.token("carine")
+        self.assertEqual(self.req("POST", "/api/gestor/voz/cargo/%d/simular" % self.cargo_a, {"idioma": "en"}, carine)[0], 403)
+        status, d = self.req("POST", "/api/gestor/voz/cargo/%d/simular" % self.cargo_a, {"idioma": "en"}, admin)
+        self.assertEqual(status, 200, d)
+        self.assertEqual(d["signed_url"], "wss://exemplo/assinado")
+        self.assertEqual(d["dynamic_variables"]["candidate_name"], "Test Candidate")
+        self.assertIn("{{candidate_name}}", d["first_message"])
+        self.assertEqual(self.req("POST", "/api/gestor/voz/cargo/%d/simular" % self.cargo_a, {}, self.token("admin.b"))[0], 403)
+        status, d = self.req("POST", "/api/gestor/voz/cargo/%d/roteiro" % self.cargo_a, {"fatos": "Pay $20/h"}, admin)
+        self.assertEqual(status, 200, d)
+        self.assertEqual(len(d["roteiro"]["revisado_em"]), 10)
+        status, d = self.req("GET", "/api/gestor/voz", cabecalhos=admin)
+        self.assertTrue([c for c in d["cargos"] if c["id"] == self.cargo_a][0]["revisado_em"])
 
     def test_modulo_liberado_por_empresa(self):
         self.assertEqual(self.req("GET", "/api/gestor/voz", cabecalhos=self.token("admin.b"))[0], 403)

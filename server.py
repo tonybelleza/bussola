@@ -19,6 +19,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+import agenda  # agenda de entrevistas (agenda.py)
 import empresas
 import entrada
 import erros_i18n
@@ -347,6 +348,7 @@ def init_db():
     )
     voz.init_voz(c)
     empresas.init_empresas(c)
+    agenda.init_agenda(c)  # agenda de entrevistas: tabela entrevistas_agenda e candidatos.agenda_token
     # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
     for tabela, coluna, ddl in (
         ("empresas", "logo", "TEXT DEFAULT ''"),
@@ -807,7 +809,12 @@ def enviar_email(conn, para, assunto, corpo, anexos=None, html=None, marca=None,
             msg = MIMEMultipart("mixed")
             msg.attach(corpo_msg)
             for nome_arq, dados, mime in anexos:
-                parte = MIMEApplication(dados, _subtype=mime.split("/")[-1])
+                if mime.startswith("text/"):
+                    # convite de calendário (.ics) vai como text/calendar para abrir direto no Gmail/Outlook
+                    parte = MIMEText(dados.decode("utf-8") if isinstance(dados, bytes) else dados,
+                                     mime.split("/")[-1].split(";")[0], "utf-8")
+                else:
+                    parte = MIMEApplication(dados, _subtype=mime.split("/")[-1])
                 parte.add_header("Content-Disposition", "attachment", filename=nome_arq)
                 msg.attach(parte)
         else:
@@ -1934,6 +1941,7 @@ class Handler(BaseHTTPRequestHandler):
         "/gestor": "gestor.html",
         "/vagas": "vagas.html",
         "/dono": "dono.html",
+        "/agendar": "agendar.html",  # agenda de entrevistas (agenda.py)
     }
 
     def static(self, path):
@@ -1992,6 +2000,9 @@ class Handler(BaseHTTPRequestHandler):
     def route(self, method, path, conn):
         # ---- público ----
         if voz.rotear_publico(self, method, path, conn):
+            return None
+        # agenda de entrevistas: link do candidato (/api/agenda/<token>)
+        if agenda.rotear_publico(self, method, path, conn):
             return None
         if method == "GET" and path == "/api/cargos":
             # público: só os cargos da empresa do link (?e=slug)
@@ -2947,6 +2958,10 @@ class Handler(BaseHTTPRequestHandler):
 
         # -- entrada de candidatos (e-mail do Indeed e CSV) e quadro do dia --
         if entrada.rotear_gestor(self, method, path, conn, gestor):
+            return None
+
+        # -- agenda de entrevistas (agenda.py) --
+        if agenda.rotear_gestor(self, method, path, conn, gestor):
             return None
 
         # -- módulo Triagem por Voz --
@@ -3981,6 +3996,7 @@ voz.ligar(sys.modules[__name__])
 mensagens.ligar(sys.modules[__name__])
 entrada.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
+agenda.ligar(sys.modules[__name__])
 
 
 def main():
@@ -3990,6 +4006,7 @@ def main():
     import threading
     threading.Thread(target=rotina_automatica, daemon=True).start()
     threading.Thread(target=entrada.rotina_entrada, daemon=True).start()
+    threading.Thread(target=agenda.rotina_agenda, daemon=True).start()  # lembretes de entrevista
     if os.environ.get("VOZ_FILA_DESLIGADA") != "1":
         threading.Thread(target=voz.rotina_voz, daemon=True).start()
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)

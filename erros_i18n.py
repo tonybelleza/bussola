@@ -382,3 +382,22 @@ ERROS['Porta inválida'] = {"en": 'Invalid port', "es": 'Puerto inválido'}
 ERROS['Preencha servidor, usuário e senha antes de ativar'] = {"en": 'Fill in server, username and password before turning it on', "es": 'Completa servidor, usuario y contraseña antes de activar'}
 ERROS['A leitura já está em andamento'] = {"en": 'Reading is already in progress', "es": 'La lectura ya está en curso'}
 ERROS['Envie a planilha CSV'] = {"en": 'Upload the CSV spreadsheet', "es": 'Sube la planilla CSV'}
+
+# agenda de entrevistas (agenda.py)
+ERROS['A agenda de entrevistas está desativada'] = {"en": 'Interview scheduling is turned off', "es": 'La agenda de entrevistas está desactivada'}
+ERROS['Apenas o administrador da empresa configura a agenda'] = {"en": 'Only the company admin can set up interview scheduling', "es": 'Solo el administrador de la empresa configura la agenda'}
+ERROS['Candidato sem e-mail'] = {"en": 'This candidate has no email', "es": 'El candidato no tiene correo electrónico'}
+ERROS['Data bloqueada inválida (use AAAA-MM-DD)'] = {"en": 'Invalid blocked date (use YYYY-MM-DD)', "es": 'Fecha bloqueada inválida (usa AAAA-MM-DD)'}
+ERROS['Dias da semana inválidos'] = {"en": 'Invalid weekdays', "es": 'Días de la semana inválidos'}
+ERROS['Entrevista não encontrada'] = {"en": 'Interview not found', "es": 'Entrevista no encontrada'}
+ERROS['Escolha ao menos um dia da semana'] = {"en": 'Pick at least one weekday', "es": 'Elige al menos un día de la semana'}
+ERROS['Esta entrevista não está mais marcada'] = {"en": 'This interview is no longer scheduled', "es": 'Esta entrevista ya no está agendada'}
+ERROS['Este horário não está mais disponível'] = {"en": 'This time is no longer available', "es": 'Este horario ya no está disponible'}
+ERROS['Formato de entrevista inválido'] = {"en": 'Invalid interview format', "es": 'Formato de entrevista inválido'}
+ERROS['Fuso horário inválido'] = {"en": 'Invalid time zone', "es": 'Zona horaria inválida'}
+ERROS['Horário inválido'] = {"en": 'Invalid time', "es": 'Horario inválido'}
+ERROS['Link de agendamento inválido'] = {"en": 'Invalid scheduling link', "es": 'Enlace de agenda inválido'}
+ERROS['Nenhuma entrevista marcada'] = {"en": 'No interview scheduled', "es": 'No hay ninguna entrevista agendada'}
+ERROS['O fim da janela deve ser depois do início'] = {"en": 'The window end must be after the start', "es": 'El fin del horario debe ser después del inicio'}
+ERROS['Status inválido'] = {"en": 'Invalid status', "es": 'Estado inválido'}
+ERROS['Valor inválido na agenda'] = {"en": 'Invalid value in the scheduling settings', "es": 'Valor inválido en la agenda'}
