@@ -161,6 +161,12 @@ class TestScorecard(unittest.TestCase):
         for outcome in ("VOICEMAIL", "CALLBACK", "WRONG_NUMBER", "DO_NOT_CALL"):
             self.assertIsNone(voz.pontuar(dict(FATOS_FORTES, outcome=outcome))["score"])
 
+    def test_nao_disponivel_com_triagem_completa_e_pontuado(self):
+        r = voz.pontuar(dict(FATOS_FORTES, outcome="NOT_AVAILABLE"))
+        self.assertEqual((r["outcome"], r["motivos"][0]), ("NEEDS_REVIEW", "outcome_corrected"))
+        self.assertIsNotNone(r["score"])
+        self.assertIsNone(voz.pontuar({"outcome": "NOT_AVAILABLE"})["score"])
+
     def test_sem_outcome(self):
         self.assertEqual(voz.pontuar(dict(FATOS_FORTES, outcome=None))["outcome"], "NEEDS_REVIEW")
 

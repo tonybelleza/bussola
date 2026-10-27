@@ -308,6 +308,14 @@ def tier_do_score(score):
     return "LOW"
 
 
+CAMPOS_TRIAGEM = ("weekdays_available", "experience_level", "works_alone", "has_smartphone", "start_timeframe", "pets", "standards")
+
+
+def triagem_completa(fatos):
+    """True quando o candidato respondeu a maior parte da triagem."""
+    return sum(1 for k in CAMPOS_TRIAGEM if fatos.get(k) is not None) >= 5
+
+
 def pontuar(fatos, roteiro=None):
     """Scorecard determinístico: gates (os requisitos que o cargo exige), pontos
     (máximo 100), tier e resultado final."""
@@ -321,12 +329,16 @@ def pontuar(fatos, roteiro=None):
 
     if not outcome:
         return dict(base, outcome="NEEDS_REVIEW", motivos=["no_outcome"])
+    corrigido = False
+    if outcome == "NOT_AVAILABLE" and triagem_completa(fatos):
+        # O candidato respondeu a triagem e só desligou antes do fim: pontua assim mesmo.
+        outcome, corrigido = "NEEDS_REVIEW", True
     if outcome not in SCORED_OUTCOMES:
         return dict(base, outcome=outcome, motivos=[])
     if (exige_carteira and fatos.get("license") == "no") or (exige_carro and fatos.get("own_car") == "no"):
         return dict(base, outcome="NOT_QUALIFIED", motivos=[])
 
-    motivos = []
+    motivos = ["outcome_corrected"] if corrigido else []
     if exige_carteira and fatos.get("license") != "yes":
         motivos.append("license_unclear")
     if exige_carro and fatos.get("own_car") != "yes":
