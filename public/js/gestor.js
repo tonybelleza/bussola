@@ -328,6 +328,9 @@ function desenharPainel() {
   if ((infoGestor().modulos || []).includes("diagnostico")) {
     abas.splice(6, 0, ["diagnostico", "Diagnóstico"]);
   }
+  if (typeof vozModuloAtivo === "function" && vozModuloAtivo()) {
+    abas.splice(3, 0, ["voz", vt("aba")]);
+  }
   app.innerHTML = `
     <div class="tabs">
       ${abas.map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
@@ -348,6 +351,7 @@ function desenharPainel() {
   if (abaAtiva === "relatorios") abaRelatorios(conteudo);
   if (abaAtiva === "guia") abaGuia(conteudo);
   if (abaAtiva === "diagnostico") abaDiagnostico(conteudo);
+  if (abaAtiva === "voz") abaVoz(conteudo);
   if (abaAtiva === "config") abaConfig(conteudo);
 }
 
@@ -947,6 +951,8 @@ async function abrirDetalheCandidato(id) {
   const c = await api("/api/gestor/candidato/" + id);
   const blocos = [];
   if (c.match) blocos.push(`<div class="card">${htmlMatch(c.match, c.gaps ? c.gaps.cargo.nome : "")}</div>`);
+  const comVoz = typeof vozModuloAtivo === "function" && vozModuloAtivo();
+  if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
   if (c.testes.disc) blocos.push(`<div class="card">${htmlResultadoDisc(c.testes.disc.payload)}</div>`);
   if (c.testes.base) blocos.push(`<div class="card">${htmlResultadoBase(c.testes.base.payload)}</div>`);
   if (c.quiz) blocos.push(`<div class="card">${tituloIcone("bloco", "Teste de conhecimento")}
@@ -1066,6 +1072,7 @@ async function abrirDetalheCandidato(id) {
   document.body.appendChild(fundo);
   fundo.addEventListener("click", (ev) => { if (ev.target === fundo) fundo.remove(); });
   fundo.querySelector("#modal-fechar").addEventListener("click", () => fundo.remove());
+  if (comVoz) vozPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-voz"));
   const baixar = fundo.querySelector("#baixar-cv");
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {

@@ -147,6 +147,7 @@ function htmlMatch(match, nomeCargo) {
     base: "Código B.A.S.E.",
     conhecimento: "Conhecimento",
     entrevista: "Entrevista",
+    voz: "Triagem por voz",
   };
   const detalhes = {
     competencias: "aderência às competências exigidas",
@@ -154,17 +155,19 @@ function htmlMatch(match, nomeCargo) {
     base: match.base_alvo ? "alinhamento com o arquétipo desejado: " + BASE_PERFIS[match.base_alvo].nome : "",
     conhecimento: "acertos no teste de conhecimento do cargo",
     entrevista: "média do scorecard da entrevista estruturada",
+    voz: "pontuação da ligação de triagem com a Francisca",
   };
-  const CHAVES = ["competencias", "disc", "base", "conhecimento", "entrevista"];
+  const CHAVES = ["voz", "competencias", "disc", "base", "conhecimento", "entrevista"];
   const ordem = CHAVES.filter((k) => k in match.componentes);
-  const faltando = CHAVES.filter((k) => !(k in match.componentes));
+  // a triagem por voz só existe em cargos que a usam: não aparece como pendente
+  const faltando = CHAVES.filter((k) => k !== "voz" && !(k in match.componentes));
   const nomesFaltando = {
     competencias: "autoavaliação de competências", disc: "teste DISC",
     base: "teste B.A.S.E.", conhecimento: "teste de conhecimento", entrevista: "entrevista",
   };
   return `
     ${tituloIcone("alvo", "Match com o cargo" + (nomeCargo ? ": " + esc(nomeCargo) : ""))}
-    <p class="desc">Índice único que cruza todas as dimensões da avaliação: competências (peso 30%), perfil DISC (15%), código B.A.S.E. (15%), teste de conhecimento (20%) e entrevista (20%). Os pesos se redistribuem sobre o que já foi respondido.</p>
+    <p class="desc">Índice único que cruza todas as dimensões da avaliação: competências (peso 30%), perfil DISC (15%), código B.A.S.E. (15%), teste de conhecimento (20%) e entrevista (20%). Os pesos se redistribuem sobre o que já foi respondido.${"voz" in match.componentes ? " A triagem por voz entra com o peso definido no cargo e os demais componentes dividem o restante." : ""}</p>
     <div class="match-geral">
       <div class="match-num">${match.geral}%</div>
       <div class="match-rotulo">match geral</div>
