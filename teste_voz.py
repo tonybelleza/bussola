@@ -458,6 +458,26 @@ class TestFluxo(unittest.TestCase):
             tags = json.loads(self.conn.execute("SELECT tags FROM candidatos WHERE id=?", (a,)).fetchone()[0])
             self.assertIn(etiqueta, tags)
 
+    def test_ligacao_presa_em_initiated_libera_a_fila(self):
+        a = self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE voz_chamadas SET iniciada_em=datetime('now','-20 minutes')")
+        self.conn.commit()
+        self.falso.conversas["conv_1"] = {"status": "initiated", "transcript": []}
+        self.assertEqual(voz.reconciliar(self.conn), 1)
+        ca = self.candidatura(a)
+        self.assertEqual(ca["voz_status"], "para_ligar")
+        ch = self.conn.execute("SELECT status, erro FROM voz_chamadas").fetchone()
+        self.assertEqual((ch["status"], ch["erro"]), ("falhou", "stuck_initiated"))
+
+    def test_ligacao_recente_em_initiated_espera(self):
+        self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE voz_chamadas SET iniciada_em=datetime('now','-5 minutes')")
+        self.conn.commit()
+        self.falso.conversas["conv_1"] = {"status": "initiated", "transcript": []}
+        self.assertEqual(voz.reconciliar(self.conn), 0)
+
     def test_reconcilia_webhook_perdido(self):
         a = self.candidato()
         voz.tick(self.conn, self.TERCA_10H)

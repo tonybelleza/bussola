@@ -814,6 +814,8 @@ _SQL_CANDIDATURA = (
 )
 
 _trava_tick = threading.Lock()
+LIMITE_SEM_CONECTAR = 15  # minutos em "initiated" até desistir da ligação
+LIMITE_LIGACAO = 45       # minutos no total até desistir de uma ligação que não termina
 
 
 class ErroVoz(Exception):
@@ -976,6 +978,15 @@ def processar_conversa(conn, conversation_id):
         return False
     conversa = gw.conversa(conversation_id)
     status = conversa.get("status")
+    # ligação que nunca conectou (fica "initiated" para sempre) ou que não termina:
+    # encerra como sem resposta para não travar a fila
+    inicio = _de_sql(chamada["iniciada_em"])
+    minutos = (_agora_utc() - inicio).total_seconds() / 60 if inicio else 0
+    if (status == "initiated" and minutos >= LIMITE_SEM_CONECTAR) or (
+        status not in ("done", "failed", "processing") and minutos >= LIMITE_LIGACAO
+    ):
+        aplicar_resultado(conn, chamada, {"status": "failed", "transcript": []}, erro="stuck_" + str(status))
+        return True
     if status not in ("done", "failed"):
         if status == "processing" and chamada["status"] != "processando":
             conn.execute("UPDATE voz_chamadas SET status='processando' WHERE id=?", (chamada["id"],))
