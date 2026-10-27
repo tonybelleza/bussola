@@ -7,6 +7,15 @@
 
 const VOZ_TEXTOS = {
   pt: {
+    identidade: "Identidade na ligação", nomeLigacao: "Nome da empresa falado na ligação", cidadeLigacao: "Cidade",
+    telefoneRetorno: "Telefone de retorno (recado de correio de voz)", gerente: "Nome de quem contrata (ex.: Carine)",
+    roteiro: "Roteiro", roteiroTitulo: "Roteiro da Francisca: {cargo}",
+    roteiroDesc: "A Francisca só responde com o que estiver aqui. Pagamento, vínculo, horário, benefícios e regras.",
+    fatosVaga: "Fatos da vaga", faqs: "Perguntas frequentes", faqPergunta: "Pergunta", faqResposta: "Resposta",
+    addFaq: "Adicionar FAQ", perguntasExtras: "Perguntas extras de triagem (até 10)", addPergunta: "Adicionar pergunta",
+    requisitos: "Requisitos que reprovam", exigeCarro: "Exige carro próprio", exigeCarteira: "Exige carteira de motorista",
+    exigeSmartphone: "Exige smartphone", area25: "Cidades até ~25 milhas (uma por linha)", area40: "Cidades até ~40 milhas (uma por linha)",
+    areaDica: "Deixe vazio para usar a área padrão de Hartford.", remover: "Remover", fechar: "Fechar",
     aba: "Triagem por voz",
     titulo: "Triagem por voz",
     sub: "A Francisca liga para cada candidato inscrito nas vagas com triagem por voz.",
@@ -40,6 +49,15 @@ const VOZ_TEXTOS = {
     idiomaLigacao: { es: "espanhol", en: "inglês", pt: "português" },
   },
   en: {
+    identidade: "Call identity", nomeLigacao: "Company name spoken on the call", cidadeLigacao: "City",
+    telefoneRetorno: "Callback phone (voicemail message)", gerente: "Hiring manager name (e.g. Carine)",
+    roteiro: "Script", roteiroTitulo: "Francisca's script: {cargo}",
+    roteiroDesc: "Francisca only answers with what is written here. Pay, employment type, hours, benefits and rules.",
+    fatosVaga: "Job facts", faqs: "FAQs", faqPergunta: "Question", faqResposta: "Answer",
+    addFaq: "Add FAQ", perguntasExtras: "Extra screening questions (up to 10)", addPergunta: "Add question",
+    requisitos: "Requirements that disqualify", exigeCarro: "Own car required", exigeCarteira: "Driver's license required",
+    exigeSmartphone: "Smartphone required", area25: "Towns within ~25 miles (one per line)", area40: "Towns within ~40 miles (one per line)",
+    areaDica: "Leave empty to use the default Hartford area.", remover: "Remove", fechar: "Close",
     aba: "Voice screening",
     titulo: "Voice screening",
     sub: "Francisca calls every candidate who applies to a job with voice screening.",
@@ -73,6 +91,15 @@ const VOZ_TEXTOS = {
     idiomaLigacao: { es: "Spanish", en: "English", pt: "Portuguese" },
   },
   es: {
+    identidade: "Identidad en la llamada", nomeLigacao: "Nombre de la empresa dicho en la llamada", cidadeLigacao: "Ciudad",
+    telefoneRetorno: "Teléfono de retorno (mensaje de buzón de voz)", gerente: "Nombre de quien contrata (ej.: Carine)",
+    roteiro: "Guion", roteiroTitulo: "Guion de Francisca: {cargo}",
+    roteiroDesc: "Francisca solo responde con lo que esté aquí. Pago, tipo de contrato, horario, beneficios y reglas.",
+    fatosVaga: "Datos de la vacante", faqs: "Preguntas frecuentes", faqPergunta: "Pregunta", faqResposta: "Respuesta",
+    addFaq: "Agregar pregunta frecuente", perguntasExtras: "Preguntas extra de evaluación (hasta 10)", addPergunta: "Agregar pregunta",
+    requisitos: "Requisitos eliminatorios", exigeCarro: "Exige carro propio", exigeCarteira: "Exige licencia de conducir",
+    exigeSmartphone: "Exige smartphone", area25: "Ciudades hasta ~25 millas (una por línea)", area40: "Ciudades hasta ~40 millas (una por línea)",
+    areaDica: "Deje vacío para usar el área predeterminada de Hartford.", remover: "Quitar", fechar: "Cerrar",
     aba: "Evaluación por voz",
     titulo: "Evaluación por voz",
     sub: "Francisca llama a cada candidato que se postula a una vacante con evaluación por voz.",
@@ -126,9 +153,9 @@ const VOZ_PONTOS = {
 };
 
 const VOZ_FATOS = {
-  pt: { license: "Carteira de motorista", own_car: "Carro próprio", city: "Cidade", weekdays_available: "Dias úteis disponíveis", days_available: "Dias (palavras do candidato)", saturdays_ok: "Aceita sábado", experience: "Experiência", works_alone: "Trabalha sozinho", has_smartphone: "Tem smartphone", start_date: "Início", pets: "Pets", standards: "Padrões", interview_windows: "Janelas para entrevista", text_phone: "Telefone para SMS", ok_to_text: "Aceita SMS", candidate_questions: "Perguntas do candidato", notes: "Notas da agente" },
-  en: { license: "Driver's license", own_car: "Own car", city: "Town", weekdays_available: "Weekdays available", days_available: "Days (candidate's words)", saturdays_ok: "Open to Saturdays", experience: "Experience", works_alone: "Works alone", has_smartphone: "Has a smartphone", start_date: "Start", pets: "Pets", standards: "Standards", interview_windows: "Interview windows", text_phone: "Phone for texts", ok_to_text: "OK to text", candidate_questions: "Candidate questions", notes: "Agent notes" },
-  es: { license: "Licencia de conducir", own_car: "Carro propio", city: "Ciudad", weekdays_available: "Días entre semana", days_available: "Días (palabras del candidato)", saturdays_ok: "Acepta sábados", experience: "Experiencia", works_alone: "Trabaja solo", has_smartphone: "Tiene smartphone", start_date: "Inicio", pets: "Mascotas", standards: "Normas", interview_windows: "Horarios para entrevista", text_phone: "Teléfono para mensajes", ok_to_text: "Acepta mensajes", candidate_questions: "Preguntas del candidato", notes: "Notas de la agente" },
+  pt: { license: "Carteira de motorista", own_car: "Carro próprio", city: "Cidade", weekdays_available: "Dias úteis disponíveis", days_available: "Dias (palavras do candidato)", saturdays_ok: "Aceita sábado", experience: "Experiência", works_alone: "Trabalha sozinho", has_smartphone: "Tem smartphone", start_date: "Início", pets: "Pets", standards: "Padrões", interview_windows: "Janelas para entrevista", text_phone: "Telefone para SMS", ok_to_text: "Aceita SMS", candidate_questions: "Perguntas do candidato", notes: "Notas da agente", extra_answers: "Respostas às perguntas extras", resume_check: "Conferência do currículo" },
+  en: { license: "Driver's license", own_car: "Own car", city: "Town", weekdays_available: "Weekdays available", days_available: "Days (candidate's words)", saturdays_ok: "Open to Saturdays", experience: "Experience", works_alone: "Works alone", has_smartphone: "Has a smartphone", start_date: "Start", pets: "Pets", standards: "Standards", interview_windows: "Interview windows", text_phone: "Phone for texts", ok_to_text: "OK to text", candidate_questions: "Candidate questions", notes: "Agent notes", extra_answers: "Answers to extra questions", resume_check: "Resume check" },
+  es: { license: "Licencia de conducir", own_car: "Carro propio", city: "Ciudad", weekdays_available: "Días entre semana", days_available: "Días (palabras del candidato)", saturdays_ok: "Acepta sábados", experience: "Experiencia", works_alone: "Trabaja solo", has_smartphone: "Tiene smartphone", start_date: "Inicio", pets: "Mascotas", standards: "Normas", interview_windows: "Horarios para entrevista", text_phone: "Teléfono para mensajes", ok_to_text: "Acepta mensajes", candidate_questions: "Preguntas del candidato", notes: "Notas de la agente", extra_answers: "Respuestas a preguntas extra", resume_check: "Verificación del currículum" },
 };
 
 const VOZ_VALORES = {
@@ -144,9 +171,9 @@ const VOZ_MOTIVOS = {
 };
 
 const VOZ_ERROS = {
-  pt: { do_not_call: "Candidato marcado como Não ligar.", blocked_outcome: "O candidato pediu para não ligar ou não tem interesse.", invalid_phone: "Telefone inválido: a ligação só sai para números dos EUA.", in_call: "O candidato está em ligação agora.", attempts_exhausted: "Tentativas esgotadas. Zere as tentativas primeiro.", not_configured: "Configure a integração ElevenLabs primeiro.", start_failed: "Não foi possível iniciar a ligação.", status_changed: "O status mudou. Recarregue.", anonymized: "Candidato anonimizado.", forbidden: "Sem permissão.", invalid_time: "Horário inválido (use HH:MM).", invalid_number: "Número fora do permitido.", invalid_days: "Escolha ao menos um dia.", module_disabled: "Módulo não liberado para esta conta." },
-  en: { do_not_call: "Candidate is marked Do not call.", blocked_outcome: "The candidate asked not to be called or is not interested.", invalid_phone: "Invalid phone: calls only go to US numbers.", in_call: "The candidate is on a call right now.", attempts_exhausted: "No attempts left. Reset attempts first.", not_configured: "Set up the ElevenLabs integration first.", start_failed: "Could not start the call.", status_changed: "The status changed. Reload.", anonymized: "Candidate anonymized.", forbidden: "Not allowed.", invalid_time: "Invalid time (use HH:MM).", invalid_number: "Number out of range.", invalid_days: "Pick at least one day.", module_disabled: "Module not enabled for this account." },
-  es: { do_not_call: "Candidato marcado como No llamar.", blocked_outcome: "El candidato pidió no ser llamado o no tiene interés.", invalid_phone: "Teléfono inválido: las llamadas solo salen a números de EE. UU.", in_call: "El candidato está en una llamada ahora.", attempts_exhausted: "Intentos agotados. Reinicie los intentos primero.", not_configured: "Configure primero la integración ElevenLabs.", start_failed: "No se pudo iniciar la llamada.", status_changed: "El estado cambió. Recargue.", anonymized: "Candidato anonimizado.", forbidden: "Sin permiso.", invalid_time: "Hora inválida (use HH:MM).", invalid_number: "Número fuera del rango.", invalid_days: "Elija al menos un día.", module_disabled: "Módulo no habilitado para esta cuenta." },
+  pt: { do_not_call: "Candidato marcado como Não ligar.", blocked_outcome: "O candidato pediu para não ligar ou não tem interesse.", invalid_phone: "Telefone inválido: a ligação só sai para números dos EUA.", in_call: "O candidato está em ligação agora.", attempts_exhausted: "Tentativas esgotadas. Zere as tentativas primeiro.", not_configured: "Configure a integração ElevenLabs primeiro.", start_failed: "Não foi possível iniciar a ligação.", status_changed: "O status mudou. Recarregue.", anonymized: "Candidato anonimizado.", forbidden: "Sem permissão.", invalid_time: "Horário inválido (use HH:MM).", invalid_number: "Número fora do permitido.", invalid_days: "Escolha ao menos um dia.", text_too_long: "Texto longo demais.", module_disabled: "Módulo não liberado para esta conta." },
+  en: { do_not_call: "Candidate is marked Do not call.", blocked_outcome: "The candidate asked not to be called or is not interested.", invalid_phone: "Invalid phone: calls only go to US numbers.", in_call: "The candidate is on a call right now.", attempts_exhausted: "No attempts left. Reset attempts first.", not_configured: "Set up the ElevenLabs integration first.", start_failed: "Could not start the call.", status_changed: "The status changed. Reload.", anonymized: "Candidate anonymized.", forbidden: "Not allowed.", invalid_time: "Invalid time (use HH:MM).", invalid_number: "Number out of range.", invalid_days: "Pick at least one day.", text_too_long: "Text is too long.", module_disabled: "Module not enabled for this account." },
+  es: { do_not_call: "Candidato marcado como No llamar.", blocked_outcome: "El candidato pidió no ser llamado o no tiene interés.", invalid_phone: "Teléfono inválido: las llamadas solo salen a números de EE. UU.", in_call: "El candidato está en una llamada ahora.", attempts_exhausted: "Intentos agotados. Reinicie los intentos primero.", not_configured: "Configure primero la integración ElevenLabs.", start_failed: "No se pudo iniciar la llamada.", status_changed: "El estado cambió. Recargue.", anonymized: "Candidato anonimizado.", forbidden: "Sin permiso.", invalid_time: "Hora inválida (use HH:MM).", invalid_number: "Número fuera del rango.", invalid_days: "Elija al menos un día.", text_too_long: "Texto demasiado largo.", module_disabled: "Módulo no habilitado para esta cuenta." },
 };
 
 const VOZ_CORES_TIER = { STRONG: "ok", GOOD: "info", REVIEW: "warn", LOW: "err" };
@@ -355,6 +382,13 @@ function vozHtmlConfig(r, cfg) {
         <select id="vc-idioma">${["es", "en", "pt"].map((l) => `<option value="${l}" ${cfg.idioma_padrao === l ? "selected" : ""}>${esc(VOZ_TEXTOS[vozIdioma].idiomaLigacao[l])}</option>`).join("")}</select>
       </label>
     </div>
+    <p class="hint" style="margin-top:4px">${vt("identidade")}</p>
+    <div class="grid cols-2">
+      <label class="field">${vt("nomeLigacao")}<input type="text" id="vc-nome" maxlength="120" value="${esc(cfg.nome_ligacao || "")}" placeholder="${esc(r.empresa || "")}"></label>
+      <label class="field">${vt("cidadeLigacao")}<input type="text" id="vc-cidade" maxlength="120" value="${esc(cfg.cidade || "")}" placeholder="Hartford"></label>
+      <label class="field">${vt("telefoneRetorno")}<input type="text" id="vc-telefone" maxlength="40" value="${esc(cfg.telefone_retorno || "")}" placeholder="860-790-9545"></label>
+      <label class="field">${vt("gerente")}<input type="text" id="vc-gerente" maxlength="80" value="${esc(cfg.gerente || "")}" placeholder="Carine"></label>
+    </div>
     <label class="field" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="vc-ativo" ${cfg.ativo ? "checked" : ""}> ${vt("cAtivo")}</label>
     <label class="field" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="vc-pausado" ${cfg.pausado ? "checked" : ""}> ${vt("cPausado")}</label>
     <div class="grid cols-3">
@@ -394,6 +428,8 @@ function vozLigarConfig(el, r, redesenhar) {
         inicio: q("#vc-inicio").value, fim: q("#vc-fim").value, dias,
         max_tentativas: Number(q("#vc-max").value), simultaneas: Number(q("#vc-sim").value),
         intervalo_horas: Number(q("#vc-int").value), idioma_padrao: q("#vc-idioma").value,
+        nome_ligacao: q("#vc-nome").value, cidade: q("#vc-cidade").value,
+        telefone_retorno: q("#vc-telefone").value, gerente: q("#vc-gerente").value,
       } } });
       q("#vc-ok").textContent = vt("salvo");
       setTimeout(redesenhar, 700);
@@ -407,7 +443,8 @@ function vozHtmlCargos(r) {
     <p class="desc">${vt("cargosDesc")}</p>
     <div class="tabela-wrap"><table class="tabela"><tbody>${r.cargos.map((c) => `
       <tr><td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-voz-cargo="${c.id}" ${c.voz_ativa ? "checked" : ""}> ${esc(c.nome)}</label></td>
-        <td class="num">${vt("peso")} <input type="number" min="0" max="80" step="5" style="width:70px" data-voz-peso="${c.id}" value="${Math.round((c.peso_voz || 0) * 100)}">%</td></tr>`).join("")}
+        <td class="num">${vt("peso")} <input type="number" min="0" max="80" step="5" style="width:70px" data-voz-peso="${c.id}" value="${Math.round((c.peso_voz || 0) * 100)}">%</td>
+        <td class="num"><button class="btn secondary small" data-voz-roteiro="${c.id}" data-nome="${esc(c.nome)}">${vt("roteiro")}</button></td></tr>`).join("")}
     </tbody></table></div></div>`;
 }
 
@@ -420,6 +457,84 @@ function vozLigarCargos(el, redesenhar) {
   };
   el.querySelectorAll("[data-voz-cargo]").forEach((cb) => cb.addEventListener("change", () => salvar(cb.dataset.vozCargo)));
   el.querySelectorAll("[data-voz-peso]").forEach((inp) => inp.addEventListener("change", () => salvar(inp.dataset.vozPeso)));
+  el.querySelectorAll("[data-voz-roteiro]").forEach((b) => b.addEventListener("click", () =>
+    vozEditarRoteiro(Number(b.dataset.vozRoteiro), b.dataset.nome)));
+}
+
+
+// ------------------------------------------------ editor do roteiro (por cargo)
+async function vozEditarRoteiro(cargoId, nomeCargo) {
+  let r;
+  try { r = await vozApi("/api/gestor/voz/cargo/" + cargoId + "/roteiro"); } catch (e) { alert(e.message); return; }
+  const rot = r.roteiro;
+  const fundo = document.createElement("div");
+  fundo.className = "modal-fundo";
+  const linhaFaq = (f) => `<div class="sub-card voz-faq" style="margin-top:8px">
+      <label class="field">${vt("faqPergunta")}<input type="text" class="vf-p" maxlength="600" value="${esc(f.pergunta || "")}"></label>
+      <label class="field">${vt("faqResposta")}<textarea class="vf-r" rows="2" maxlength="1200">${esc(f.resposta || "")}</textarea></label>
+      <button class="btn ghost small vf-rem">${vt("remover")}</button></div>`;
+  const linhaPergunta = (p) => `<div class="linha-acoes voz-perg" style="margin-top:6px">
+      <input type="text" class="vp-t" maxlength="600" value="${esc(p || "")}" style="flex:1;margin:0">
+      <button class="btn ghost small vp-rem">${vt("remover")}</button></div>`;
+  fundo.innerHTML = `<div class="modal">
+    <button class="btn ghost small fechar" id="vr-fechar">${vt("fechar")}</button>
+    <h2 style="margin-top:0">${esc(vt("roteiroTitulo", { cargo: nomeCargo }))}</h2>
+    <p class="desc">${vt("roteiroDesc")}</p>
+    <label class="field">${vt("fatosVaga")}<textarea id="vr-fatos" rows="7" maxlength="${r.limites.fatos}">${esc(rot.fatos || "")}</textarea></label>
+    <h3>${vt("requisitos")}</h3>
+    <div class="linha-acoes">
+      <label><input type="checkbox" id="vr-carteira" ${rot.exige_carteira ? "checked" : ""}> ${vt("exigeCarteira")}</label>
+      <label><input type="checkbox" id="vr-carro" ${rot.exige_carro ? "checked" : ""}> ${vt("exigeCarro")}</label>
+      <label><input type="checkbox" id="vr-smart" ${rot.exige_smartphone ? "checked" : ""}> ${vt("exigeSmartphone")}</label>
+    </div>
+    <h3>${vt("perguntasExtras")}</h3>
+    <div id="vr-perguntas">${(rot.perguntas || []).map(linhaPergunta).join("")}</div>
+    <button class="btn secondary small" id="vr-add-perg" style="margin-top:6px">${vt("addPergunta")}</button>
+    <h3>${vt("faqs")}</h3>
+    <div id="vr-faqs">${(rot.faqs || []).map(linhaFaq).join("")}</div>
+    <button class="btn secondary small" id="vr-add-faq" style="margin-top:6px">${vt("addFaq")}</button>
+    <div class="grid cols-2" style="margin-top:12px">
+      <label class="field">${vt("area25")}<textarea id="vr-a25" rows="5">${esc((rot.cidades_25 || []).join("\n"))}</textarea></label>
+      <label class="field">${vt("area40")}<textarea id="vr-a40" rows="5">${esc((rot.cidades_40 || []).join("\n"))}</textarea></label>
+    </div>
+    <p class="hint">${vt("areaDica")}</p>
+    <p class="form-erro" id="vr-erro"></p>
+    <button class="btn" id="vr-salvar">${vt("salvar")}</button> <span class="desc" id="vr-ok" style="margin:0"></span>
+  </div>`;
+  document.body.appendChild(fundo);
+  const q = (sel) => fundo.querySelector(sel);
+  const ligarRemover = () => {
+    fundo.querySelectorAll(".vf-rem").forEach((b) => { b.onclick = () => b.closest(".voz-faq").remove(); });
+    fundo.querySelectorAll(".vp-rem").forEach((b) => { b.onclick = () => b.closest(".voz-perg").remove(); });
+  };
+  ligarRemover();
+  q("#vr-fechar").addEventListener("click", () => fundo.remove());
+  q("#vr-add-faq").addEventListener("click", () => {
+    q("#vr-faqs").insertAdjacentHTML("beforeend", linhaFaq({}));
+    ligarRemover();
+  });
+  q("#vr-add-perg").addEventListener("click", () => {
+    if (fundo.querySelectorAll(".voz-perg").length >= r.limites.perguntas) return;
+    q("#vr-perguntas").insertAdjacentHTML("beforeend", linhaPergunta(""));
+    ligarRemover();
+  });
+  q("#vr-salvar").addEventListener("click", async () => {
+    q("#vr-erro").textContent = "";
+    const linhas = (id) => q(id).value.split("\n").map((x) => x.trim()).filter(Boolean);
+    const corpo = {
+      fatos: q("#vr-fatos").value,
+      exige_carteira: q("#vr-carteira").checked, exige_carro: q("#vr-carro").checked, exige_smartphone: q("#vr-smart").checked,
+      perguntas: [...fundo.querySelectorAll(".vp-t")].map((i) => i.value.trim()).filter(Boolean),
+      faqs: [...fundo.querySelectorAll(".voz-faq")].map((d) => ({
+        pergunta: d.querySelector(".vf-p").value.trim(), resposta: d.querySelector(".vf-r").value.trim(),
+      })).filter((f) => f.pergunta && f.resposta),
+      cidades_25: linhas("#vr-a25"), cidades_40: linhas("#vr-a40"),
+    };
+    try {
+      await vozApi("/api/gestor/voz/cargo/" + cargoId + "/roteiro", { method: "POST", body: corpo });
+      q("#vr-ok").textContent = vt("salvo");
+    } catch (e) { q("#vr-erro").textContent = e.message; }
+  });
 }
 
 // ------------------------------------------------ bloco na ficha do candidato

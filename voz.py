@@ -79,6 +79,23 @@ PRIMEIRAS_FRASES = {
 }
 
 
+RECADOS = {
+    "es": "Hola {nome}, le habla Francisca de {empresa}, sobre su solicitud para el puesto de {cargo}. {retorno}Gracias.",
+    "en": "Hi {nome}, this is Francisca from {empresa}, about your application for the {cargo} position. {retorno}Thank you.",
+    "pt": "Oi {nome}, aqui é a Francisca, da {empresa}, sobre a sua candidatura para a vaga de {cargo}. {retorno}Obrigada.",
+}
+RETORNO = {
+    "es": "Por favor llámenos al {telefone}. ",
+    "en": "Please call us back at {telefone}. ",
+    "pt": "Por favor, retorne para {telefone}. ",
+}
+
+
+def recado_correio_voz(idioma, nome, empresa, cargo, telefone):
+    retorno = RETORNO[idioma].format(telefone=telefone) if telefone else ""
+    return RECADOS[idioma].format(nome=(nome or "").split(" ")[0], empresa=empresa, cargo=cargo, retorno=retorno)
+
+
 def primeira_frase(idioma, empresa, cidade):
     cidade = (cidade or "").strip()
     return PRIMEIRAS_FRASES[idioma].format(
@@ -798,7 +815,7 @@ def _texto_lista(itens, vazio="none"):
     return "\n".join("- " + i for i in itens) if itens else vazio
 
 
-def variaveis_da_ligacao(conn, row, cfg, roteiro):
+def variaveis_da_ligacao(conn, row, cfg, roteiro, idioma="es"):
     """Tudo que a Francisca precisa saber desta empresa, deste cargo e deste
     candidato. Vai como variáveis dinâmicas do ElevenLabs; nada fica fixo no prompt."""
     empresa = conn.execute("SELECT nome FROM empresas WHERE id=?", (row["empresa_id"],)).fetchone()
@@ -841,6 +858,8 @@ def variaveis_da_ligacao(conn, row, cfg, roteiro):
         "requirements": _texto_lista(requisitos),
         "service_area": "\n".join(area) or "none",
         "resume_summary": resumo_cv,
+        "voicemail_message": recado_correio_voz(
+            idioma, row["nome"], nome_empresa, row["cargo_nome"], cfg.get("telefone_retorno") or ""),
     }
 
 
@@ -875,7 +894,7 @@ def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False):
     conn.commit()  # libera o SQLite antes da chamada de rede
 
     telefone = para_e164(row["telefone"])
-    variaveis = variaveis_da_ligacao(conn, row, cfg, roteiro_do_cargo(conn, row["cargo_id"]))
+    variaveis = variaveis_da_ligacao(conn, row, cfg, roteiro_do_cargo(conn, row["cargo_id"]), idioma)
     abertura = primeira_frase(idioma, variaveis["company_name"], variaveis["company_city"])
     try:
         conversation_id, call_sid = gw.iniciar(telefone, variaveis, idioma, row["candidato_id"], abertura)

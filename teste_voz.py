@@ -321,6 +321,8 @@ class TestFluxo(unittest.TestCase):
         self.assertIn("Maid Pro", v["resume_summary"])
         self.assertIn("Belleza's Home Services en Hartford", self.falso.ultima_abertura)
         self.assertTrue(all(isinstance(x, str) for x in v.values()))
+        self.assertEqual(v["voicemail_message"], "Hola Maria, le habla Francisca de Belleza's Home Services, sobre su "
+                         "solicitud para el puesto de Cleaning Tech. Por favor llámenos al 860-790-9545. Gracias.")
 
     def test_entra_na_fila_so_com_voz_ativa(self):
         cid = self.candidato()
