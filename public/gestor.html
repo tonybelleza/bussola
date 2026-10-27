@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bússola · Painel do Gestor</title>
+  <title data-i18n-g="titulo_pagina">Bússola · Painel do Gestor</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/tema.js"></script>
 </head>
@@ -19,18 +19,21 @@
         </div>
       </div>
       <div class="actions">
-        <a class="btn on-dark small" href="/">Início</a>
-        <button class="btn on-dark small oculto" id="btn-sair">Sair</button>
+        <a class="btn on-dark small" href="/" data-i18n-g="inicio">Início</a>
+        <button class="btn on-dark small oculto" id="btn-sair" data-i18n-g="sair">Sair</button>
       </div>
     </div>
   </div>
 
   <div class="container" id="app">
-    <div class="card texto-centro"><p>Carregando…</p></div>
+    <div class="card texto-centro"><p data-i18n-g="carregando">Carregando…</p></div>
   </div>
 
   <script src="js/icons.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/dados-en.js"></script>
+  <script src="js/dados-es.js"></script>
+  <script src="js/i18n-gestor.js"></script>
   <script src="js/gestor-diagnostico.js"></script>
   <script src="js/gestor-voz.js"></script>
   <script src="js/render.js"></script>

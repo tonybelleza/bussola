@@ -1,16 +1,21 @@
 /* =====================================================================
    Painel do Gestor: visão geral, candidatos, cargos/funções,
    matriz de gaps consolidada e configurações.
+   Textos da interface: tg(chave) de i18n-gestor.js (pt, en, es).
    ===================================================================== */
 
 const app = document.getElementById("app");
 let cargos = [];
 let candidatos = [];
 let abaAtiva = "visao";
+let painelAtivo = false;     // true depois do login (abas visíveis)
+let telaAtual = null;        // função que redesenha a tela de login/setup atual
+let pipelineAberto = null;   // { vagaId, modo } quando o pipeline de uma vaga está aberto
+let idiomaEscolhidoSemLogin = false;
 
 // ------------------------------------------------ API
 async function api(caminho, opcoes = {}) {
-  const headers = { "Content-Type": "application/json" };
+  const headers = { "Content-Type": "application/json", "X-Idioma": idiomaGestor };
   const token = localStorage.getItem("gestor_token");
   if (token) headers["X-Gestor-Token"] = token;
   const resp = await fetch(caminho, {
@@ -22,10 +27,15 @@ async function api(caminho, opcoes = {}) {
   if (resp.status === 401 && caminho !== "/api/gestor/login") {
     localStorage.removeItem("gestor_token");
     telaLogin();
-    throw new Error(dados.erro || "Sessão expirada");
+    throw new Error(dados.erro || tg("erro_sessao"));
   }
-  if (!resp.ok) throw new Error(dados.erro || "Erro de comunicação com o servidor");
+  if (!resp.ok) throw new Error(dados.erro || tg("erro_comunicacao"));
   return dados;
+}
+
+// cabeçalhos dos downloads feitos com fetch direto (currículo, PDF)
+function headersDownload() {
+  return { "X-Gestor-Token": localStorage.getItem("gestor_token") || "", "X-Idioma": idiomaGestor };
 }
 
 async function carregarDados() {
@@ -34,27 +44,106 @@ async function carregarDados() {
   candidatos = rl.candidatos;
 }
 
+// ------------------------------------------------ idioma do painel
+// Uma única configuração: localStorage "idioma" (a mesma da aba de voz)
+// e, com sessão aberta, o idioma salvo no servidor (e-mails do gestor).
+function trocarIdiomaPainel(lang) {
+  const cod = normalizarIdiomaGestor(lang);
+  if (!cod) return;
+  definirIdiomaGestor(cod);
+  if (localStorage.getItem("gestor_token")) {
+    const info = infoGestor();
+    if (info.nome) {
+      info.idioma = cod;
+      localStorage.setItem("gestor_info", JSON.stringify(info));
+    }
+    api("/api/gestor/idioma", { method: "POST", body: { idioma: cod } }).catch(() => {});
+  } else {
+    idiomaEscolhidoSemLogin = true;
+  }
+  redesenharTelaAtual();
+}
+
+function redesenharTelaAtual() {
+  atualizarTopo();
+  if (!painelAtivo) {
+    if (telaAtual) telaAtual();
+    return;
+  }
+  // formulário do diagnóstico aberto: redesenha mantendo o que já foi digitado
+  if (abaAtiva === "diagnostico" && typeof diagRedesenharFormulario === "function" && diagRedesenharFormulario()) {
+    desenharAbas();
+    return;
+  }
+  desenharPainel();
+}
+
+// os botões PT/EN/ES da aba de voz também trocam o idioma do painel
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest && ev.target.closest("[data-voz-idioma]");
+  if (!b) return;
+  const cod = normalizarIdiomaGestor(b.dataset.vozIdioma);
+  if (!cod || cod === idiomaGestor) return;
+  setTimeout(() => trocarIdiomaPainel(cod), 0);
+});
+
+function atualizarTopo() {
+  const sub = document.querySelector(".topbar .sub");
+  if (!sub) return;
+  const info = infoGestor();
+  if (painelAtivo && info.nome) {
+    const partes = [info.nome];
+    if (info.empresa && info.empresa.nome) partes.push(info.empresa.nome);
+    if (info.local) partes.push(info.local);
+    if (info.admin && info.nome !== "Administrador") partes.push(tg("administrador"));
+    sub.textContent = partes.join(" · ");
+  } else {
+    sub.textContent = tg("topo_sub");
+  }
+}
+
+function salvarSessao(r) {
+  localStorage.setItem("gestor_token", r.token);
+  localStorage.setItem("gestor_info", JSON.stringify({
+    nome: r.nome, login: r.login, local: r.local, admin: r.admin,
+    modulos: r.modulos || [], empresa: r.empresa || null, idioma: r.idioma || "",
+  }));
+  const servidor = normalizarIdiomaGestor(r.idioma);
+  if (idiomaEscolhidoSemLogin) {
+    // escolheu o idioma na tela de login: vale também para os e-mails
+    if (servidor !== idiomaGestor) {
+      api("/api/gestor/idioma", { method: "POST", body: { idioma: idiomaGestor } }).catch(() => {});
+    }
+  } else if (!idiomaGestorSalvo() && servidor) {
+    definirIdiomaGestor(servidor);
+  }
+  idiomaEscolhidoSemLogin = false;
+}
+
 // ------------------------------------------------ login
 function telaLogin() {
+  painelAtivo = false;
+  telaAtual = telaLogin;
+  atualizarTopo();
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:440px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("cadeado")}<span>Acesso do gestor</span></h2>
-      <p class="desc">Área restrita. Entre com o seu login e senha de gestor.</p>
-      <label class="field">Login
-        <input type="text" id="login-usuario" placeholder="seu.login" autocomplete="username">
+      <h2 class="icone-titulo">${icone("cadeado")}<span>${tg("login_titulo")}</span></h2>
+      <p class="desc">${tg("login_desc")}</p>
+      <label class="field">${tg("login")}
+        <input type="text" id="login-usuario" placeholder="${tg("login_ph")}" autocomplete="username">
       </label>
-      <label class="field">Senha
+      <label class="field">${tg("senha")}
         <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
       </label>
       <div class="form-erro" id="login-erro"></div>
-      <button class="btn block" id="login-entrar">Entrar</button>
+      <button class="btn block" id="login-entrar">${tg("entrar")}</button>
       <p class="texto-centro" style="margin:14px 0 6px">
-        <a href="#" id="link-esqueci" style="color:var(--text-2);font-size:.85rem">Esqueci minha senha</a>
+        <a href="#" id="link-esqueci" style="color:var(--text-2);font-size:.85rem">${tg("esqueci_senha")}</a>
       </p>
       <p class="texto-centro" style="margin:0;border-top:1px solid var(--line-soft);padding-top:12px">
-        <span style="color:var(--muted);font-size:.85rem">Ainda não tem conta? </span>
-        <a href="#" id="link-solicitar" style="color:var(--accent);font-size:.85rem;font-weight:500">Solicitar acesso de gestor</a>
+        <span style="color:var(--muted);font-size:.85rem">${tg("sem_conta")} </span>
+        <a href="#" id="link-solicitar" style="color:var(--accent);font-size:.85rem;font-weight:500">${tg("solicitar_acesso")}</a>
       </p>
     </div>`;
   document.getElementById("link-esqueci").addEventListener("click", (ev) => {
@@ -76,11 +165,7 @@ function telaLogin() {
           senha: document.getElementById("login-senha").value,
         },
       });
-      localStorage.setItem("gestor_token", r.token);
-      localStorage.setItem("gestor_info", JSON.stringify({
-        nome: r.nome, login: r.login, local: r.local, admin: r.admin,
-        modulos: r.modulos || [], empresa: r.empresa || null,
-      }));
+      salvarSessao(r);
       iniciarPainel();
     } catch (e) {
       erro.textContent = e.message;
@@ -95,19 +180,20 @@ function telaLogin() {
 }
 
 function telaEsqueciSenha() {
+  painelAtivo = false;
+  telaAtual = telaEsqueciSenha;
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:440px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("chave")}<span>Recuperar acesso</span></h2>
-      <p class="desc">Informe o seu login ou e-mail. Se houver uma conta, enviaremos um
-        link para redefinir a senha (válido por 2 horas).</p>
-      <label class="field">Login ou e-mail
-        <input type="text" id="esq-ident" placeholder="seu.login ou voce@email.com">
+      <h2 class="icone-titulo">${icone("chave")}<span>${tg("esq_titulo")}</span></h2>
+      <p class="desc">${tg("esq_desc")}</p>
+      <label class="field">${tg("esq_ident")}
+        <input type="text" id="esq-ident" placeholder="${tg("esq_ident_ph")}">
       </label>
       <div class="form-erro" id="esq-msg"></div>
-      <button class="btn block" id="esq-enviar">Enviar link de redefinição</button>
+      <button class="btn block" id="esq-enviar">${tg("esq_enviar")}</button>
       <p class="texto-centro" style="margin:14px 0 0">
-        <a href="#" id="esq-voltar" style="color:var(--text-2);font-size:.85rem">Voltar ao login</a>
+        <a href="#" id="esq-voltar" style="color:var(--text-2);font-size:.85rem">${tg("voltar_login")}</a>
       </p>
     </div>`;
   document.getElementById("esq-voltar").addEventListener("click", (ev) => {
@@ -124,7 +210,7 @@ function telaEsqueciSenha() {
         body: { login: document.getElementById("esq-ident").value.trim() },
       });
       msg.style.color = "var(--ok)";
-      msg.textContent = "Se houver uma conta com esse login ou e-mail, o link de redefinição chegará em instantes. Verifique também o spam.";
+      msg.textContent = tg("esq_ok");
     } catch (e) {
       msg.textContent = e.message;
     }
@@ -132,31 +218,32 @@ function telaEsqueciSenha() {
 }
 
 function telaSolicitarAcesso() {
+  painelAtivo = false;
+  telaAtual = telaSolicitarAcesso;
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:460px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("usuario")}<span>Solicitar acesso de gestor</span></h2>
-      <p class="desc">Preencha seus dados. Sua conta ficará pendente até que o
-        administrador aprove. Você receberá um aviso por e-mail quando for liberada.</p>
-      <label class="field">Nome completo
-        <input type="text" id="sol-nome" placeholder="Seu nome">
+      <h2 class="icone-titulo">${icone("usuario")}<span>${tg("solicitar_acesso")}</span></h2>
+      <p class="desc">${tg("sol_desc")}</p>
+      <label class="field">${tg("nome_completo")}
+        <input type="text" id="sol-nome" placeholder="${tg("seu_nome_ph")}">
       </label>
-      <label class="field">Login desejado
-        <input type="text" id="sol-login" placeholder="seu.login" autocomplete="username">
+      <label class="field">${tg("sol_login")}
+        <input type="text" id="sol-login" placeholder="${tg("login_ph")}" autocomplete="username">
       </label>
-      <label class="field">E-mail
-        <input type="email" id="sol-email" placeholder="voce@email.com" autocomplete="email">
+      <label class="field">${tg("email")}
+        <input type="email" id="sol-email" placeholder="${tg("email_ph")}" autocomplete="email">
       </label>
-      <label class="field">Local / unidade <span class="hint">(opcional)</span>
-        <input type="text" id="sol-local" placeholder="Ex.: Secretaria de GTI">
+      <label class="field">${tg("sol_local")} <span class="hint">${tg("opcional")}</span>
+        <input type="text" id="sol-local" placeholder="${tg("local_ph")}">
       </label>
-      <label class="field">Senha (mín. 6 caracteres)
+      <label class="field">${tg("senha_min")}
         <input type="password" id="sol-senha" autocomplete="new-password">
       </label>
       <div class="form-erro" id="sol-msg"></div>
-      <button class="btn block" id="sol-enviar">Enviar solicitação</button>
+      <button class="btn block" id="sol-enviar">${tg("sol_enviar")}</button>
       <p class="texto-centro" style="margin:14px 0 0">
-        <a href="#" id="sol-voltar" style="color:var(--text-2);font-size:.85rem">Voltar ao login</a>
+        <a href="#" id="sol-voltar" style="color:var(--text-2);font-size:.85rem">${tg("voltar_login")}</a>
       </p>
     </div>`;
   document.getElementById("sol-voltar").addEventListener("click", (ev) => {
@@ -180,15 +267,18 @@ function telaSolicitarAcesso() {
           empresa: new URLSearchParams(location.search).get("e") || "",
         },
       });
-      app.innerHTML = `
-        <div class="card texto-centro" style="max-width:460px;margin:48px auto">
-          <div class="selo-final">${icone("check")}</div>
-          <h2>Solicitação enviada</h2>
-          <p class="desc">Sua conta está aguardando aprovação do administrador. Assim que
-            for liberada, você receberá um e-mail e poderá entrar normalmente.</p>
-          <button class="btn" id="sol-ok">Voltar ao login</button>
-        </div>`;
-      document.getElementById("sol-ok").addEventListener("click", telaLogin);
+      const telaEnviada = () => {
+        app.innerHTML = `
+          <div class="card texto-centro" style="max-width:460px;margin:48px auto">
+            <div class="selo-final">${icone("check")}</div>
+            <h2>${tg("sol_enviada")}</h2>
+            <p class="desc">${tg("sol_enviada_desc")}</p>
+            <button class="btn" id="sol-ok">${tg("voltar_login")}</button>
+          </div>`;
+        document.getElementById("sol-ok").addEventListener("click", telaLogin);
+      };
+      telaAtual = telaEnviada;
+      telaEnviada();
     } catch (e) {
       msg.textContent = e.message;
     }
@@ -196,19 +286,21 @@ function telaSolicitarAcesso() {
 }
 
 function telaRedefinirSenha(token) {
+  painelAtivo = false;
+  telaAtual = () => telaRedefinirSenha(token);
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:440px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("cadeado")}<span>Criar nova senha</span></h2>
-      <p class="desc">Defina a sua nova senha de acesso.</p>
-      <label class="field">Nova senha (mín. 6 caracteres)
+      <h2 class="icone-titulo">${icone("cadeado")}<span>${tg("red_titulo")}</span></h2>
+      <p class="desc">${tg("red_desc")}</p>
+      <label class="field">${tg("nova_senha_min")}
         <input type="password" id="red-senha" autocomplete="new-password">
       </label>
-      <label class="field">Confirmar nova senha
+      <label class="field">${tg("red_confirmar")}
         <input type="password" id="red-senha2" autocomplete="new-password">
       </label>
       <div class="form-erro" id="red-msg"></div>
-      <button class="btn block" id="red-salvar">Salvar nova senha</button>
+      <button class="btn block" id="red-salvar">${tg("red_salvar")}</button>
     </div>`;
   document.getElementById("red-salvar").addEventListener("click", async () => {
     const msg = document.getElementById("red-msg");
@@ -216,7 +308,7 @@ function telaRedefinirSenha(token) {
     msg.textContent = "";
     const senha = document.getElementById("red-senha").value;
     if (senha !== document.getElementById("red-senha2").value) {
-      msg.textContent = "As senhas não conferem.";
+      msg.textContent = tg("senhas_diferentes");
       return;
     }
     try {
@@ -226,7 +318,7 @@ function telaRedefinirSenha(token) {
       });
       history.replaceState({}, "", "/gestor");
       msg.style.color = "var(--ok)";
-      msg.textContent = "Senha redefinida! Redirecionando para o login…";
+      msg.textContent = tg("red_ok");
       setTimeout(telaLogin, 1500);
     } catch (e) {
       msg.textContent = e.message;
@@ -235,35 +327,37 @@ function telaRedefinirSenha(token) {
 }
 
 function telaSetup() {
+  painelAtivo = false;
+  telaAtual = telaSetup;
   document.getElementById("btn-sair").classList.add("oculto");
   app.innerHTML = `
     <div class="card" style="max-width:480px;margin:48px auto">
-      <h2 class="icone-titulo">${icone("usuario")}<span>Configuração inicial</span></h2>
-      <p class="desc">Bem-vindo! Este é o primeiro acesso ao sistema. Cadastre a conta do administrador, que gerencia cargos, gestores e candidatos.</p>
-      <label class="field">Seu nome
-        <input type="text" id="st-nome" placeholder="Nome completo">
+      <h2 class="icone-titulo">${icone("usuario")}<span>${tg("st_titulo")}</span></h2>
+      <p class="desc">${tg("st_desc")}</p>
+      <label class="field">${tg("st_nome")}
+        <input type="text" id="st-nome" placeholder="${tg("nome_completo")}">
       </label>
-      <label class="field">Login
-        <input type="text" id="st-login" placeholder="ex.: tony" autocomplete="username">
+      <label class="field">${tg("login")}
+        <input type="text" id="st-login" placeholder="${tg("st_login_ph")}" autocomplete="username">
       </label>
-      <label class="field">Seu e-mail <span class="hint">(para receber avisos de novos candidatos e avaliações)</span>
-        <input type="email" id="st-email" placeholder="voce@email.com" autocomplete="email">
+      <label class="field">${tg("st_email")} <span class="hint">${tg("st_email_hint")}</span>
+        <input type="email" id="st-email" placeholder="${tg("email_ph")}" autocomplete="email">
       </label>
-      <label class="field">Senha (mín. 6 caracteres)
+      <label class="field">${tg("senha_min")}
         <input type="password" id="st-senha" autocomplete="new-password">
       </label>
-      <label class="field">Confirmar senha
+      <label class="field">${tg("st_confirmar")}
         <input type="password" id="st-senha2" autocomplete="new-password">
       </label>
       <div class="form-erro" id="st-erro"></div>
-      <button class="btn block" id="st-criar">Criar conta e entrar</button>
+      <button class="btn block" id="st-criar">${tg("st_criar")}</button>
     </div>`;
   document.getElementById("st-criar").addEventListener("click", async () => {
     const erro = document.getElementById("st-erro");
     erro.textContent = "";
     const senha = document.getElementById("st-senha").value;
     if (senha !== document.getElementById("st-senha2").value) {
-      erro.textContent = "As senhas não conferem.";
+      erro.textContent = tg("senhas_diferentes");
       return;
     }
     try {
@@ -276,11 +370,7 @@ function telaSetup() {
           senha,
         },
       });
-      localStorage.setItem("gestor_token", r.token);
-      localStorage.setItem("gestor_info", JSON.stringify({
-        nome: r.nome, login: r.login, local: r.local, admin: r.admin,
-        modulos: r.modulos || [], empresa: r.empresa || null,
-      }));
+      salvarSessao(r);
       iniciarPainel();
     } catch (e) {
       erro.textContent = e.message;
@@ -305,15 +395,9 @@ document.getElementById("btn-sair").addEventListener("click", () => {
 // ------------------------------------------------ estrutura do painel
 async function iniciarPainel() {
   document.getElementById("btn-sair").classList.remove("oculto");
-  const info = infoGestor();
-  const sub = document.querySelector(".topbar .sub");
-  if (sub && info.nome) {
-    const partes = [info.nome];
-    if (info.empresa && info.empresa.nome) partes.push(info.empresa.nome);
-    if (info.local) partes.push(info.local);
-    if (info.admin && info.nome !== "Administrador") partes.push("Administrador");
-    sub.textContent = partes.join(" · ");
-  }
+  painelAtivo = true;
+  telaAtual = null;
+  atualizarTopo();
   await carregarDados();
   desenharPainel();
   // link direto vindo dos e-mails: /gestor#candidato=ID
@@ -324,48 +408,39 @@ async function iniciarPainel() {
   }
 }
 
-const MARCA_TEXTOS = {
-  pt: { titulo: "Marca e idioma dos e-mails", logo: "Logo da empresa", logo_desc: "Aparece no topo dos e-mails aos candidatos e no relatório em PDF. Use PNG ou JPG (até 1 MB), de preferência com fundo transparente ou branco.", sem_logo: "Nenhuma logo enviada", enviar: "Enviar logo", remover: "Remover", so_admin: "Só o administrador da empresa pode trocar a logo.", idioma: "Idioma dos e-mails que eu recebo", salvo: "Salvo." },
-  en: { titulo: "Branding and email language", logo: "Company logo", logo_desc: "Shown at the top of candidate emails and in the PDF report. Use PNG or JPG (up to 1 MB), ideally with a transparent or white background.", sem_logo: "No logo uploaded", enviar: "Upload logo", remover: "Remove", so_admin: "Only the company admin can change the logo.", idioma: "Language of the emails I receive", salvo: "Saved." },
-  es: { titulo: "Marca e idioma de los correos", logo: "Logo de la empresa", logo_desc: "Aparece arriba en los correos a los candidatos y en el informe PDF. Usa PNG o JPG (hasta 1 MB), de preferencia con fondo transparente o blanco.", sem_logo: "Ningún logo enviado", enviar: "Enviar logo", remover: "Quitar", so_admin: "Solo el administrador de la empresa puede cambiar el logo.", idioma: "Idioma de los correos que recibo", salvo: "Guardado." },
-};
-
 async function secaoMarca(el) {
   const r = await api("/api/gestor/empresa/marca");
-  const L = MARCA_TEXTOS[r.idioma] || MARCA_TEXTOS.pt;
   const admin = !!infoGestor().admin;
   el.innerHTML = `
     <div class="card">
-      <h2 class="icone-titulo">${icone("engrenagem")}<span>${L.titulo}</span></h2>
+      <h2 class="icone-titulo">${icone("engrenagem")}<span>${tg("marca_titulo")}</span></h2>
       <div class="grid cols-2">
         <div>
-          <h3>${L.logo}</h3>
-          <p class="desc" style="font-size:.82rem">${L.logo_desc}</p>
+          <h3>${tg("marca_logo")}</h3>
+          <p class="desc" style="font-size:.82rem">${tg("marca_logo_desc")}</p>
           <div id="marca-preview" style="background:#fff;border:1px solid var(--line, #e4e9f0);border-radius:12px;padding:14px;min-height:60px;display:flex;align-items:center">
-            ${r.logo_url ? `<img src="${esc(r.logo_url)}" alt="" style="max-height:56px;max-width:240px">` : `<span class="desc">${L.sem_logo}</span>`}
+            ${r.logo_url ? `<img src="${esc(r.logo_url)}" alt="" style="max-height:56px;max-width:240px">` : `<span class="desc">${tg("marca_sem_logo")}</span>`}
           </div>
           ${admin ? `<div class="linha-acoes mt">
-            <label class="btn secondary small" style="cursor:pointer">${L.enviar}<input type="file" id="marca-arquivo" accept="image/png,image/jpeg" style="display:none"></label>
-            ${r.logo_url ? `<button class="btn secondary small" id="marca-remover">${L.remover}</button>` : ""}
-          </div>` : `<p class="desc" style="font-size:.8rem">${L.so_admin}</p>`}
+            <label class="btn secondary small" style="cursor:pointer">${tg("marca_enviar")}<input type="file" id="marca-arquivo" accept="image/png,image/jpeg" style="display:none"></label>
+            ${r.logo_url ? `<button class="btn secondary small" id="marca-remover">${tg("remover")}</button>` : ""}
+          </div>` : `<p class="desc" style="font-size:.8rem">${tg("marca_so_admin")}</p>`}
         </div>
         <div>
-          <label class="field">${L.idioma}
+          <label class="field">${tg("marca_idioma")}
             <select id="marca-idioma">
-              ${[["pt", "Português"], ["en", "English"], ["es", "Español"]].map(([v, n]) => `<option value="${v}" ${r.idioma === v ? "selected" : ""}>${n}</option>`).join("")}
+              ${IDIOMAS_GESTOR.map((v) => `<option value="${v}" ${idiomaGestor === v ? "selected" : ""}>${NOMES_IDIOMAS_GESTOR[v]}</option>`).join("")}
             </select>
           </label>
+          <p class="desc" style="font-size:.8rem">${tg("marca_idioma_desc")}</p>
         </div>
       </div>
       <div class="form-erro" id="marca-erro"></div>
     </div>`;
   const erro = document.getElementById("marca-erro");
   const mostrar = (msg, ok) => { erro.style.color = ok ? "var(--ok)" : "var(--err)"; erro.textContent = msg; };
-  document.getElementById("marca-idioma").addEventListener("change", async (ev) => {
-    try {
-      await api("/api/gestor/idioma", { method: "POST", body: { idioma: ev.target.value } });
-      secaoMarca(el);
-    } catch (e) { mostrar(e.message); }
+  document.getElementById("marca-idioma").addEventListener("change", (ev) => {
+    trocarIdiomaPainel(ev.target.value);
   });
   const arquivo = document.getElementById("marca-arquivo");
   if (arquivo) arquivo.addEventListener("change", () => {
@@ -389,37 +464,60 @@ async function secaoMarca(el) {
   });
 }
 
-function desenharPainel() {
+function listaAbas() {
   const abas = [
-    ["visao", "Visão geral"],
-    ["vagas", "Vagas"],
-    ["candidatos", "Candidatos"],
-    ["cargos", "Cargos e funções"],
-    ["matriz", "Matriz de gaps"],
-    ["relatorios", "Relatórios"],
-    ["guia", "Guia"],
-    ["config", "Configurações"],
+    ["visao", tg("aba_visao")],
+    ["vagas", tg("aba_vagas")],
+    ["candidatos", tg("aba_candidatos")],
+    ["cargos", tg("aba_cargos")],
+    ["matriz", tg("aba_matriz")],
+    ["relatorios", tg("aba_relatorios")],
+    ["guia", tg("aba_guia")],
+    ["config", tg("aba_config")],
   ];
   if ((infoGestor().modulos || []).includes("diagnostico")) {
-    abas.splice(6, 0, ["diagnostico", "Diagnóstico"]);
+    abas.splice(6, 0, ["diagnostico", tg("aba_diagnostico")]);
   }
   if (typeof vozModuloAtivo === "function" && vozModuloAtivo()) {
     abas.splice(3, 0, ["voz", vt("aba")]);
   }
-  app.innerHTML = `
-    <div class="tabs">
-      ${abas.map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
-    </div>
-    <div id="conteudo"></div>`;
-  app.querySelectorAll(".tab").forEach((t) =>
+  return abas;
+}
+
+function htmlAbas() {
+  return listaAbas().map(([id, rot]) =>
+    `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("");
+}
+
+function ligarAbas() {
+  app.querySelectorAll(".tabs-painel .tab").forEach((t) =>
     t.addEventListener("click", () => {
       abaAtiva = t.dataset.aba;
+      pipelineAberto = null;
       desenharPainel();
     })
   );
+}
+
+// redesenha só a barra de abas (o conteúdo da aba fica como está)
+function desenharAbas() {
+  const barra = app.querySelector(".tabs-painel");
+  if (!barra) return;
+  barra.innerHTML = htmlAbas();
+  ligarAbas();
+}
+
+function desenharPainel() {
+  app.innerHTML = `
+    <div class="tabs tabs-painel">${htmlAbas()}</div>
+    <div id="conteudo"></div>`;
+  ligarAbas();
   const conteudo = document.getElementById("conteudo");
   if (abaAtiva === "visao") abaVisao(conteudo);
-  if (abaAtiva === "vagas") abaVagas(conteudo);
+  if (abaAtiva === "vagas") {
+    if (pipelineAberto) telaPipeline(conteudo, pipelineAberto.vagaId, pipelineAberto.modo);
+    else abaVagas(conteudo);
+  }
   if (abaAtiva === "candidatos") abaCandidatos(conteudo);
   if (abaAtiva === "cargos") abaCargos(conteudo);
   if (abaAtiva === "matriz") abaMatriz(conteudo);
@@ -437,24 +535,22 @@ async function abaRelatorios(el) {
     <div class="perfil-barra">
       <div class="rotulo">${esc(rotulo)}</div>
       <div class="trilha"><div class="valor" style="width:${maximo ? Math.round(100 * valor / maximo) : 0}%;background:${cor || "var(--accent-grad)"}"></div></div>
-      <div class="num">${valor}</div>
+      <div class="num">${fmtNum(valor)}</div>
     </div>`;
 
   const funilHtml = r.funil.map((f) => {
-    const maximo = Math.max(f.etapas.inscrito + f.etapas.avaliacoes + f.etapas.entrevista
-      + f.etapas.proposta + f.etapas.contratado, 1);
     const ativos = f.total - f.etapas.reprovado;
     return `
       <div class="card">
         <h2 style="font-size:1.05rem">${esc(f.vaga)}
-          ${f.status === "aberta" ? '<span class="badge ok">Aberta</span>' : '<span class="badge tipo">' + esc(f.status) + "</span>"}</h2>
-        <p class="desc">${f.total} candidato(s) no total · ${ativos} ativo(s) · ${f.etapas.reprovado} reprovado(s)</p>
+          ${f.status === "aberta" ? '<span class="badge ok">' + tg("status_aberta") + "</span>" : '<span class="badge tipo">' + esc(nomeStatusVaga(f.status)) + "</span>"}</h2>
+        <p class="desc">${tg("rel_funil_resumo", { total: fmtNum(f.total), ativos: fmtNum(ativos), reprovados: fmtNum(f.etapas.reprovado) })}</p>
         <div class="perfil-barras">
-          ${barra("Inscritos", f.total, Math.max(f.total, 1))}
-          ${barra("Avaliações+", f.etapas.avaliacoes + f.etapas.entrevista + f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
-          ${barra("Entrevista+", f.etapas.entrevista + f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
-          ${barra("Proposta+", f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
-          ${barra("Contratados", f.etapas.contratado, Math.max(f.total, 1), "var(--ok)")}
+          ${barra(tg("rel_inscritos"), f.total, Math.max(f.total, 1))}
+          ${barra(tg("rel_avaliacoes_mais"), f.etapas.avaliacoes + f.etapas.entrevista + f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
+          ${barra(tg("rel_entrevista_mais"), f.etapas.entrevista + f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
+          ${barra(tg("rel_proposta_mais"), f.etapas.proposta + f.etapas.contratado, Math.max(f.total, 1))}
+          ${barra(tg("rel_contratados"), f.etapas.contratado, Math.max(f.total, 1), "var(--ok)")}
         </div>
       </div>`;
   }).join("");
@@ -475,18 +571,18 @@ async function abaRelatorios(el) {
 
   el.innerHTML = `
     <div class="metricas">
-      <div class="metrica"><div class="num">${r.total_candidatos}</div><div class="rot">Candidatos no banco</div></div>
-      <div class="metrica"><div class="num">${r.avaliacoes_completas}</div><div class="rot">Avaliações completas</div></div>
-      <div class="metrica"><div class="num">${r.total_candidatos ? Math.round(100 * r.avaliacoes_completas / r.total_candidatos) + "%" : "0%"}</div><div class="rot">Taxa de conclusão</div></div>
-      <div class="metrica"><div class="num">${r.contratados}</div><div class="rot">Contratados</div></div>
-      <div class="metrica"><div class="num">${r.tempo_medio_contratacao != null ? r.tempo_medio_contratacao + "d" : "…"}</div><div class="rot">Tempo médio até contratar</div></div>
+      <div class="metrica"><div class="num">${fmtNum(r.total_candidatos)}</div><div class="rot">${tg("rel_m_banco")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(r.avaliacoes_completas)}</div><div class="rot">${tg("m_avaliacoes_completas")}</div></div>
+      <div class="metrica"><div class="num">${r.total_candidatos ? Math.round(100 * r.avaliacoes_completas / r.total_candidatos) + "%" : "0%"}</div><div class="rot">${tg("rel_m_conclusao")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(r.contratados)}</div><div class="rot">${tg("rel_contratados")}</div></div>
+      <div class="metrica"><div class="num">${r.tempo_medio_contratacao != null ? tg("rel_dias", { n: fmtNum(r.tempo_medio_contratacao) }) : "…"}</div><div class="rot">${tg("rel_m_tempo")}</div></div>
     </div>
-    ${r.por_mes.length ? `<div class="card"><h2 style="font-size:1.05rem">Candidatos por mês</h2>
-      <div class="perfil-barras">${r.por_mes.map((m2) => barra(m2.mes, m2.total, maxMes)).join("")}</div></div>` : ""}
-    ${funilHtml || '<div class="card"><p class="desc">Crie vagas para ver o funil de conversão.</p></div>'}
+    ${r.por_mes.length ? `<div class="card"><h2 style="font-size:1.05rem">${tg("rel_por_mes")}</h2>
+      <div class="perfil-barras">${r.por_mes.map((m2) => barra(fmtMes(m2.mes), m2.total, maxMes)).join("")}</div></div>` : ""}
+    ${funilHtml || '<div class="card"><p class="desc">' + tg("rel_sem_vagas") + "</p></div>"}
     <div class="grid cols-2">
-      ${distHtml("Perfis DISC do banco", r.disc, DISC_PERFIS)}
-      ${distHtml("Arquétipos B.A.S.E. do banco", r.base, BASE_PERFIS)}
+      ${distHtml(tg("rel_disc_banco"), r.disc, DISC_PERFIS)}
+      ${distHtml(tg("rel_base_banco"), r.base, BASE_PERFIS)}
     </div>`;
 }
 
@@ -497,72 +593,79 @@ function abaGuia(el) {
       <h2 class="icone-titulo" style="font-size:1.05rem">${p.ic ? icone(p.ic) : ""}<span>${esc(p.nome)}${letra ? " (" + letra + ")" : ""}</span></h2>
       <p style="font-size:.9rem;color:var(--text-2)">${esc(p.resumo)}</p>
     </div>`;
+  const nomesDisc = ["D", "I", "S", "C"].map((k) => DISC_PERFIS[k].nome);
+  const nomesBase = ["B", "A", "S", "E"].map((k) => BASE_PERFIS[k].nome);
+  const listaNomes = (nomes) => tg("lista_e", { inicio: nomes.slice(0, -1).join(", "), fim: nomes[nomes.length - 1] });
 
   el.innerHTML = `
     <div class="card">
-      <h2>Como funciona cada avaliação</h2>
-      <p class="desc">Este guia explica o que cada instrumento mede, como o candidato responde e como interpretar os resultados no painel.</p>
+      <h2>${tg("g_titulo")}</h2>
+      <p class="desc">${tg("g_desc")}</p>
     </div>
 
     <div class="card">
-      ${tituloIcone("camadas", "Teste DISC")}
-      <p class="desc">Perfil comportamental em 4 dimensões: Dominância, Influência, Estabilidade e Conformidade.</p>
-      <h3>Como o candidato responde</h3>
-      <p>São 24 blocos com 4 palavras cada. Em cada bloco, a pessoa marca a palavra que MAIS se parece com ela e a que MENOS se parece. Leva cerca de 8 minutos.</p>
-      <h3>Como interpretar</h3>
-      <p>Cada dimensão recebe um percentual de 0 a 100. O perfil dominante é a dimensão mais alta e o secundário é a segunda mais alta. A combinação das duas descreve o estilo de trabalho: como a pessoa decide, se comunica e reage à pressão. Não existe perfil bom ou ruim, existe perfil mais ou menos ajustado ao tipo de função.</p>
+      ${tituloIcone("camadas", tg("g_disc_titulo"))}
+      <p class="desc">${tg("g_disc_desc", { nomes: listaNomes(nomesDisc) })}</p>
+      <h3>${tg("g_como_responde")}</h3>
+      <p>${tg("g_disc_responde")}</p>
+      <h3>${tg("g_como_interpretar")}</h3>
+      <p>${tg("g_disc_interpretar")}</p>
       <div class="grid cols-2 mt">
         ${["D", "I", "S", "C"].map((k) => cartaoPerfil(DISC_PERFIS[k], k)).join("")}
       </div>
     </div>
 
     <div class="card">
-      ${tituloIcone("bussola", "Teste B.A.S.E.")}
-      <p class="desc">Código de personalidade em 4 arquétipos: Bússola, Atuante, Sensível e Estudioso. Metodologia de Tony Belleza que revela o que realmente impulsiona as decisões da pessoa.</p>
-      <h3>Como o candidato responde</h3>
-      <p>São 8 rodadas com 4 cartas cada, no formato do teste original de tonybelleza.com/base. Em cada rodada, a pessoa clica nas cartas em ordem, da que mais combina com ela (1º) até a que menos combina (4º). Cada posição vale pontos (1º vale 4, 2º vale 3, 3º vale 2 e 4º vale 1) e o resultado é o código completo: a ordem das 4 letras por pontuação. Leva menos de 3 minutos.</p>
-      <h3>Como interpretar</h3>
-      <p>O código se lê por posição: a 1ª letra é o motor principal da pessoa, a 2ª é a influência secundária, a 3ª é o modo ativado sob estresse e a 4ª mostra os valores menos prioritários. O relatório traz ainda os gatilhos (o que impulsiona e o que incomoda) e dicas de comunicação com os outros perfis, úteis para conduzir a entrevista. Enquanto o DISC descreve o comportamento observável, o B.A.S.E. revela o motor interno das decisões. Os dois juntos dão uma visão completa.</p>
+      ${tituloIcone("bussola", tg("g_base_titulo"))}
+      <p class="desc">${tg("g_base_desc", { nomes: listaNomes(nomesBase) })}</p>
+      <h3>${tg("g_como_responde")}</h3>
+      <p>${tg("g_base_responde")}</p>
+      <h3>${tg("g_como_interpretar")}</h3>
+      <p>${tg("g_base_interpretar")}</p>
       <div class="grid cols-2 mt">
         ${["B", "A", "S", "E"].map((k) => cartaoPerfil(BASE_PERFIS[k])).join("")}
       </div>
     </div>
 
     <div class="card">
-      ${tituloIcone("barras", "Autoavaliação de competências")}
-      <p class="desc">Nível atual do candidato em cada competência exigida pelo cargo de interesse.</p>
-      <h3>Como o candidato responde</h3>
-      <p>Para cada competência mapeada no cargo (na aba Cargos e funções), a pessoa indica seu nível atual numa escala de 0 a 5: 0 Não possuo, 1 Básico, 2 Em desenvolvimento, 3 Intermediário, 4 Avançado e 5 Especialista.</p>
-      <h3>Tipos de competência</h3>
-      <p>Técnica (o que precisa saber fazer), Relacional (como se relaciona e se comunica), Formação/Certificação (diplomas e certificados exigidos) e Experiência (tempo e vivência prática). Competências marcadas como obrigatórias são requisitos para exercer a função.</p>
+      ${tituloIcone("barras", tg("g_auto_titulo"))}
+      <p class="desc">${tg("g_auto_desc")}</p>
+      <h3>${tg("g_como_responde")}</h3>
+      <p>${tg("g_auto_responde", { escala: ESCALA_NIVEIS.map((n) => n.rot.replace(" · ", " ")).join(", ") })}</p>
+      <h3>${tg("g_tipos_titulo")}</h3>
+      <p>${tg("g_tipos_texto")}</p>
     </div>
 
     <div class="card">
-      ${tituloIcone("matriz", "Matriz de gaps")}
-      <p class="desc">Cruzamento da autoavaliação com o mapeamento do cargo, gerando o plano de desenvolvimento priorizado.</p>
-      <h3>Como é calculada</h3>
-      <p>Para cada competência: gap = nível exigido menos nível atual. A aderência é o percentual do total exigido que a pessoa já atende. O status resume a leitura: <span class="badge ok">Apto para a função</span> quando a aderência é 90% ou mais sem nenhuma obrigatória pendente, <span class="badge warn">Em desenvolvimento</span> a partir de 60%, e <span class="badge err">Gap alto</span> abaixo disso.</p>
-      <h3>Plano de desenvolvimento</h3>
-      <p>O sistema lista as competências com gap em ordem de prioridade (obrigatórias primeiro, depois os maiores gaps) e sugere a ação conforme o tipo: buscar formação, capacitação técnica, desenvolvimento comportamental ou experiência prática. É a base para decidir treinamento, mentoria ou upgrade de cargo.</p>
+      ${tituloIcone("matriz", tg("aba_matriz"))}
+      <p class="desc">${tg("g_matriz_desc")}</p>
+      <h3>${tg("g_como_calculada")}</h3>
+      <p>${tg("g_matriz_calculo", {
+        apto: '<span class="badge ok">' + tg("r_apto") + "</span>",
+        desenv: '<span class="badge warn">' + tg("r_desenv") + "</span>",
+        alto: '<span class="badge err">' + tg("r_gap_alto") + "</span>",
+      })}</p>
+      <h3>${tg("r_plano_titulo_guia")}</h3>
+      <p>${tg("g_plano_texto")}</p>
     </div>
 
     <div class="card">
-      ${tituloIcone("usuarios", "Entrevista estruturada e teste de conhecimento")}
-      <h3>Roteiro de entrevista (scorecard)</h3>
-      <p>Em Cargos e funções, cada cargo pode ter um roteiro de perguntas. Ao registrar a entrevista no relatório do candidato, o gestor dá nota de 1 a 5 por pergunta. A média padroniza a avaliação entre entrevistadores diferentes e elimina o julgamento por impressão geral.</p>
-      <h3>Teste de conhecimento</h3>
-      <p>Também por cargo, o gestor monta questões de múltipla escolha. O candidato responde na jornada de avaliação e o sistema corrige automaticamente.</p>
-      <h3>Pipeline de vagas</h3>
-      <p>Na aba Vagas, cada vaga tem um quadro com as etapas Inscrito, Avaliações, Entrevista, Proposta, Contratado e Reprovado. Arraste os cartões para mover candidatos; cada mudança fica registrada na linha do tempo e pode notificar o candidato por e-mail.</p>
+      ${tituloIcone("usuarios", tg("g_entrevista_titulo"))}
+      <h3>${tg("g_roteiro_titulo")}</h3>
+      <p>${tg("g_roteiro_texto")}</p>
+      <h3>${tg("g_quiz_titulo")}</h3>
+      <p>${tg("g_quiz_texto")}</p>
+      <h3>${tg("g_pipeline_titulo")}</h3>
+      <p>${tg("g_pipeline_texto", { etapas: listaNomes(ETAPAS_GESTOR.map(nomeEtapa)) })}</p>
     </div>
 
     <div class="card">
-      ${tituloIcone("alvo", "Match geral")}
-      <p class="desc">Índice único que cruza tudo: competências, DISC, B.A.S.E., teste de conhecimento e entrevista.</p>
-      <h3>Como é calculado</h3>
-      <p>Competências valem 30%, perfil DISC 15%, B.A.S.E. 15%, teste de conhecimento 20% e entrevista 20%. Os componentes comportamentais usam o perfil desejado definido em cada cargo (aba Cargos e funções). Se algo ainda não foi respondido, os pesos se redistribuem sobre o que existe: com apenas os três primeiros, a proporção equivale aos antigos 50/25/25.</p>
-      <h3>Como usar</h3>
-      <p>O match ordena os candidatos na matriz de gaps e aparece na lista e nos relatórios. Use como referência para priorizar conversas e decisões de desenvolvimento. Importante: os perfis comportamentais indicam estilo, não capacidade. Ninguém deve ser aprovado ou eliminado apenas pelo DISC ou pelo B.A.S.E.</p>
+      ${tituloIcone("alvo", tg("g_match_titulo"))}
+      <p class="desc">${tg("g_match_desc")}</p>
+      <h3>${tg("g_como_calculado")}</h3>
+      <p>${tg("g_match_calculo")}</p>
+      <h3>${tg("g_como_usar")}</h3>
+      <p>${tg("g_match_usar")}</p>
     </div>`;
 }
 
@@ -577,56 +680,58 @@ function abaVisao(el) {
 
   el.innerHTML = `
     <div class="metricas">
-      <div class="metrica"><div class="num">${candidatos.length}</div><div class="rot">Candidatos cadastrados</div></div>
-      <div class="metrica"><div class="num">${comDisc}</div><div class="rot">Testes DISC concluídos</div></div>
-      <div class="metrica"><div class="num">${comBase}</div><div class="rot">Testes B.A.S.E. concluídos</div></div>
-      <div class="metrica"><div class="num">${comAuto}</div><div class="rot">Autoavaliações respondidas</div></div>
-      <div class="metrica"><div class="num">${completos}</div><div class="rot">Avaliações completas</div></div>
-      <div class="metrica"><div class="num">${cargos.length}</div><div class="rot">Cargos mapeados</div></div>
+      <div class="metrica"><div class="num">${fmtNum(candidatos.length)}</div><div class="rot">${tg("v_m_cadastrados")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(comDisc)}</div><div class="rot">${tg("v_m_disc")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(comBase)}</div><div class="rot">${tg("v_m_base")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(comAuto)}</div><div class="rot">${tg("v_m_auto")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(completos)}</div><div class="rot">${tg("m_avaliacoes_completas")}</div></div>
+      <div class="metrica"><div class="num">${fmtNum(cargos.length)}</div><div class="rot">${tg("v_m_cargos")}</div></div>
     </div>
     <div class="card">
-      <h2>Últimos candidatos</h2>
+      <h2>${tg("v_ultimos")}</h2>
       ${tabelaCandidatos(candidatos.slice(0, 8))}
     </div>
     <div class="card">
-      <h2 class="icone-titulo">${icone("documento")}<span>Últimas atividades</span></h2>
-      <p class="desc">Tudo o que aconteceu recentemente: novos candidatos, testes concluídos, mudanças de etapa e anotações.</p>
-      <div id="feed-atividades"><p class="desc">Carregando…</p></div>
+      <h2 class="icone-titulo">${icone("documento")}<span>${tg("v_atividades")}</span></h2>
+      <p class="desc">${tg("v_atividades_desc")}</p>
+      <div id="feed-atividades"><p class="desc">${tg("carregando")}</p></div>
     </div>`;
   ligarLinhasCandidato(el);
   api("/api/gestor/atividades").then((r) => {
     const alvo = document.getElementById("feed-atividades");
     if (!alvo) return;
     if (!r.atividades.length) {
-      alvo.innerHTML = '<p class="desc">Nenhuma atividade registrada ainda.</p>';
+      alvo.innerHTML = '<p class="desc">' + tg("v_sem_atividades") + "</p>";
       return;
     }
     alvo.innerHTML = `<div class="timeline">${r.atividades.map((a) => `
       <div class="timeline-item ${["cadastro", "sistema", "etapa"].includes(a.tipo) ? "destaque" : ""}">
-        <div class="quando">${esc((a.criado_em || "").slice(0, 16).replace("T", " "))}</div>
+        <div class="quando">${esc(fmtDataHora(a.criado_em))}</div>
         <div class="texto-evento"><strong><a href="#" data-detalhe="${a.candidato_id}" style="color:inherit">${esc(a.candidato_nome)}</a></strong>: ${esc(a.texto)}</div>
       </div>`).join("")}</div>`;
-    alvo.querySelectorAll("[data-detalhe]").forEach((lnk) =>
-      lnk.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        abrirDetalheCandidato(Number(lnk.dataset.detalhe));
-      })
-    );
+    ligarDetalhes(alvo);
   }).catch(() => {});
 }
 
 // ------------------------------------------------ vagas e pipeline
+function badgeStatusVaga(status) {
+  if (status === "aberta") return '<span class="badge ok">' + tg("status_aberta") + "</span>";
+  if (status === "pausada") return '<span class="badge warn">' + tg("status_pausada") + "</span>";
+  return '<span class="badge tipo">' + tg("status_encerrada") + "</span>";
+}
+
 async function abaVagas(el, vagaAberta) {
   const r = await api("/api/gestor/vagas");
   if (vagaAberta) return telaPipeline(el, vagaAberta);
+  pipelineAberto = null;
   el.innerHTML = `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div>
-          <h2 class="icone-titulo">${icone("pasta")}<span>Vagas</span></h2>
-          <p class="desc" style="margin:0">Abra vagas vinculadas aos cargos mapeados e acompanhe o processo seletivo no pipeline. O link público para candidatos é <strong>/vagas</strong>.</p>
+          <h2 class="icone-titulo">${icone("pasta")}<span>${tg("aba_vagas")}</span></h2>
+          <p class="desc" style="margin:0">${tg("vg_desc")}</p>
         </div>
-        <button class="btn" id="nova-vaga">+ Nova vaga</button>
+        <button class="btn" id="nova-vaga">${tg("vg_nova")}</button>
       </div>
     </div>
     ${r.vagas.map((v) => `
@@ -634,20 +739,18 @@ async function abaVagas(el, vagaAberta) {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
           <div>
             <h2 style="font-size:1.1rem;margin-bottom:2px">${esc(v.titulo)}
-              ${v.status === "aberta" ? '<span class="badge ok">Aberta</span>'
-                : v.status === "pausada" ? '<span class="badge warn">Pausada</span>'
-                : '<span class="badge tipo">Encerrada</span>'}
+              ${badgeStatusVaga(v.status)}
             </h2>
-            <p class="desc" style="margin:0">${esc(v.cargo_nome)}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(v.pais) : ""}
-              · ${v.total} candidato(s) · Entrevista: ${v.etapas.entrevista} · Contratados: ${v.etapas.contratado}</p>
+            <p class="desc" style="margin:0">${esc(v.cargo_nome)}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(nomePaisGestor(v.pais)) : ""}
+              · ${tgn("n_candidatos", v.total)} · ${tg("vg_resumo_etapas", { entrevista: fmtNum(v.etapas.entrevista), contratados: fmtNum(v.etapas.contratado) })}</p>
           </div>
           <div class="linha-acoes" style="margin:0">
-            <button class="btn small" data-pipeline="${v.id}">Ver pipeline</button>
-            <button class="btn secondary small" data-editar-vaga="${v.id}">Editar</button>
-            <button class="btn danger small" data-excluir-vaga="${v.id}">Excluir</button>
+            <button class="btn small" data-pipeline="${v.id}">${tg("vg_ver_pipeline")}</button>
+            <button class="btn secondary small" data-editar-vaga="${v.id}">${tg("editar")}</button>
+            <button class="btn danger small" data-excluir-vaga="${v.id}">${tg("excluir")}</button>
           </div>
         </div>
-      </div>`).join("") || '<div class="card"><p class="desc">Nenhuma vaga criada ainda.</p></div>'}`;
+      </div>`).join("") || '<div class="card"><p class="desc">' + tg("vg_nenhuma") + "</p></div>"}`;
 
   document.getElementById("nova-vaga").addEventListener("click", () => formVaga(null));
   el.querySelectorAll("[data-editar-vaga]").forEach((b) =>
@@ -657,7 +760,7 @@ async function abaVagas(el, vagaAberta) {
   el.querySelectorAll("[data-excluir-vaga]").forEach((b) =>
     b.addEventListener("click", async () => {
       const v = r.vagas.find((x) => x.id === Number(b.dataset.excluirVaga));
-      if (!confirm(`Excluir a vaga "${v.titulo}" e todas as candidaturas dela?`)) return;
+      if (!confirm(tg("vg_confirmar_excluir", { titulo: v.titulo }))) return;
       await api("/api/gestor/vaga/" + v.id, { method: "DELETE" });
       desenharPainel();
     })
@@ -668,31 +771,31 @@ async function abaVagas(el, vagaAberta) {
 }
 
 function formVaga(v) {
-  modalForm(v ? "Editar vaga" : "Nova vaga", `
-    <label class="field">Título da vaga
-      <input type="text" id="fv-titulo" value="${v ? esc(v.titulo) : ""}" placeholder="Ex.: Analista de Sistemas Sênior (GTI)">
+  modalForm(v ? tg("vg_editar") : tg("vg_nova_titulo"), `
+    <label class="field">${tg("vg_titulo")}
+      <input type="text" id="fv-titulo" value="${v ? esc(v.titulo) : ""}" placeholder="${tg("vg_titulo_ph")}">
     </label>
-    <label class="field">Cargo
+    <label class="field">${tg("cargo")}
       <select id="fv-cargo">
         ${cargos.map((c) => `<option value="${c.id}" ${v && v.cargo_id === c.id ? "selected" : ""}>${esc(c.nome)}</option>`).join("")}
       </select>
     </label>
-    <label class="field">Local <span class="hint">(sugerido no cadastro do candidato)</span>
-      <input type="text" id="fv-local" value="${v ? esc(v.local) : ""}" placeholder="Ex.: Secretaria de GTI">
+    <label class="field">${tg("local")} <span class="hint">${tg("vg_local_hint")}</span>
+      <input type="text" id="fv-local" value="${v ? esc(v.local) : ""}" placeholder="${tg("local_ph")}">
     </label>
-    <label class="field">País
+    <label class="field">${tg("vg_pais")}
       <select id="fv-pais">
-        <option value="">Selecione o país</option>
-        ${PAISES.map((pa) => `<option value="${pa}" ${v && v.pais === pa ? "selected" : ""}>${pa}</option>`).join("")}
+        <option value="">${tg("vg_selecione_pais")}</option>
+        ${PAISES.map((pa) => `<option value="${pa}" ${v && v.pais === pa ? "selected" : ""}>${esc(nomePaisGestor(pa))}</option>`).join("")}
       </select>
     </label>
-    <label class="field">Descrição
+    <label class="field">${tg("descricao")}
       <textarea id="fv-desc" rows="3">${v ? esc(v.descricao) : ""}</textarea>
     </label>
-    <label class="field">Status
+    <label class="field">${tg("status")}
       <select id="fv-status">
         ${["aberta", "pausada", "encerrada"].map((s) =>
-          `<option value="${s}" ${v && v.status === s ? "selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join("")}
+          `<option value="${s}" ${v && v.status === s ? "selected" : ""}>${nomeStatusVaga(s)}</option>`).join("")}
       </select>
     </label>`,
     async (f) => {
@@ -714,21 +817,23 @@ function formVaga(v) {
 async function telaPipeline(el, vagaId, modo) {
   const r = await api("/api/gestor/vaga/" + vagaId + "/pipeline");
   modo = modo || "kanban";
+  pipelineAberto = { vagaId, modo };
   const porEtapa = {};
   r.etapas.forEach((e) => { porEtapa[e] = []; });
   r.candidaturas.forEach((c) => porEtapa[c.etapa].push(c));
+  const etapaNome = (e) => esc(nomeEtapa(e, r.nomes_etapas && r.nomes_etapas[e]));
 
   const cartao = (c) => `
     <div class="kanban-card" draggable="true" data-candidatura="${c.candidatura_id}">
-      <div class="nome-card">${esc(c.nome)}</div>
+      <div class="nome-card">${linkCandidato(c.candidato_id, c.nome)}</div>
       <div class="sub-card">${c.local ? esc(c.local) : esc(c.email)}</div>
-      ${c.match != null ? `<div class="match-card">${c.match}% match</div>` : ""}
+      ${c.match != null ? `<div class="match-card">${tg("pp_match_card", { n: c.match })}</div>` : ""}
       ${c.etapa === "reprovado" && c.motivo_reprovacao ? `<div class="sub-card">${esc(c.motivo_reprovacao)}</div>` : ""}
       <div class="linha-acoes" style="margin-top:8px;gap:6px">
-        <button class="btn ghost small" data-detalhe="${c.candidato_id}" style="padding:4px 10px">Relatório</button>
+        <button class="btn ghost small" data-detalhe="${c.candidato_id}" style="padding:4px 10px">${tg("relatorio")}</button>
       </div>
-      <select data-mover="${c.candidatura_id}" title="Mover para etapa">
-        ${r.etapas.map((e) => `<option value="${e}" ${c.etapa === e ? "selected" : ""}>${r.nomes_etapas[e]}</option>`).join("")}
+      <select data-mover="${c.candidatura_id}" title="${tg("pp_mover_title")}">
+        ${r.etapas.map((e) => `<option value="${e}" ${c.etapa === e ? "selected" : ""}>${etapaNome(e)}</option>`).join("")}
       </select>
     </div>`;
 
@@ -737,13 +842,13 @@ async function telaPipeline(el, vagaId, modo) {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
           <h2>${esc(r.vaga.titulo)}</h2>
-          <p class="desc" style="margin:0">${esc(r.vaga.cargo_nome)}${r.vaga.local ? " · " + esc(r.vaga.local) : ""} · ${r.candidaturas.length} candidato(s)</p>
+          <p class="desc" style="margin:0">${esc(r.vaga.cargo_nome)}${r.vaga.local ? " · " + esc(r.vaga.local) : ""} · ${tgn("n_candidatos", r.candidaturas.length)}</p>
         </div>
         <div class="linha-acoes" style="margin:0">
-          <button class="btn ghost small" id="pp-voltar">← Vagas</button>
-          <button class="btn ${modo === "kanban" ? "" : "secondary"} small" id="pp-kanban">Pipeline</button>
-          <button class="btn ${modo === "ranking" ? "" : "secondary"} small" id="pp-ranking">Ranking</button>
-          <button class="btn secondary small" id="pp-adicionar">+ Adicionar candidato</button>
+          <button class="btn ghost small" id="pp-voltar">${tg("pp_voltar")}</button>
+          <button class="btn ${modo === "kanban" ? "" : "secondary"} small" id="pp-kanban">${tg("pp_pipeline")}</button>
+          <button class="btn ${modo === "ranking" ? "" : "secondary"} small" id="pp-ranking">${tg("pp_ranking")}</button>
+          <button class="btn secondary small" id="pp-adicionar">${tg("pp_adicionar")}</button>
         </div>
       </div>
     </div>
@@ -751,26 +856,26 @@ async function telaPipeline(el, vagaId, modo) {
       <div class="kanban">
         ${r.etapas.map((e) => `
           <div class="kanban-col" data-etapa="${e}">
-            <div class="titulo-col"><span>${r.nomes_etapas[e]}</span><span>${porEtapa[e].length}</span></div>
+            <div class="titulo-col"><span>${etapaNome(e)}</span><span>${porEtapa[e].length}</span></div>
             ${porEtapa[e].map(cartao).join("")}
           </div>`).join("")}
       </div>
-      <p class="desc mt">Arraste os cartões entre as colunas ou use o seletor no cartão. Ao mover, você pode notificar o candidato por e-mail (se o SMTP estiver configurado).</p>
+      <p class="desc mt">${tg("pp_dica")}</p>
       <div id="radar-talentos"></div>`
     : `
       <div class="card">
         <div class="tabela-wrap">
           <table class="tabela">
-            <thead><tr><th>#</th><th>Candidato</th><th>Local</th><th class="num">Match</th><th class="num">Etapa</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>${tg("candidato")}</th><th>${tg("local")}</th><th class="num">${tg("match")}</th><th class="num">${tg("pp_etapa")}</th><th></th></tr></thead>
             <tbody>
               ${r.candidaturas.map((c, i) => `
-                <tr>
-                  <td>${i + 1}º</td>
-                  <td><strong>${esc(c.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${esc(c.email)}</span></td>
-                  <td>${c.local ? esc(c.local) : "—"}</td>
-                  <td class="num">${c.match != null ? `<strong>${c.match}%</strong>` : "—"}</td>
-                  <td class="num"><span class="badge ${c.etapa === "reprovado" ? "err" : c.etapa === "contratado" ? "ok" : "neutral"}">${r.nomes_etapas[c.etapa]}</span></td>
-                  <td class="num"><button class="btn secondary small" data-detalhe="${c.candidato_id}">Relatório</button></td>
+                <tr data-linha-cand="${c.candidato_id}">
+                  <td>${tg("ordinal", { n: i + 1 })}</td>
+                  <td><strong>${linkCandidato(c.candidato_id, c.nome)}</strong><br><span style="color:var(--muted);font-size:.78rem">${esc(c.email)}</span></td>
+                  <td>${c.local ? esc(c.local) : "·"}</td>
+                  <td class="num">${c.match != null ? `<strong>${c.match}%</strong>` : "·"}</td>
+                  <td class="num"><span class="badge ${c.etapa === "reprovado" ? "err" : c.etapa === "contratado" ? "ok" : "neutral"}">${etapaNome(c.etapa)}</span></td>
+                  <td class="num"><button class="btn secondary small" data-detalhe="${c.candidato_id}">${tg("relatorio")}</button></td>
                 </tr>`).join("")}
             </tbody>
           </table>
@@ -784,25 +889,23 @@ async function telaPipeline(el, vagaId, modo) {
       if (!alvo || !s.sugestoes.length) return;
       alvo.innerHTML = `
         <div class="card" style="margin-top:18px">
-          <h2 class="icone-titulo">${icone("alvo")}<span>Radar de talentos</span></h2>
-          <p class="desc">${s.sugestoes.length} candidato(s) do seu banco têm 60% ou mais de match com esta vaga e ainda não estão nela:</p>
+          <h2 class="icone-titulo">${icone("alvo")}<span>${tg("radar_titulo")}</span></h2>
+          <p class="desc">${tgn("radar_desc", s.sugestoes.length)}</p>
           <div class="tabela-wrap"><table class="tabela">
             <tbody>
               ${s.sugestoes.map((g) => `
-                <tr>
-                  <td><strong>${esc(g.nome)}</strong>${g.local ? ` <span style="color:var(--muted);font-size:.8rem">· ${esc(g.local)}</span>` : ""}</td>
+                <tr data-linha-cand="${g.candidato_id}">
+                  <td><strong>${linkCandidato(g.candidato_id, g.nome)}</strong>${g.local ? ` <span style="color:var(--muted);font-size:.8rem">· ${esc(g.local)}</span>` : ""}</td>
                   <td class="num"><strong>${g.match}%</strong></td>
                   <td class="num">
-                    <button class="btn ghost small" data-detalhe="${g.candidato_id}">Relatório</button>
-                    <button class="btn secondary small" data-radar-add="${g.candidato_id}">Adicionar à vaga</button>
+                    <button class="btn ghost small" data-detalhe="${g.candidato_id}">${tg("relatorio")}</button>
+                    <button class="btn secondary small" data-radar-add="${g.candidato_id}">${tg("radar_adicionar")}</button>
                   </td>
                 </tr>`).join("")}
             </tbody>
           </table></div>
         </div>`;
-      alvo.querySelectorAll("[data-detalhe]").forEach((b) =>
-        b.addEventListener("click", () => abrirDetalheCandidato(Number(b.dataset.detalhe)))
-      );
+      ligarDetalhes(alvo);
       alvo.querySelectorAll("[data-radar-add]").forEach((b) =>
         b.addEventListener("click", async () => {
           await api("/api/gestor/candidatura/adicionar", {
@@ -822,9 +925,9 @@ async function telaPipeline(el, vagaId, modo) {
     const disponiveis = candidatos.filter(
       (c) => !r.candidaturas.some((x) => x.candidato_id === c.candidato.id)
     );
-    if (!disponiveis.length) return alert("Todos os candidatos cadastrados já estão nesta vaga.");
-    modalForm("Adicionar candidato à vaga", `
-      <label class="field">Candidato
+    if (!disponiveis.length) return alert(tg("pp_todos_na_vaga"));
+    modalForm(tg("pp_adicionar_titulo"), `
+      <label class="field">${tg("candidato")}
         <select id="ac-cand">
           ${disponiveis.map((c) => `<option value="${c.candidato.id}">${esc(c.candidato.nome)}${c.candidato.local ? " (" + esc(c.candidato.local) + ")" : ""}</option>`).join("")}
         </select>
@@ -836,21 +939,19 @@ async function telaPipeline(el, vagaId, modo) {
         });
       });
   });
-  el.querySelectorAll("[data-detalhe]").forEach((b) =>
-    b.addEventListener("click", () => abrirDetalheCandidato(Number(b.dataset.detalhe)))
-  );
+  ligarDetalhes(el);
 
   async function mover(candidaturaId, etapa) {
     let motivo = "";
     if (etapa === "reprovado") {
-      motivo = prompt("Motivo da reprovação (opcional):") || "";
+      motivo = prompt(tg("pp_motivo")) || "";
     }
-    const notificar = confirm("Notificar o candidato por e-mail sobre esta mudança?\n(OK = sim, Cancelar = não)");
+    const notificar = confirm(tg("pp_notificar"));
     const resp = await api("/api/gestor/candidatura", {
       method: "POST",
       body: { id: candidaturaId, etapa, motivo, notificar },
     });
-    if (resp.aviso_email) alert("Etapa alterada, mas o e-mail não foi enviado: " + resp.aviso_email);
+    if (resp.aviso_email) alert(tg("pp_aviso_email", { msg: resp.aviso_email }));
     await carregarDados();
     telaPipeline(el, vagaId, modo);
   }
@@ -893,34 +994,35 @@ function urlPerfil(valor, rede) {
 
 function nomeCargo(id) {
   const c = cargos.find((x) => x.id === id);
-  return c ? c.nome : "—";
+  return c ? c.nome : "·";
 }
 
 function tabelaCandidatos(lista) {
-  if (!lista.length) return "<p class='desc'>Nenhum candidato cadastrado ainda. Compartilhe o link da área do candidato para iniciar as avaliações.</p>";
+  if (!lista.length) return "<p class='desc'>" + tg("c_nenhum") + "</p>";
   return `
     <div class="tabela-wrap">
       <table class="tabela">
         <thead><tr>
-          <th>Nome</th><th>Local</th><th>Cargo de interesse</th><th class="num">DISC</th>
-          <th class="num">B.A.S.E.</th><th class="num">Match</th><th class="num">Status</th><th></th>
+          <th>${tg("nome")}</th><th>${tg("local")}</th><th>${tg("cargo_interesse")}</th><th class="num">DISC</th>
+          <th class="num">B.A.S.E.</th><th class="num">${tg("match")}</th><th class="num">${tg("status")}</th><th></th>
         </tr></thead>
         <tbody>
           ${lista.map((c) => {
             const disc = c.testes.disc ? c.testes.disc.payload.dominante : null;
             const base = c.testes.base ? c.testes.base.payload.dominante : null;
-            return `<tr>
-              <td><strong>${esc(c.candidato.nome)}</strong>
-                ${c.candidato.tipo === "interno" ? ' <span class="badge neutral">Colaborador</span>' : ""}
+            return `<tr data-linha-cand="${c.candidato.id}">
+              <td><strong>${linkCandidato(c.candidato.id, c.candidato.nome)}</strong>
+                ${c.candidato.tipo === "interno" ? ' <span class="badge neutral">' + tg("colaborador") + "</span>" : ""}
                 <br><span style="color:var(--muted);font-size:.8rem">${esc(c.candidato.email)}</span>
+                ${c.candidato.telefone ? `<br><span style="color:var(--muted);font-size:.8rem">${linkTelefone(c.candidato.telefone)}</span>` : ""}
                 ${(c.candidato.tags || []).length ? "<br>" + c.candidato.tags.map((t) => `<span class="badge tipo">${esc(t)}</span>`).join(" ") : ""}</td>
-              <td>${c.candidato.local ? esc(c.candidato.local) : "—"}</td>
+              <td>${c.candidato.local ? esc(c.candidato.local) : "·"}</td>
               <td>${esc(nomeCargo(c.candidato.cargo_desejado_id))}</td>
-              <td class="num">${disc ? `<span class="badge neutral">${disc} · ${esc(DISC_PERFIS[disc].nome)}</span>` : '<span class="badge tipo">pendente</span>'}</td>
-              <td class="num">${base ? `<span class="badge neutral">${esc(BASE_PERFIS[base].nome)}</span>` : '<span class="badge tipo">pendente</span>'}</td>
-              <td class="num">${c.match ? `<strong>${c.match.geral}%</strong>` : "—"}</td>
-              <td class="num">${c.gaps && c.gaps.respondeu_autoavaliacao ? badgeStatus(c.gaps.status) : '<span class="badge tipo">—</span>'}</td>
-              <td class="num"><button class="btn secondary small" data-detalhe="${c.candidato.id}">Ver relatório</button></td>
+              <td class="num">${disc ? `<span class="badge neutral">${disc} · ${esc(DISC_PERFIS[disc].nome)}</span>` : '<span class="badge tipo">' + tg("pendente") + "</span>"}</td>
+              <td class="num">${base ? `<span class="badge neutral">${esc(BASE_PERFIS[base].nome)}</span>` : '<span class="badge tipo">' + tg("pendente") + "</span>"}</td>
+              <td class="num">${c.match ? `<strong>${c.match.geral}%</strong>` : "·"}</td>
+              <td class="num">${c.gaps && c.gaps.respondeu_autoavaliacao ? badgeStatus(c.gaps.status) : '<span class="badge tipo">·</span>'}</td>
+              <td class="num"><button class="btn secondary small" data-detalhe="${c.candidato.id}">${tg("ver_relatorio")}</button></td>
             </tr>`;
           }).join("")}
         </tbody>
@@ -928,10 +1030,45 @@ function tabelaCandidatos(lista) {
     </div>`;
 }
 
+// nome do candidato como link que abre o relatório
+function linkCandidato(id, nome) {
+  return `<a href="#" data-detalhe="${id}" style="color:inherit">${esc(nome)}</a>`;
+}
+
+// telefone como link tel: (vazio se não houver)
+function linkTelefone(tel) {
+  if (!tel) return "";
+  const numero = String(tel).replace(/[^\d+]/g, "");
+  return `<a href="tel:${esc(numero)}" style="color:inherit">${esc(tel)}</a>`;
+}
+
+// liga os links/botões [data-detalhe] e as linhas [data-linha-cand] ao relatório do candidato.
+// Cada elemento é ligado uma vez só; cliques em botões, links e campos dentro da linha
+// não disparam a linha de novo.
+function ligarDetalhes(raiz) {
+  raiz.querySelectorAll("[data-detalhe]").forEach((b) => {
+    if (b.dataset.ligado) return;
+    b.dataset.ligado = "1";
+    b.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      abrirDetalheCandidato(Number(b.dataset.detalhe));
+    });
+  });
+  raiz.querySelectorAll("[data-linha-cand]").forEach((linha) => {
+    if (linha.dataset.ligado) return;
+    linha.dataset.ligado = "1";
+    linha.style.cursor = "pointer";
+    linha.addEventListener("click", (ev) => {
+      if (ev.target.closest("a, button, select, input, textarea, label")) return;
+      if (window.getSelection && String(window.getSelection()).trim()) return; // selecionando texto
+      abrirDetalheCandidato(Number(linha.dataset.linhaCand));
+    });
+  });
+}
+
 function ligarLinhasCandidato(el) {
-  el.querySelectorAll("[data-detalhe]").forEach((b) =>
-    b.addEventListener("click", () => abrirDetalheCandidato(Number(b.dataset.detalhe)))
-  );
+  ligarDetalhes(el);
 }
 
 function abaCandidatos(el) {
@@ -940,27 +1077,27 @@ function abaCandidatos(el) {
 
   el.innerHTML = `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
-      <h2 style="margin:0">Banco de talentos (${candidatos.length})</h2>
-      ${candidatos.length ? `<button class="btn secondary small" id="exportar-csv">Exportar planilha (CSV)</button>` : ""}
+      <h2 style="margin:0">${tg("c_banco", { n: fmtNum(candidatos.length) })}</h2>
+      ${candidatos.length ? `<button class="btn secondary small" id="exportar-csv">${tg("c_exportar")}</button>` : ""}
     </div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 4px">
-      <input type="text" id="ft-busca" placeholder="Buscar nome ou e-mail..." style="margin:0">
-      <select id="ft-local" style="margin:0"><option value="">Todos os locais</option>
+      <input type="text" id="ft-busca" placeholder="${tg("c_buscar_ph")}" style="margin:0">
+      <select id="ft-local" style="margin:0"><option value="">${tg("c_todos_locais")}</option>
         ${locais.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
-      <select id="ft-cargo" style="margin:0"><option value="">Todos os cargos</option>
+      <select id="ft-cargo" style="margin:0"><option value="">${tg("c_todos_cargos")}</option>
         ${cargos.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join("")}</select>
-      <select id="ft-tag" style="margin:0"><option value="">Todas as tags</option>
+      <select id="ft-tag" style="margin:0"><option value="">${tg("c_todas_tags")}</option>
         ${tags.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}</select>
       <select id="ft-match" style="margin:0">
-        <option value="">Qualquer match</option>
-        <option value="80">Match 80%+</option>
-        <option value="60">Match 60%+</option>
-        <option value="40">Match 40%+</option>
+        <option value="">${tg("c_qualquer_match")}</option>
+        <option value="80">${tg("c_match_min", { n: 80 })}</option>
+        <option value="60">${tg("c_match_min", { n: 60 })}</option>
+        <option value="40">${tg("c_match_min", { n: 40 })}</option>
       </select>
       <select id="ft-tipo" style="margin:0">
-        <option value="">Todos os perfis</option>
-        <option value="externo">Candidatos</option>
-        <option value="interno">Colaboradores internos</option>
+        <option value="">${tg("c_todos_perfis")}</option>
+        <option value="externo">${tg("aba_candidatos")}</option>
+        <option value="interno">${tg("c_internos")}</option>
       </select>
     </div>
     <div id="ft-resultado">${tabelaCandidatos(candidatos)}</div></div>`;
@@ -973,7 +1110,13 @@ function abaCandidatos(el) {
     const matchMin = Number(document.getElementById("ft-match").value) || 0;
     const tipoSel = document.getElementById("ft-tipo").value;
     const filtrados = candidatos.filter((c) => {
-      if (busca && !(c.candidato.nome + " " + c.candidato.email).toLowerCase().includes(busca)) return false;
+      if (busca) {
+        const tel = c.candidato.telefone || "";
+        const texto = (c.candidato.nome + " " + c.candidato.email + " " + tel).toLowerCase();
+        const digitosBusca = busca.replace(/\D/g, "");
+        const casaTel = digitosBusca.length >= 3 && tel.replace(/\D/g, "").includes(digitosBusca);
+        if (!texto.includes(busca) && !casaTel) return false;
+      }
       if (local && c.candidato.local !== local) return false;
       if (cargo && c.candidato.cargo_desejado_id !== cargo) return false;
       if (tag && !(c.candidato.tags || []).includes(tag)) return false;
@@ -995,20 +1138,20 @@ function abaCandidatos(el) {
 function exportarCandidatosCsv() {
   const celula = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   const linhas = [[
-    "Nome", "E-mail", "Local", "Cargo de interesse", "DISC dominante",
-    "BASE dominante", "Aderência competências (%)", "Match geral (%)",
-    "Status", "LinkedIn", "Instagram", "Cadastro",
+    tg("nome"), tg("email"), tg("telefone"), tg("local"), tg("cargo_interesse"), tg("csv_disc"),
+    tg("csv_base"), tg("csv_aderencia"), tg("csv_match"),
+    tg("status"), "LinkedIn", "Instagram", tg("csv_cadastro"),
   ]];
   candidatos.forEach((c) => {
     const disc = c.testes.disc ? c.testes.disc.payload.dominante + " " + DISC_PERFIS[c.testes.disc.payload.dominante].nome : "";
     const base = c.testes.base ? BASE_PERFIS[c.testes.base.payload.dominante].nome : "";
     linhas.push([
-      c.candidato.nome, c.candidato.email, c.candidato.local,
+      c.candidato.nome, c.candidato.email, c.candidato.telefone || "", c.candidato.local,
       nomeCargo(c.candidato.cargo_desejado_id), disc, base,
       c.gaps && c.gaps.respondeu_autoavaliacao ? c.gaps.aderencia : "",
       c.match ? c.match.geral : "",
       c.gaps && c.gaps.respondeu_autoavaliacao
-        ? { apto: "Apto", desenvolvimento: "Em desenvolvimento", gap_alto: "Gap alto" }[c.gaps.status]
+        ? { apto: tg("csv_apto"), desenvolvimento: tg("r_desenv"), gap_alto: tg("r_gap_alto") }[c.gaps.status]
         : "",
       c.candidato.linkedin, c.candidato.instagram,
       (c.candidato.criado_em || "").slice(0, 10),
@@ -1017,7 +1160,7 @@ function exportarCandidatosCsv() {
   const csv = "﻿" + linhas.map((l) => l.map(celula).join(";")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = "candidatos.csv";
+  a.download = tg("csv_arquivo") + ".csv";
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -1030,53 +1173,53 @@ async function abrirDetalheCandidato(id) {
   if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
   if (c.testes.disc) blocos.push(`<div class="card">${htmlResultadoDisc(c.testes.disc.payload)}</div>`);
   if (c.testes.base) blocos.push(`<div class="card">${htmlResultadoBase(c.testes.base.payload)}</div>`);
-  if (c.quiz) blocos.push(`<div class="card">${tituloIcone("bloco", "Teste de conhecimento")}
-    <div class="perfil-destaque"><div class="titulo">${c.quiz.pct}% de acerto</div>
-    <div>${c.quiz.acertos} de ${c.quiz.total} questões corretas</div></div></div>`);
+  if (c.quiz) blocos.push(`<div class="card">${tituloIcone("bloco", tg("quiz_titulo"))}
+    <div class="perfil-destaque"><div class="titulo">${tg("quiz_pct", { pct: c.quiz.pct })}</div>
+    <div>${tg("quiz_acertos", { acertos: fmtNum(c.quiz.acertos), total: fmtNum(c.quiz.total) })}</div></div></div>`);
 
   // entrevista estruturada
   const nomeCargoInteresse = nomeCargo(c.candidato.cargo_desejado_id);
   blocos.push(`<div class="card">
-    ${tituloIcone("usuarios", "Entrevista estruturada")}
+    ${tituloIcone("usuarios", tg("ent_titulo"))}
     ${c.entrevista ? `
       <div class="perfil-destaque">
-        <div class="titulo">Média ${c.entrevista.media.toFixed(1)} de 5 (${c.entrevista.pct}%)</div>
-        <div>Avaliada por ${esc(c.entrevista.gestor)} em ${esc((c.entrevista.criado_em || "").slice(0, 10))}</div>
+        <div class="titulo">${tg("ent_media", { media: fmtNum(c.entrevista.media, 1), pct: c.entrevista.pct })}</div>
+        <div>${tg("ent_avaliada_por", { gestor: esc(c.entrevista.gestor), data: esc(fmtData(c.entrevista.criado_em)) })}</div>
       </div>
       ${c.entrevista.payload.observacao ? `<p>${esc(c.entrevista.payload.observacao)}</p>` : ""}`
-      : '<p class="desc">Nenhuma entrevista registrada ainda. O resultado entra no match com peso de 20%.</p>'}
-    <button class="btn secondary small no-print" id="btn-entrevista">${c.entrevista ? "Registrar nova entrevista" : "Registrar entrevista"}</button>
+      : '<p class="desc">' + tg("ent_nenhuma") + "</p>"}
+    <button class="btn secondary small no-print" id="btn-entrevista">${c.entrevista ? tg("ent_registrar_nova") : tg("ent_registrar")}</button>
   </div>`);
 
   // análise de currículo por IA
   const ia = c.analise_ia;
   blocos.push(`<div class="card">
-    ${tituloIcone("relatorio", "Análise do currículo por IA")}
+    ${tituloIcone("relatorio", tg("ia_titulo"))}
     ${ia ? `
       <div class="perfil-destaque">
-        <div class="titulo">Aderência do currículo ao cargo: ${ia.aderencia_curriculo}%</div>
+        <div class="titulo">${tg("ia_aderencia", { pct: ia.aderencia_curriculo })}</div>
         <div>${esc(ia.recomendacao)}</div>
       </div>
       <p>${esc(ia.resumo)}</p>
       <div class="grid cols-2 mt">
-        <div><h3>Formações e certificações</h3>
-          <ul class="lista-simples">${(ia.formacoes || []).map((f) => `<li>${esc(f)}</li>`).join("") || "<li>Nenhuma identificada</li>"}</ul></div>
-        <div><h3>Experiências</h3>
-          <ul class="lista-simples">${(ia.experiencias || []).map((f) => `<li>${esc(f)}</li>`).join("") || "<li>Nenhuma identificada</li>"}</ul></div>
+        <div><h3>${tg("ia_formacoes")}</h3>
+          <ul class="lista-simples">${(ia.formacoes || []).map((f) => `<li>${esc(f)}</li>`).join("") || "<li>" + tg("ia_nenhuma_identificada") + "</li>"}</ul></div>
+        <div><h3>${tg("ia_experiencias")}</h3>
+          <ul class="lista-simples">${(ia.experiencias || []).map((f) => `<li>${esc(f)}</li>`).join("") || "<li>" + tg("ia_nenhuma_identificada") + "</li>"}</ul></div>
       </div>
-      <h3>Pontos fortes</h3>
+      <h3>${tg("r_pontos_fortes")}</h3>
       <ul class="lista-simples">${(ia.pontos_fortes || []).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
       ${(ia.divergencias || []).length ? `
-        <h3>Divergências entre autoavaliação e currículo</h3>
+        <h3>${tg("ia_divergencias")}</h3>
         <div class="tabela-wrap"><table class="tabela">
-          <thead><tr><th>Competência</th><th>Declarado</th><th>No currículo</th><th>Comentário</th></tr></thead>
+          <thead><tr><th>${tg("r_th_comp")}</th><th>${tg("ia_declarado")}</th><th>${tg("ia_no_curriculo")}</th><th>${tg("ia_comentario")}</th></tr></thead>
           <tbody>${ia.divergencias.map((d) => `
             <tr><td><strong>${esc(d.competencia)}</strong></td><td>${esc(d.nivel_declarado)}</td>
             <td>${esc(d.evidencia_no_curriculo)}</td><td>${esc(d.comentario)}</td></tr>`).join("")}</tbody>
-        </table></div>` : "<p>Nenhuma divergência relevante entre a autoavaliação e o currículo.</p>"}`
-      : '<p class="desc">A IA lê o currículo em PDF, cruza com a autoavaliação de competências e aponta divergências. Requer a chave da API configurada em Configurações.</p>'}
+        </table></div>` : "<p>" + tg("ia_sem_divergencias") + "</p>"}`
+      : '<p class="desc">' + tg("ia_desc") + "</p>"}
     <div class="linha-acoes no-print">
-      <button class="btn secondary small" id="btn-ia" ${c.candidato.curriculo ? "" : "disabled title='Sem currículo enviado'"}>${ia ? "Analisar novamente" : "Analisar currículo com IA"}</button>
+      <button class="btn secondary small" id="btn-ia" ${c.candidato.curriculo ? "" : `disabled title="${tg("ia_sem_cv")}"`}>${ia ? tg("ia_analisar_novamente") : tg("ia_analisar")}</button>
       <span id="ia-status" class="desc" style="margin:0"></span>
     </div>
   </div>`);
@@ -1084,13 +1227,13 @@ async function abrirDetalheCandidato(id) {
   // recrutamento interno: match com todos os cargos
   if ((c.matches_cargos || []).some((mc) => mc.match != null)) {
     blocos.push(`<div class="card">
-      ${tituloIcone("camadas", "Match com todos os cargos (mobilidade interna)")}
-      <p class="desc">Compara este candidato com todos os cargos mapeados. Útil para realocação e upgrade de cargo.</p>
+      ${tituloIcone("camadas", tg("mob_titulo"))}
+      <p class="desc">${tg("mob_desc")}</p>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Cargo</th><th class="num">Match</th></tr></thead>
+        <thead><tr><th>${tg("cargo")}</th><th class="num">${tg("match")}</th></tr></thead>
         <tbody>${c.matches_cargos.map((mc) => `
-          <tr><td><strong>${esc(mc.cargo_nome)}</strong>${mc.nivel ? ' <span class="badge tipo">' + esc(mc.nivel) + "</span>" : ""}</td>
-          <td class="num">${mc.match != null ? `<strong>${mc.match}%</strong>` : "—"}</td></tr>`).join("")}</tbody>
+          <tr><td><strong>${esc(mc.cargo_nome)}</strong>${mc.nivel ? ' <span class="badge tipo">' + esc(nomeNivelCargo(mc.nivel)) + "</span>" : ""}</td>
+          <td class="num">${mc.match != null ? `<strong>${mc.match}%</strong>` : "·"}</td></tr>`).join("")}</tbody>
       </table></div>
     </div>`);
   }
@@ -1099,50 +1242,50 @@ async function abrirDetalheCandidato(id) {
 
   // linha do tempo e anotações
   blocos.push(`<div class="card">
-    ${tituloIcone("documento", "Linha do tempo e anotações")}
+    ${tituloIcone("documento", tg("tl_titulo"))}
     <div class="linha-acoes no-print" style="margin-top:4px">
-      <input type="text" id="nova-anotacao" placeholder="Escreva uma anotação sobre o candidato..." style="flex:1;min-width:220px;margin:0">
-      <button class="btn secondary small" id="btn-anotar">Anotar</button>
+      <input type="text" id="nova-anotacao" placeholder="${tg("tl_ph")}" style="flex:1;min-width:220px;margin:0">
+      <button class="btn secondary small" id="btn-anotar">${tg("tl_anotar")}</button>
     </div>
     <div class="timeline">
       ${(c.eventos || []).map((ev) => `
         <div class="timeline-item ${ev.tipo === "anotacao" || ev.tipo === "etapa" ? "destaque" : ""}">
-          <div class="quando">${esc((ev.criado_em || "").slice(0, 16).replace("T", " "))} · ${esc(ev.autor)}</div>
-          <div class="texto-evento">${ev.tipo === "anotacao" ? "<strong>Anotação:</strong> " : ""}${esc(ev.texto)}</div>
-        </div>`).join("") || '<p class="desc">Nenhum evento registrado.</p>'}
+          <div class="quando">${esc(fmtDataHora(ev.criado_em))} · ${esc(ev.autor)}</div>
+          <div class="texto-evento">${ev.tipo === "anotacao" ? "<strong>" + tg("tl_anotacao") + "</strong> " : ""}${esc(ev.texto)}</div>
+        </div>`).join("") || '<p class="desc">' + tg("tl_nenhum") + "</p>"}
     </div>
   </div>`);
   const fundo = document.createElement("div");
   fundo.className = "modal-fundo";
   fundo.innerHTML = `
     <div class="modal">
-      <button class="btn ghost small fechar" id="modal-fechar">${icone("fechar")} Fechar</button>
-      <h2>${esc(c.candidato.nome)} ${c.candidato.tipo === "interno" ? '<span class="badge neutral">Colaborador interno</span>' : ""}</h2>
+      <button class="btn ghost small fechar" id="modal-fechar">${icone("fechar")} ${tg("fechar")}</button>
+      <h2>${esc(c.candidato.nome)} ${c.candidato.tipo === "interno" ? '<span class="badge neutral">' + tg("colaborador_interno") + "</span>" : ""}</h2>
       <p class="desc">${esc(c.candidato.email)}
-        ${c.candidato.telefone ? " · Tel: " + esc(c.candidato.telefone) : ""}
-        ${c.candidato.local ? " · Local: " + esc(c.candidato.local) : ""}
-        ${c.candidato.cargo_atual ? " · Cargo atual: " + esc(c.candidato.cargo_atual) : ""}
-        ${c.candidato.funcao ? " · Função: " + esc(c.candidato.funcao) : ""}
-        · Interesse: ${esc(nomeCargo(c.candidato.cargo_desejado_id))}
-        · Cadastro: ${esc((c.candidato.criado_em || "").slice(0, 10))}</p>
+        ${c.candidato.telefone ? ` · <strong>${tg("d_tel")}</strong> ${linkTelefone(c.candidato.telefone)}` : ""}
+        ${c.candidato.local ? " · " + tg("d_local") + " " + esc(c.candidato.local) : ""}
+        ${c.candidato.cargo_atual ? " · " + tg("d_cargo_atual") + " " + esc(c.candidato.cargo_atual) : ""}
+        ${c.candidato.funcao ? " · " + tg("d_funcao") + " " + esc(c.candidato.funcao) : ""}
+        · ${tg("d_interesse")} ${esc(nomeCargo(c.candidato.cargo_desejado_id))}
+        · ${tg("d_cadastro")} ${esc(fmtData(c.candidato.criado_em))}</p>
       <div class="linha-acoes no-print">
         ${c.candidato.linkedin ? `<a class="btn secondary small" target="_blank" rel="noopener" href="${esc(urlPerfil(c.candidato.linkedin, "linkedin"))}">${icone("link")} LinkedIn</a>` : ""}
         ${c.candidato.instagram ? `<a class="btn secondary small" target="_blank" rel="noopener" href="${esc(urlPerfil(c.candidato.instagram, "instagram"))}">${icone("link")} Instagram</a>` : ""}
-        ${c.candidato.curriculo ? `<a class="btn secondary small" href="/api/gestor/curriculo/${c.candidato.id}?t=${Date.now()}" id="baixar-cv">${icone("anexo")} Baixar currículo</a>` : '<span class="badge tipo">sem currículo</span>'}
-        <button class="btn secondary small" id="btn-email-manual">Enviar e-mail</button>
-        <button class="btn secondary small" id="btn-relatorio-pdf" data-cand="${c.candidato.id}">${icone("documento")} Relatório em PDF</button>
-        <button class="btn danger small" id="btn-anonimizar" title="Remove os dados pessoais e mantém as estatísticas">Anonimizar (LGPD)</button>
-        <button class="btn danger small" id="excluir-cand">${icone("lixeira")} Excluir candidato</button>
+        ${c.candidato.curriculo ? `<a class="btn secondary small" href="/api/gestor/curriculo/${c.candidato.id}?t=${Date.now()}" id="baixar-cv">${icone("anexo")} ${tg("d_baixar_cv")}</a>` : '<span class="badge tipo">' + tg("d_sem_cv") + "</span>"}
+        <button class="btn secondary small" id="btn-email-manual">${tg("d_enviar_email")}</button>
+        <button class="btn secondary small" id="btn-relatorio-pdf" data-cand="${c.candidato.id}">${icone("documento")} ${tg("d_relatorio_pdf")}</button>
+        <button class="btn danger small" id="btn-anonimizar" title="${tg("d_anonimizar_title")}">${tg("d_anonimizar")}</button>
+        <button class="btn danger small" id="excluir-cand">${icone("lixeira")} ${tg("d_excluir")}</button>
       </div>
       <div class="no-print" style="margin:14px 0 4px">
-        <span style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Tags:</span>
+        <span style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">${tg("d_tags")}</span>
         <span id="tags-lista">${(c.candidato.tags || []).map((t) =>
           `<span class="badge tipo" style="margin:0 3px">${esc(t)} <a href="#" data-remover-tag="${esc(t)}" style="color:inherit;text-decoration:none">×</a></span>`).join("")}</span>
-        <input type="text" id="nova-tag" list="tags-existentes" placeholder="+ tag"
+        <input type="text" id="nova-tag" list="tags-existentes" placeholder="${tg("d_tag_ph")}"
           style="width:130px;display:inline-block;margin:0 0 0 6px;padding:5px 10px;font-size:.78rem">
         <datalist id="tags-existentes"></datalist>
       </div>
-      ${blocos.join("") || "<p class='mt'>Este candidato ainda não concluiu nenhum teste.</p>"}
+      ${blocos.join("") || "<p class='mt'>" + tg("d_nenhum_teste") + "</p>"}
     </div>`;
   document.body.appendChild(fundo);
   fundo.addEventListener("click", (ev) => { if (ev.target === fundo) fundo.remove(); });
@@ -1152,20 +1295,18 @@ async function abrirDetalheCandidato(id) {
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {
       ev.preventDefault();
-      const resp = await fetch("/api/gestor/curriculo/" + c.candidato.id, {
-        headers: { "X-Gestor-Token": localStorage.getItem("gestor_token") },
-      });
-      if (!resp.ok) return alert("Não foi possível baixar o currículo.");
+      const resp = await fetch("/api/gestor/curriculo/" + c.candidato.id, { headers: headersDownload() });
+      if (!resp.ok) return alert(tg("d_erro_cv"));
       const blob = await resp.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "curriculo_" + c.candidato.nome.replace(/\s+/g, "_") + ".pdf";
+      a.download = tg("d_arquivo_cv") + "_" + c.candidato.nome.replace(/\s+/g, "_") + ".pdf";
       a.click();
       URL.revokeObjectURL(a.href);
     });
   }
   fundo.querySelector("#excluir-cand").addEventListener("click", async () => {
-    if (!confirm(`Excluir ${c.candidato.nome} e todos os seus resultados? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(tg("d_confirmar_excluir", { nome: c.candidato.nome }))) return;
     await api("/api/gestor/candidato/" + id, { method: "DELETE" });
     fundo.remove();
     await carregarDados();
@@ -1197,10 +1338,10 @@ async function abrirDetalheCandidato(id) {
 
   // e-mail manual
   fundo.querySelector("#btn-email-manual").addEventListener("click", () => {
-    modalForm("Enviar e-mail para " + c.candidato.nome, `
-      <p class="desc">Você pode usar os campos {nome}, {vaga} e {link} no texto: eles são preenchidos automaticamente.</p>
-      <label class="field">Assunto <input type="text" id="em-assunto"></label>
-      <label class="field">Mensagem <textarea id="em-corpo" rows="7" placeholder="Olá, {nome}!"></textarea></label>`,
+    modalForm(tg("em_titulo", { nome: c.candidato.nome }), `
+      <p class="desc">${tg("em_desc")}</p>
+      <label class="field">${tg("assunto")} <input type="text" id="em-assunto"></label>
+      <label class="field">${tg("mensagem")} <textarea id="em-corpo" rows="7" placeholder="${tg("em_ph")}"></textarea></label>`,
       async (f) => {
         await api("/api/gestor/email", {
           method: "POST",
@@ -1219,19 +1360,17 @@ async function abrirDetalheCandidato(id) {
     const btn = ev.currentTarget;
     const original = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = "Gerando…";
+    btn.textContent = tg("gerando");
     try {
-      const resp = await fetch("/api/gestor/candidato/" + id + "/relatorio.pdf", {
-        headers: { "X-Gestor-Token": localStorage.getItem("gestor_token") },
-      });
+      const resp = await fetch("/api/gestor/candidato/" + id + "/relatorio.pdf", { headers: headersDownload() });
       if (!resp.ok) {
         const d = await resp.json().catch(() => ({}));
-        throw new Error(d.erro || "Não foi possível gerar o relatório");
+        throw new Error(d.erro || tg("d_erro_pdf"));
       }
       const blob = await resp.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "relatorio-" + (c.candidato.nome || "candidato").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".pdf";
+      a.download = tg("d_arquivo_pdf") + "-" + (c.candidato.nome || tg("candidato")).replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".pdf";
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (e) {
@@ -1243,7 +1382,7 @@ async function abrirDetalheCandidato(id) {
 
   // anonimização LGPD
   fundo.querySelector("#btn-anonimizar").addEventListener("click", async () => {
-    if (!confirm("Anonimizar " + c.candidato.nome + "?\n\nNome, contato, redes, currículo e histórico serão removidos em definitivo. As estatísticas (testes e match) são mantidas de forma anônima. Esta ação não pode ser desfeita.")) return;
+    if (!confirm(tg("d_confirmar_anonimizar", { nome: c.candidato.nome }))) return;
     await api("/api/gestor/candidato/" + id + "/anonimizar", { method: "POST" });
     fundo.remove();
     await carregarDados();
@@ -1266,9 +1405,9 @@ async function abrirDetalheCandidato(id) {
   fundo.querySelector("#btn-entrevista").addEventListener("click", () => {
     const perguntas = (c.perguntas_entrevista || []).length
       ? c.perguntas_entrevista
-      : [{ id: 0, texto: "Avaliação geral da entrevista" }];
-    modalForm("Scorecard de entrevista: " + c.candidato.nome, `
-      <p class="desc">Dê uma nota de 1 a 5 para cada critério${nomeCargoInteresse !== "—" ? " (roteiro do cargo " + esc(nomeCargoInteresse) + ")" : ""}. As perguntas do roteiro são definidas em Cargos e funções.</p>
+      : [{ id: 0, texto: tg("sc_geral") }];
+    modalForm(tg("sc_titulo", { nome: c.candidato.nome }), `
+      <p class="desc">${tg("sc_desc")}${nomeCargoInteresse !== "·" ? " " + tg("sc_roteiro_cargo", { cargo: esc(nomeCargoInteresse) }) : ""}. ${tg("sc_desc2")}</p>
       ${perguntas.map((p) => `
         <div class="comp-item">
           <div class="nome">${esc(p.texto)}</div>
@@ -1276,8 +1415,8 @@ async function abrirDetalheCandidato(id) {
             ${[1, 2, 3, 4, 5].map((n) => `<button data-v="${n}">${n}</button>`).join("")}
           </div>
         </div>`).join("")}
-      <label class="field mt">Observações gerais
-        <textarea id="ent-obs" rows="3" placeholder="Impressões, próximos passos..."></textarea>
+      <label class="field mt">${tg("sc_obs")}
+        <textarea id="ent-obs" rows="3" placeholder="${tg("sc_obs_ph")}"></textarea>
       </label>`,
       async (f) => {
         const notas = [];
@@ -1318,7 +1457,7 @@ async function abrirDetalheCandidato(id) {
   btnIa.addEventListener("click", async () => {
     const status = fundo.querySelector("#ia-status");
     btnIa.disabled = true;
-    status.textContent = "Analisando o currículo... isso pode levar até um minuto.";
+    status.textContent = tg("ia_analisando");
     try {
       await api("/api/gestor/ia/curriculo/" + id, { method: "POST" });
       fundo.remove();
@@ -1336,14 +1475,14 @@ function abaCargos(el) {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div>
-          <h2>Mapeamento de cargos e funções</h2>
-          <p class="desc" style="margin:0">Defina as competências, formações, experiências e o nível exigido por cada cargo. É este mapeamento que alimenta a matriz de gaps.</p>
+          <h2>${tg("cg_titulo")}</h2>
+          <p class="desc" style="margin:0">${tg("cg_desc")}</p>
         </div>
-        <button class="btn" id="novo-cargo">+ Novo cargo</button>
+        <button class="btn" id="novo-cargo">${tg("cg_novo")}</button>
       </div>
     </div>
     <div id="lista-cargos">
-      ${cargos.map((c) => cartaoCargo(c)).join("") || "<div class='card'><p class='desc'>Nenhum cargo cadastrado.</p></div>"}
+      ${cargos.map((c) => cartaoCargo(c)).join("") || "<div class='card'><p class='desc'>" + tg("cg_nenhum") + "</p></div>"}
     </div>`;
 
   document.getElementById("novo-cargo").addEventListener("click", () => formCargo(null));
@@ -1353,7 +1492,7 @@ function abaCargos(el) {
   el.querySelectorAll("[data-excluir-cargo]").forEach((b) =>
     b.addEventListener("click", async () => {
       const c = cargos.find((x) => x.id === Number(b.dataset.excluirCargo));
-      if (!confirm(`Excluir o cargo "${c.nome}" e todas as suas competências?`)) return;
+      if (!confirm(tg("cg_confirmar_excluir", { nome: c.nome }))) return;
       await api("/api/gestor/cargo/" + c.id, { method: "DELETE" });
       await carregarDados();
       desenharPainel();
@@ -1375,7 +1514,7 @@ function abaCargos(el) {
   );
   el.querySelectorAll("[data-excluir-comp]").forEach((b) =>
     b.addEventListener("click", async () => {
-      if (!confirm("Excluir esta competência?")) return;
+      if (!confirm(tg("cg_confirmar_excluir_comp"))) return;
       await api("/api/gestor/competencia/" + b.dataset.excluirComp, { method: "DELETE" });
       await carregarDados();
       desenharPainel();
@@ -1388,39 +1527,39 @@ function cartaoCargo(c) {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
         <div>
-          <h2>${esc(c.nome)} ${c.nivel ? `<span class="badge neutral">${esc(c.nivel)}</span>` : ""}</h2>
+          <h2>${esc(c.nome)} ${c.nivel ? `<span class="badge neutral">${esc(nomeNivelCargo(c.nivel))}</span>` : ""}</h2>
           <p class="desc" style="margin:0">${esc(c.area)}${c.descricao ? ". " + esc(c.descricao) : ""}</p>
           <p style="margin-top:8px">
-            ${c.disc_alvo ? `<span class="badge tipo">DISC desejado: ${esc(DISC_PERFIS[c.disc_alvo].nome)}</span> ` : ""}
-            ${c.base_alvo ? `<span class="badge tipo">B.A.S.E. desejado: ${esc(BASE_PERFIS[c.base_alvo].nome)}</span>` : ""}
+            ${c.disc_alvo ? `<span class="badge tipo">${tg("cg_disc_desejado", { nome: esc(DISC_PERFIS[c.disc_alvo].nome) })}</span> ` : ""}
+            ${c.base_alvo ? `<span class="badge tipo">${tg("cg_base_desejado", { nome: esc(BASE_PERFIS[c.base_alvo].nome) })}</span>` : ""}
           </p>
         </div>
         <div class="linha-acoes" style="margin:0">
-          <button class="btn secondary small" data-editar-cargo="${c.id}">Editar</button>
-          <button class="btn danger small" data-excluir-cargo="${c.id}">Excluir</button>
+          <button class="btn secondary small" data-editar-cargo="${c.id}">${tg("editar")}</button>
+          <button class="btn danger small" data-excluir-cargo="${c.id}">${tg("excluir")}</button>
         </div>
       </div>
       <div class="tabela-wrap mt">
         <table class="tabela">
-          <thead><tr><th>Competência</th><th>Tipo</th><th class="num">Nível exigido</th><th class="num">Obrigatória</th><th></th></tr></thead>
+          <thead><tr><th>${tg("r_th_comp")}</th><th>${tg("r_th_tipo")}</th><th class="num">${tg("cg_nivel_exigido")}</th><th class="num">${tg("cg_obrigatoria")}</th><th></th></tr></thead>
           <tbody>
             ${c.competencias.map((k) => `
               <tr>
                 <td>${esc(k.nome)}</td>
                 <td><span class="badge tipo">${esc(TIPOS_COMPETENCIA[k.tipo] || k.tipo)}</span></td>
                 <td class="num">${k.nivel_requerido}</td>
-                <td class="num">${k.obrigatoria ? '<span class="badge neutral">Sim</span>' : "—"}</td>
+                <td class="num">${k.obrigatoria ? '<span class="badge neutral">' + tg("sim") + "</span>" : "·"}</td>
                 <td class="num">
-                  <button class="btn ghost small" data-editar-comp="${c.id}:${k.id}" title="Editar">${icone("lapis")}</button>
-                  <button class="btn ghost small" data-excluir-comp="${k.id}" title="Excluir">${icone("lixeira")}</button>
+                  <button class="btn ghost small" data-editar-comp="${c.id}:${k.id}" title="${tg("editar")}">${icone("lapis")}</button>
+                  <button class="btn ghost small" data-excluir-comp="${k.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
                 </td>
-              </tr>`).join("") || '<tr><td colspan="5" style="color:var(--muted)">Nenhuma competência cadastrada.</td></tr>'}
+              </tr>`).join("") || '<tr><td colspan="5" style="color:var(--muted)">' + tg("cg_nenhuma_comp") + "</td></tr>"}
           </tbody>
         </table>
       </div>
       <div class="linha-acoes" style="margin-top:14px">
-        <button class="btn secondary small" data-nova-comp="${c.id}">+ Adicionar competência</button>
-        <button class="btn ghost small" data-avaliacoes="${c.id}">Entrevista e teste de conhecimento</button>
+        <button class="btn secondary small" data-nova-comp="${c.id}">${tg("cg_adicionar_comp")}</button>
+        <button class="btn ghost small" data-avaliacoes="${c.id}">${tg("cg_avaliacoes")}</button>
       </div>
     </div>`;
 }
@@ -1433,31 +1572,31 @@ async function modalAvaliacoesCargo(cargo) {
     <div class="modal" style="max-width:720px">
       <button class="btn ghost small fechar" id="av-fechar">${icone("fechar")}</button>
       <h2>${esc(cargo.nome)}</h2>
-      <p class="desc">Roteiro de entrevista e teste de conhecimento usados nas avaliações deste cargo.</p>
+      <p class="desc">${tg("av_desc")}</p>
 
-      <h3>Roteiro de entrevista (scorecard)</h3>
+      <h3>${tg("g_roteiro_titulo")}</h3>
       ${r.perguntas.map((p) => `
         <div class="comp-item" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div>${esc(p.texto)}</div>
-          <button class="btn ghost small" data-del-perg="${p.id}" title="Excluir">${icone("lixeira")}</button>
-        </div>`).join("") || '<p class="desc">Nenhuma pergunta ainda. Sem roteiro, o scorecard usa uma avaliação geral única.</p>'}
+          <button class="btn ghost small" data-del-perg="${p.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
+        </div>`).join("") || '<p class="desc">' + tg("av_sem_perguntas") + "</p>"}
       <div class="linha-acoes" style="margin-top:10px">
-        <input type="text" id="nova-perg" placeholder="Ex.: Como você lida com prazos apertados?" style="flex:1;min-width:220px;margin:0">
-        <button class="btn secondary small" id="add-perg">Adicionar pergunta</button>
+        <input type="text" id="nova-perg" placeholder="${tg("av_pergunta_ph")}" style="flex:1;min-width:220px;margin:0">
+        <button class="btn secondary small" id="add-perg">${tg("av_add_pergunta")}</button>
       </div>
 
-      <h3 style="margin-top:28px">Teste de conhecimento (múltipla escolha)</h3>
+      <h3 style="margin-top:28px">${tg("av_quiz_titulo")}</h3>
       ${r.questoes.map((q) => `
         <div class="comp-item">
           <div style="display:flex;justify-content:space-between;gap:10px">
             <div class="nome" style="margin-bottom:6px">${esc(q.pergunta)}</div>
-            <button class="btn ghost small" data-del-quest="${q.id}" title="Excluir">${icone("lixeira")}</button>
+            <button class="btn ghost small" data-del-quest="${q.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
           </div>
           <div style="font-size:.82rem;color:var(--muted)">
             ${q.opcoes.map((op, j) => `${String.fromCharCode(65 + j)}) ${esc(op)}${j === q.correta ? " ✓" : ""}`).join(" &nbsp;·&nbsp; ")}
           </div>
-        </div>`).join("") || '<p class="desc">Nenhuma questão ainda. O teste aparece para o candidato quando houver questões, e o resultado entra no match com peso de 20%.</p>'}
-      <button class="btn secondary small mt" id="add-quest">+ Nova questão</button>
+        </div>`).join("") || '<p class="desc">' + tg("av_sem_questoes") + "</p>"}
+      <button class="btn secondary small mt" id="add-quest">${tg("av_nova_questao")}</button>
     </div>`;
   document.body.appendChild(fundo);
   fundo.addEventListener("click", (ev) => { if (ev.target === fundo) fundo.remove(); });
@@ -1485,15 +1624,15 @@ async function modalAvaliacoesCargo(cargo) {
     })
   );
   fundo.querySelector("#add-quest").addEventListener("click", () => {
-    modalForm("Nova questão: " + cargo.nome, `
-      <label class="field">Pergunta
-        <textarea id="qz-perg" rows="2" placeholder="Ex.: Qual comando SQL retorna registros únicos?"></textarea>
+    modalForm(tg("qz_titulo", { cargo: cargo.nome }), `
+      <label class="field">${tg("qz_pergunta")}
+        <textarea id="qz-perg" rows="2" placeholder="${tg("qz_pergunta_ph")}"></textarea>
       </label>
       ${[0, 1, 2, 3].map((j) => `
-        <label class="field">Opção ${String.fromCharCode(65 + j)} ${j > 1 ? '<span class="hint">(opcional)</span>' : ""}
+        <label class="field">${tg("qz_opcao", { letra: String.fromCharCode(65 + j) })} ${j > 1 ? '<span class="hint">' + tg("opcional") + "</span>" : ""}
           <input type="text" id="qz-op${j}">
         </label>`).join("")}
-      <label class="field">Alternativa correta
+      <label class="field">${tg("qz_correta")}
         <select id="qz-correta">
           ${[0, 1, 2, 3].map((j) => `<option value="${j}">${String.fromCharCode(65 + j)}</option>`).join("")}
         </select>
@@ -1522,7 +1661,7 @@ function modalForm(titulo, corpo, aoSalvar) {
       <h2>${esc(titulo)}</h2>
       <div class="mt">${corpo}</div>
       <div class="form-erro" id="mf-erro"></div>
-      <button class="btn block" id="mf-salvar">Salvar</button>
+      <button class="btn block" id="mf-salvar">${tg("salvar")}</button>
     </div>`;
   document.body.appendChild(fundo);
   fundo.addEventListener("click", (ev) => { if (ev.target === fundo) fundo.remove(); });
@@ -1541,30 +1680,30 @@ function modalForm(titulo, corpo, aoSalvar) {
 }
 
 function formCargo(cargo) {
-  modalForm(cargo ? "Editar cargo" : "Novo cargo", `
-    <label class="field">Nome do cargo
-      <input type="text" id="fc-nome" value="${cargo ? esc(cargo.nome) : ""}" placeholder="Ex.: Analista de Sistemas Sênior">
+  modalForm(cargo ? tg("cg_editar") : tg("cg_novo_titulo"), `
+    <label class="field">${tg("cg_nome")}
+      <input type="text" id="fc-nome" value="${cargo ? esc(cargo.nome) : ""}" placeholder="${tg("cg_nome_ph")}">
     </label>
-    <label class="field">Área <input type="text" id="fc-area" value="${cargo ? esc(cargo.area) : ""}" placeholder="Ex.: GTI"></label>
-    <label class="field">Nível
+    <label class="field">${tg("area")} <input type="text" id="fc-area" value="${cargo ? esc(cargo.area) : ""}" placeholder="${tg("cg_area_ph")}"></label>
+    <label class="field">${tg("cg_nivel")}
       <select id="fc-nivel">
-        ${["", "Júnior", "Pleno", "Sênior", "Especialista", "Gestão"].map((n) =>
-          `<option value="${n}" ${cargo && cargo.nivel === n ? "selected" : ""}>${n || "—"}</option>`).join("")}
+        ${NIVEIS_CARGO.map((n) =>
+          `<option value="${n}" ${cargo && cargo.nivel === n ? "selected" : ""}>${n ? esc(nomeNivelCargo(n)) : "·"}</option>`).join("")}
       </select>
     </label>
-    <label class="field">Descrição
-      <textarea id="fc-desc" rows="3" placeholder="Responsabilidades principais">${cargo ? esc(cargo.descricao) : ""}</textarea>
+    <label class="field">${tg("descricao")}
+      <textarea id="fc-desc" rows="3" placeholder="${tg("cg_desc_ph")}">${cargo ? esc(cargo.descricao) : ""}</textarea>
     </label>
-    <label class="field">Perfil DISC desejado <span class="hint">(usado no cálculo do match)</span>
+    <label class="field">${tg("cg_disc_alvo")} <span class="hint">${tg("cg_usado_match")}</span>
       <select id="fc-disc">
-        <option value="">Não considerar</option>
+        <option value="">${tg("cg_nao_considerar")}</option>
         ${["D", "I", "S", "C"].map((k) =>
           `<option value="${k}" ${cargo && cargo.disc_alvo === k ? "selected" : ""}>${DISC_PERFIS[k].nome} (${k})</option>`).join("")}
       </select>
     </label>
-    <label class="field">Arquétipo B.A.S.E. desejado <span class="hint">(usado no cálculo do match)</span>
+    <label class="field">${tg("cg_base_alvo")} <span class="hint">${tg("cg_usado_match")}</span>
       <select id="fc-base">
-        <option value="">Não considerar</option>
+        <option value="">${tg("cg_nao_considerar")}</option>
         ${["B", "A", "S", "E"].map((k) =>
           `<option value="${k}" ${cargo && cargo.base_alvo === k ? "selected" : ""}>${BASE_PERFIS[k].nome}</option>`).join("")}
       </select>
@@ -1586,17 +1725,17 @@ function formCargo(cargo) {
 }
 
 function formCompetencia(cargoId, comp) {
-  modalForm(comp ? "Editar competência" : "Nova competência", `
-    <label class="field">Nome da competência
-      <input type="text" id="fk-nome" value="${comp ? esc(comp.nome) : ""}" placeholder="Ex.: Certificação Java">
+  modalForm(comp ? tg("ck_editar") : tg("ck_nova"), `
+    <label class="field">${tg("ck_nome")}
+      <input type="text" id="fk-nome" value="${comp ? esc(comp.nome) : ""}" placeholder="${tg("ck_nome_ph")}">
     </label>
-    <label class="field">Tipo
+    <label class="field">${tg("r_th_tipo")}
       <select id="fk-tipo">
         ${Object.entries(TIPOS_COMPETENCIA).map(([v, r]) =>
           `<option value="${v}" ${comp && comp.tipo === v ? "selected" : ""}>${r}</option>`).join("")}
       </select>
     </label>
-    <label class="field">Nível exigido (1 a 5)
+    <label class="field">${tg("ck_nivel")}
       <select id="fk-nivel">
         ${[1, 2, 3, 4, 5].map((n) =>
           `<option value="${n}" ${(comp ? comp.nivel_requerido : 3) === n ? "selected" : ""}>${n}</option>`).join("")}
@@ -1604,7 +1743,7 @@ function formCompetencia(cargoId, comp) {
     </label>
     <label class="field" style="display:flex;align-items:center;gap:8px;font-weight:600">
       <input type="checkbox" id="fk-obrig" style="width:auto" ${comp && comp.obrigatoria ? "checked" : ""}>
-      Competência obrigatória para exercer a função
+      ${tg("ck_obrigatoria")}
     </label>`,
     async (f) => {
       await api("/api/gestor/competencia", {
@@ -1625,11 +1764,11 @@ function formCompetencia(cargoId, comp) {
 function abaMatriz(el) {
   el.innerHTML = `
     <div class="card">
-      <h2>Matriz de gaps consolidada</h2>
-      <p class="desc">Selecione um cargo para comparar todos os candidatos com as competências exigidas. Serve também para avaliar upgrade de cargo de quem já está na instituição.</p>
-      <label class="field" style="max-width:420px">Cargo
+      <h2>${tg("mx_titulo")}</h2>
+      <p class="desc">${tg("mx_desc")}</p>
+      <label class="field" style="max-width:420px">${tg("cargo")}
         <select id="mx-cargo">
-          <option value="">Selecione um cargo</option>
+          <option value="">${tg("mx_selecione")}</option>
           ${cargos.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join("")}
         </select>
       </label>
@@ -1639,10 +1778,10 @@ function abaMatriz(el) {
     const cargoId = Number(ev.target.value);
     const alvo = document.getElementById("mx-resultado");
     if (!cargoId) { alvo.innerHTML = ""; return; }
-    alvo.innerHTML = "<p class='desc'>Carregando…</p>";
+    alvo.innerHTML = "<p class='desc'>" + tg("carregando") + "</p>";
     const r = await api("/api/gestor/matriz?cargo_id=" + cargoId);
     if (!r.linhas.length) {
-      alvo.innerHTML = "<p class='desc'>Nenhum candidato cadastrado.</p>";
+      alvo.innerHTML = "<p class='desc'>" + tg("mx_nenhum") + "</p>";
       return;
     }
     const comps = r.cargo.competencias;
@@ -1651,27 +1790,28 @@ function abaMatriz(el) {
         <table class="tabela">
           <thead>
             <tr>
-              <th>Candidato</th><th class="num">Match</th><th class="num">Aderência</th><th class="num">Status</th>
-              ${comps.map((k) => `<th class="num" title="${esc(k.nome)} (exigido: ${k.nivel_requerido})">${esc(k.nome.length > 18 ? k.nome.slice(0, 17) + "…" : k.nome)}<br><span style="font-weight:400">exig. ${k.nivel_requerido}</span></th>`).join("")}
+              <th>${tg("candidato")}</th><th class="num">${tg("match")}</th><th class="num">${tg("mx_aderencia")}</th><th class="num">${tg("status")}</th>
+              ${comps.map((k) => `<th class="num" title="${esc(tg("mx_th_title", { nome: k.nome, n: k.nivel_requerido }))}">${esc(k.nome.length > 18 ? k.nome.slice(0, 17) + "…" : k.nome)}<br><span style="font-weight:400">${tg("mx_exig", { n: k.nivel_requerido })}</span></th>`).join("")}
             </tr>
           </thead>
           <tbody>
             ${r.linhas.map((l) => `
-              <tr>
-                <td><strong>${esc(l.nome)}</strong>${l.local ? `<br><span style="color:var(--muted);font-size:.76rem">${esc(l.local)}</span>` : ""}</td>
-                <td class="num">${l.match != null ? `<strong>${l.match}%</strong>` : "—"}</td>
-                <td class="num">${l.respondeu ? l.aderencia + "%" : "—"}</td>
-                <td class="num">${l.respondeu ? badgeStatus(l.status) : '<span class="badge tipo">sem autoavaliação</span>'}</td>
+              <tr ${l.candidato_id || l.id ? `data-linha-cand="${l.candidato_id || l.id}"` : ""}>
+                <td><strong>${l.candidato_id || l.id ? linkCandidato(l.candidato_id || l.id, l.nome) : esc(l.nome)}</strong>${l.local ? `<br><span style="color:var(--muted);font-size:.76rem">${esc(l.local)}</span>` : ""}</td>
+                <td class="num">${l.match != null ? `<strong>${l.match}%</strong>` : "·"}</td>
+                <td class="num">${l.respondeu ? l.aderencia + "%" : "·"}</td>
+                <td class="num">${l.respondeu ? badgeStatus(l.status) : '<span class="badge tipo">' + tg("mx_sem_auto") + "</span>"}</td>
                 ${l.itens.map((i) => `
-                  <td class="num"><span class="celula-gap ${classeGap(i)}">${i.respondida ? i.nivel_atual + "/" + i.nivel_requerido : "—"}</span></td>`).join("")}
+                  <td class="num"><span class="celula-gap ${classeGap(i)}">${i.respondida ? i.nivel_atual + "/" + i.nivel_requerido : "·"}</span></td>`).join("")}
               </tr>`).join("")}
           </tbody>
         </table>
       </div>
-      <p class="desc mt">Legenda: <span class="celula-gap ok">OK</span> atende ·
-        <span class="celula-gap medio">gap 1–2</span> desenvolvimento ·
-        <span class="celula-gap alto">gap 3+</span> gap alto ·
-        <span class="celula-gap vazio">—</span> sem resposta</p>`;
+      <p class="desc mt">${tg("mx_legenda")} <span class="celula-gap ok">OK</span> ${tg("mx_leg_ok")} ·
+        <span class="celula-gap medio">${tg("mx_leg_gap12")}</span> ${tg("mx_leg_desenv")} ·
+        <span class="celula-gap alto">${tg("mx_leg_gap3")}</span> ${tg("mx_leg_alto")} ·
+        <span class="celula-gap vazio">·</span> ${tg("r_sem_resposta")}</p>`;
+    ligarDetalhes(alvo);
   });
 }
 
@@ -1684,24 +1824,24 @@ async function abaConfig(el) {
   el.innerHTML = `
     <div class="grid cols-2">
       <div class="card">
-        <h2 class="icone-titulo">${icone("link")}<span>Seus links públicos</span></h2>
-        <p class="desc"><strong style="color:var(--text)">Página de vagas da empresa</strong>: todas as vagas abertas de ${esc((info.empresa && info.empresa.nome) || "sua empresa")}.</p>
+        <h2 class="icone-titulo">${icone("link")}<span>${tg("cfg_links")}</span></h2>
+        <p class="desc">${tg("cfg_pag_empresa", { empresa: esc((info.empresa && info.empresa.nome) || tg("cfg_sua_empresa")) })}</p>
         <input type="text" readonly value="${esc(linkEmpresa)}" id="cfg-link-empresa">
-        <button class="btn secondary small mt" id="cfg-copiar-empresa">Copiar página da empresa</button>
-        <p class="desc" style="margin-top:16px"><strong style="color:var(--text)">Sua página de vagas</strong>: só as vagas do seu local${info.local ? " (" + esc(info.local) + ")" : " (sem local definido: todas da empresa)"}:</p>
+        <button class="btn secondary small mt" id="cfg-copiar-empresa">${tg("cfg_copiar_empresa")}</button>
+        <p class="desc" style="margin-top:16px">${tg("cfg_pag_vagas")}${info.local ? " (" + esc(info.local) + ")" : " " + tg("cfg_sem_local")}:</p>
         <input type="text" readonly value="${esc(location.origin + "/vagas?g=" + (info.login || ""))}" id="cfg-link-vagas">
-        <button class="btn secondary small mt" id="cfg-copiar-vagas">Copiar página de vagas</button>
-        <p class="desc" style="margin-top:16px"><strong style="color:var(--text)">Cadastro direto</strong> (sem vaga específica):</p>
+        <button class="btn secondary small mt" id="cfg-copiar-vagas">${tg("cfg_copiar_vagas")}</button>
+        <p class="desc" style="margin-top:16px">${tg("cfg_cadastro_direto")}</p>
         <input type="text" readonly value="${esc(linkCandidato)}" id="cfg-link">
-        <button class="btn secondary small mt" id="cfg-copiar">Copiar link</button>
+        <button class="btn secondary small mt" id="cfg-copiar">${tg("cfg_copiar_link")}</button>
       </div>
       <div class="card">
-        <h2 class="icone-titulo">${icone("chave")}<span>Alterar minha senha</span></h2>
-        <p class="desc">Conta: <strong>${esc(info.nome || "")}</strong> (${esc(info.login || "")})</p>
-        <label class="field">Senha atual <input type="password" id="cfg-atual" autocomplete="current-password"></label>
-        <label class="field">Nova senha (mín. 6 caracteres) <input type="password" id="cfg-nova" autocomplete="new-password"></label>
+        <h2 class="icone-titulo">${icone("chave")}<span>${tg("cfg_senha_titulo")}</span></h2>
+        <p class="desc">${tg("cfg_conta")} <strong>${esc(info.nome || "")}</strong> (${esc(info.login || "")})</p>
+        <label class="field">${tg("cfg_senha_atual")} <input type="password" id="cfg-atual" autocomplete="current-password"></label>
+        <label class="field">${tg("nova_senha_min")} <input type="password" id="cfg-nova" autocomplete="new-password"></label>
         <div class="form-erro" id="cfg-erro"></div>
-        <button class="btn" id="cfg-salvar">Alterar senha</button>
+        <button class="btn" id="cfg-salvar">${tg("cfg_alterar_senha")}</button>
       </div>
     </div>
     <div id="cfg-marca"></div>
@@ -1710,15 +1850,15 @@ async function abaConfig(el) {
   secaoMarca(document.getElementById("cfg-marca"));
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
-    document.getElementById("cfg-copiar").textContent = "Copiado ✓";
+    document.getElementById("cfg-copiar").textContent = tg("copiado");
   });
   document.getElementById("cfg-copiar-empresa").addEventListener("click", () => {
     navigator.clipboard.writeText(linkEmpresa);
-    document.getElementById("cfg-copiar-empresa").textContent = "Copiado ✓";
+    document.getElementById("cfg-copiar-empresa").textContent = tg("copiado");
   });
   document.getElementById("cfg-copiar-vagas").addEventListener("click", () => {
     navigator.clipboard.writeText(document.getElementById("cfg-link-vagas").value);
-    document.getElementById("cfg-copiar-vagas").textContent = "Copiado ✓";
+    document.getElementById("cfg-copiar-vagas").textContent = tg("copiado");
   });
   document.getElementById("cfg-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("cfg-erro");
@@ -1732,7 +1872,7 @@ async function abaConfig(el) {
         },
       });
       erro.style.color = "var(--ok)";
-      erro.textContent = "Senha alterada com sucesso.";
+      erro.textContent = tg("cfg_senha_ok");
       document.getElementById("cfg-atual").value = "";
       document.getElementById("cfg-nova").value = "";
     } catch (e) {
@@ -1752,22 +1892,20 @@ async function secaoTemplates(el) {
   const chaves = Object.keys(r.nomes);
   el.innerHTML = `
     <div class="card">
-      <h2 class="icone-titulo">${icone("bloco")}<span>Modelos de e-mail</span></h2>
-      <p class="desc">Personalize os textos enviados aos candidatos. Campos disponíveis:
-        <code>{nome}</code>, <code>{vaga}</code>, <code>{link}</code> (link pessoal de acesso), <code>{local}</code> e <code>{etapa}</code>.
-        Deixe em branco para voltar ao texto padrão.</p>
+      <h2 class="icone-titulo">${icone("bloco")}<span>${tg("tp_titulo")}</span></h2>
+      <p class="desc">${tg("tp_desc")}</p>
       ${chaves.map((k) => `
         <div class="comp-item">
-          <div class="nome">${esc(r.nomes[k])}</div>
-          <label class="field" style="margin-bottom:8px">Assunto
+          <div class="nome">${esc(nomeTemplate(k, r.nomes[k]))}</div>
+          <label class="field" style="margin-bottom:8px">${tg("assunto")}
             <input type="text" id="tp-assunto-${k}" value="${esc(r.templates[k].assunto)}">
           </label>
-          <label class="field" style="margin-bottom:0">Mensagem
+          <label class="field" style="margin-bottom:0">${tg("mensagem")}
             <textarea id="tp-corpo-${k}" rows="4">${esc(r.templates[k].corpo)}</textarea>
           </label>
         </div>`).join("")}
       <div class="form-erro" id="tp-erro"></div>
-      <button class="btn mt" id="tp-salvar">Salvar modelos</button>
+      <button class="btn mt" id="tp-salvar">${tg("tp_salvar")}</button>
     </div>`;
   document.getElementById("tp-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("tp-erro");
@@ -1781,7 +1919,7 @@ async function secaoTemplates(el) {
     try {
       await api("/api/gestor/templates", { method: "POST", body: { templates } });
       erro.style.color = "var(--ok)";
-      erro.textContent = "Modelos salvos.";
+      erro.textContent = tg("tp_ok");
     } catch (e) {
       erro.style.color = "var(--err)";
       erro.textContent = e.message;
@@ -1793,23 +1931,25 @@ async function secaoGestores(el) {
   const r = await api("/api/gestor/gestores");
   const pendentes = r.gestores.filter((g) => !g.aprovado);
   const aprovados = r.gestores.filter((g) => g.aprovado);
+  const semEmail = '<span class="badge warn">' + tg("gs_sem_email") + "</span>";
+  const todosLocais = '<span style="color:var(--muted)">' + tg("gs_todos_locais") + "</span>";
   const cardPendentes = pendentes.length ? `
     <div class="card" style="border-color:var(--warn);background:var(--warn-bg)">
-      <h2 class="icone-titulo"><span>Solicitações de acesso pendentes (${pendentes.length})</span></h2>
-      <p class="desc">Estas pessoas pediram uma conta de gestor e aguardam a sua aprovação.</p>
+      <h2 class="icone-titulo"><span>${tg("gs_pendentes", { n: fmtNum(pendentes.length) })}</span></h2>
+      <p class="desc">${tg("gs_pendentes_desc")}</p>
       <div class="tabela-wrap mt">
         <table class="tabela">
-          <thead><tr><th>Nome</th><th>Login</th><th>E-mail</th><th>Local</th><th></th></tr></thead>
+          <thead><tr><th>${tg("nome")}</th><th>${tg("login")}</th><th>${tg("email")}</th><th>${tg("local")}</th><th></th></tr></thead>
           <tbody>
             ${pendentes.map((g) => `
               <tr>
                 <td><strong>${esc(g.nome)}</strong></td>
                 <td>${esc(g.login)}</td>
-                <td>${g.email ? esc(g.email) : '<span class="badge warn">sem e-mail</span>'}</td>
-                <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">todos os locais</span>'}</td>
+                <td>${g.email ? esc(g.email) : semEmail}</td>
+                <td>${g.local ? esc(g.local) : todosLocais}</td>
                 <td class="num">
-                  <button class="btn small" data-aprovar="${g.id}">Aprovar</button>
-                  <button class="btn danger small" data-recusar="${g.id}">Recusar</button>
+                  <button class="btn small" data-aprovar="${g.id}">${tg("gs_aprovar")}</button>
+                  <button class="btn danger small" data-recusar="${g.id}">${tg("gs_recusar")}</button>
                 </td>
               </tr>`).join("")}
           </tbody>
@@ -1821,25 +1961,25 @@ async function secaoGestores(el) {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div>
-          <h2 class="icone-titulo">${icone("usuarios")}<span>Contas de gestor</span></h2>
-          <p class="desc" style="margin:0">Cada gestor entra com o próprio login e senha. Gestores vinculados a um local veem apenas os candidatos que fizeram a avaliação naquele local; contas sem local (ou administradoras) veem todos.</p>
+          <h2 class="icone-titulo">${icone("usuarios")}<span>${tg("gs_titulo")}</span></h2>
+          <p class="desc" style="margin:0">${tg("gs_desc")}</p>
         </div>
-        <button class="btn" id="novo-gestor">+ Novo gestor</button>
+        <button class="btn" id="novo-gestor">${tg("gs_novo")}</button>
       </div>
       <div class="tabela-wrap mt">
         <table class="tabela">
-          <thead><tr><th>Nome</th><th>Login</th><th>E-mail</th><th>Local</th><th class="num">Perfil</th><th></th></tr></thead>
+          <thead><tr><th>${tg("nome")}</th><th>${tg("login")}</th><th>${tg("email")}</th><th>${tg("local")}</th><th class="num">${tg("gs_perfil")}</th><th></th></tr></thead>
           <tbody>
             ${aprovados.map((g) => `
               <tr>
                 <td><strong>${esc(g.nome)}</strong></td>
                 <td>${esc(g.login)}</td>
-                <td>${g.email ? esc(g.email) : '<span class="badge warn">sem e-mail</span>'}</td>
-                <td>${g.local ? esc(g.local) : '<span style="color:var(--muted)">todos os locais</span>'}</td>
-                <td class="num">${g.admin ? '<span class="badge neutral">Administrador</span>' : '<span class="badge tipo">Gestor</span>'}</td>
+                <td>${g.email ? esc(g.email) : semEmail}</td>
+                <td>${g.local ? esc(g.local) : todosLocais}</td>
+                <td class="num">${g.admin ? '<span class="badge neutral">' + tg("administrador") + "</span>" : '<span class="badge tipo">' + tg("gestor") + "</span>"}</td>
                 <td class="num">
-                  <button class="btn ghost small" data-editar-gestor="${g.id}" title="Editar">${icone("lapis")}</button>
-                  <button class="btn ghost small" data-excluir-gestor="${g.id}" title="Excluir">${icone("lixeira")}</button>
+                  <button class="btn ghost small" data-editar-gestor="${g.id}" title="${tg("editar")}">${icone("lapis")}</button>
+                  <button class="btn ghost small" data-excluir-gestor="${g.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
                 </td>
               </tr>`).join("")}
           </tbody>
@@ -1861,7 +2001,7 @@ async function secaoGestores(el) {
   el.querySelectorAll("[data-recusar]").forEach((b) =>
     b.addEventListener("click", async () => {
       const g = pendentes.find((x) => x.id === Number(b.dataset.recusar));
-      if (!confirm(`Recusar e apagar a solicitação de ${g.nome} (${g.login})?`)) return;
+      if (!confirm(tg("gs_confirmar_recusar", { nome: g.nome, login: g.login }))) return;
       try {
         await api("/api/gestor/gestores/" + g.id, { method: "DELETE" });
         secaoGestores(el);
@@ -1879,7 +2019,7 @@ async function secaoGestores(el) {
   el.querySelectorAll("[data-excluir-gestor]").forEach((b) =>
     b.addEventListener("click", async () => {
       const g = r.gestores.find((x) => x.id === Number(b.dataset.excluirGestor));
-      if (!confirm(`Excluir a conta de ${g.nome} (${g.login})?`)) return;
+      if (!confirm(tg("gs_confirmar_excluir", { nome: g.nome, login: g.login }))) return;
       try {
         await api("/api/gestor/gestores/" + g.id, { method: "DELETE" });
         desenharPainel();
@@ -1891,25 +2031,25 @@ async function secaoGestores(el) {
 }
 
 function formGestor(g) {
-  modalForm(g ? "Editar gestor" : "Novo gestor", `
-    <label class="field">Nome
-      <input type="text" id="fg-nome" value="${g ? esc(g.nome) : ""}" placeholder="Ex.: Maria Andrade">
+  modalForm(g ? tg("gs_editar") : tg("gs_novo_titulo"), `
+    <label class="field">${tg("nome")}
+      <input type="text" id="fg-nome" value="${g ? esc(g.nome) : ""}" placeholder="${tg("gs_nome_ph")}">
     </label>
-    <label class="field">Login ${g ? '<span class="hint">(não pode ser alterado)</span>' : ""}
-      <input type="text" id="fg-login" value="${g ? esc(g.login) : ""}" placeholder="ex.: maria.andrade" ${g ? "disabled" : ""}>
+    <label class="field">${tg("login")} ${g ? '<span class="hint">' + tg("gs_login_fixo") + "</span>" : ""}
+      <input type="text" id="fg-login" value="${g ? esc(g.login) : ""}" placeholder="${tg("gs_login_ph")}" ${g ? "disabled" : ""}>
     </label>
-    <label class="field">E-mail <span class="hint">(recebe avisos de novos candidatos e avaliações do seu local)</span>
-      <input type="email" id="fg-email" value="${g ? esc(g.email || "") : ""}" placeholder="gestor@email.com">
+    <label class="field">${tg("email")} <span class="hint">${tg("gs_email_hint")}</span>
+      <input type="email" id="fg-email" value="${g ? esc(g.email || "") : ""}" placeholder="${tg("gs_email_ph")}">
     </label>
-    <label class="field">Local / instituição <span class="hint">(deixe vazio para ver todos os candidatos)</span>
-      <input type="text" id="fg-local" value="${g ? esc(g.local) : ""}" placeholder="Ex.: Secretaria de GTI">
+    <label class="field">${tg("gs_local")} <span class="hint">${tg("gs_local_hint")}</span>
+      <input type="text" id="fg-local" value="${g ? esc(g.local) : ""}" placeholder="${tg("local_ph")}">
     </label>
-    <label class="field">${g ? "Nova senha <span class='hint'>(deixe vazio para manter a atual)</span>" : "Senha (mín. 6 caracteres)"}
+    <label class="field">${g ? tg("gs_nova_senha") + " <span class='hint'>" + tg("gs_manter_senha") + "</span>" : tg("senha_min")}
       <input type="password" id="fg-senha" autocomplete="new-password">
     </label>
     <label class="field" style="display:flex;align-items:center;gap:8px">
       <input type="checkbox" id="fg-admin" style="width:auto" ${g && g.admin ? "checked" : ""}>
-      Administrador (gerencia contas e vê todos os locais)
+      ${tg("gs_admin_check")}
     </label>`,
     async (f) => {
       await api("/api/gestor/gestores", {
@@ -1929,6 +2069,8 @@ function formGestor(g) {
 
 // ------------------------------------------------ boot
 (async function () {
+  montarSeletorIdiomaGestor(trocarIdiomaPainel);
+  atualizarTopo();
   // link de redefinição de senha (?reset=token) tem prioridade
   const tokenReset = new URLSearchParams(location.search).get("reset");
   if (tokenReset) return telaRedefinirSenha(tokenReset);

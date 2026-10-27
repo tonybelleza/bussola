@@ -10,10 +10,12 @@ function esc(txt) {
 }
 
 // Texto dos blocos de resultado. Na área do candidato (que carrega
-// i18n-candidato.js) usa t() no idioma escolhido; no painel do gestor,
-// que não carrega o dicionário, fica o português passado em "pt".
+// i18n-candidato.js) usa t() no idioma escolhido; no painel do gestor
+// (que carrega i18n-gestor.js) usa tg(). Sem nenhum dos dois dicionários
+// fica o português passado em "pt".
 function txr(chave, pt, vars) {
   if (typeof I18N_CAND !== "undefined" && typeof t === "function") return t(chave, vars);
+  if (typeof I18N_GESTOR !== "undefined" && typeof tg === "function" && I18N_GESTOR.pt[chave] !== undefined) return tg(chave, vars);
   return vars ? pt.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : pt;
 }
 
@@ -227,7 +229,7 @@ function htmlMatrizGaps(gaps) {
     '<div class="aviso mb">' + txr("r_aviso_sem_auto", "A autoavaliação de competências ainda não foi respondida, por isso os níveis atuais aparecem zerados.") + "</div>";
   return `
     ${tituloIcone("matriz", txr("r_matriz_titulo", "Matriz de Gaps: {cargo}", { cargo: esc(cargo.nome) }))}
-    <p class="desc">${esc(cargo.area)}${cargo.nivel ? " · " + esc(cargo.nivel) : ""}</p>
+    <p class="desc">${esc(cargo.area)}${cargo.nivel ? " · " + esc(typeof nomeNivelCargo === "function" ? nomeNivelCargo(cargo.nivel) : cargo.nivel) : ""}</p>
     ${avisoSemResposta}
     <div class="perfil-destaque">
       <div class="titulo">${txr("r_aderencia", "Aderência ao cargo: {pct}%", { pct: gaps.aderencia })}</div>
