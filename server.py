@@ -1642,10 +1642,15 @@ def analisar_curriculo_em_segundo_plano(candidato_id):
 
 
 def rotina_automatica():
-    """Roda a cada hora: lembrete de avaliação incompleta (48h) e retenção LGPD."""
+    """Roda a cada hora: backup diário, lembrete de avaliação incompleta (48h) e retenção LGPD."""
     import time
 
     while True:
+        try:
+            # backup do dia (uma cópia por dia, guarda as 14 mais recentes), mesmo sem reiniciar
+            backup_diario()
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write("Backup diário falhou: %r\n" % exc)
         try:
             conn = db()
             # lembrete para quem começou e não terminou em 2 dias
