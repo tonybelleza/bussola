@@ -17,7 +17,7 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="msg-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)

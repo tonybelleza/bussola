@@ -679,6 +679,7 @@ function abaVisao(el) {
   ).length;
 
   el.innerHTML = `
+    <div class="card" id="quadro-dia"></div>
     <div class="metricas">
       <div class="metrica"><div class="num">${fmtNum(candidatos.length)}</div><div class="rot">${tg("v_m_cadastrados")}</div></div>
       <div class="metrica"><div class="num">${fmtNum(comDisc)}</div><div class="rot">${tg("v_m_disc")}</div></div>
@@ -697,6 +698,7 @@ function abaVisao(el) {
       <div id="feed-atividades"><p class="desc">${tg("carregando")}</p></div>
     </div>`;
   ligarLinhasCandidato(el);
+  quadroDoDia(document.getElementById("quadro-dia"));
   api("/api/gestor/atividades").then((r) => {
     const alvo = document.getElementById("feed-atividades");
     if (!alvo) return;
@@ -1078,7 +1080,10 @@ function abaCandidatos(el) {
   el.innerHTML = `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
       <h2 style="margin:0">${tg("c_banco", { n: fmtNum(candidatos.length) })}</h2>
-      ${candidatos.length ? `<button class="btn secondary small" id="exportar-csv">${tg("c_exportar")}</button>` : ""}
+      <div class="linha-acoes" style="margin:0">
+        ${infoGestor().admin ? `<button class="btn small" id="importar-csv">${tg("en_importar")}</button>` : ""}
+        ${candidatos.length ? `<button class="btn secondary small" id="exportar-csv">${tg("c_exportar")}</button>` : ""}
+      </div>
     </div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 4px">
       <input type="text" id="ft-busca" placeholder="${tg("c_buscar_ph")}" style="margin:0">
@@ -1133,6 +1138,8 @@ function abaCandidatos(el) {
   ligarLinhasCandidato(el);
   const btn = document.getElementById("exportar-csv");
   if (btn) btn.addEventListener("click", exportarCandidatosCsv);
+  const imp = document.getElementById("importar-csv");
+  if (imp) imp.addEventListener("click", () => modalImportarCsv(async () => { await carregarDados(); abaCandidatos(el); }));
 }
 
 function exportarCandidatosCsv() {
@@ -1845,9 +1852,11 @@ async function abaConfig(el) {
       </div>
     </div>
     <div id="cfg-marca"></div>
+    <div id="cfg-entrada"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
   secaoMarca(document.getElementById("cfg-marca"));
+  secaoEntrada(document.getElementById("cfg-entrada"));
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = tg("copiado");

@@ -375,3 +375,10 @@ def traduzir(texto, idioma, _profundidade=0):
         return texto
     except Exception:  # noqa: BLE001
         return texto
+
+# entrada de candidatos (entrada.py)
+ERROS['Apenas o administrador da empresa configura a entrada de candidatos'] = {"en": 'Only the company admin can set up candidate intake', "es": 'Solo el administrador de la empresa configura la entrada de candidatos'}
+ERROS['Porta inválida'] = {"en": 'Invalid port', "es": 'Puerto inválido'}
+ERROS['Preencha servidor, usuário e senha antes de ativar'] = {"en": 'Fill in server, username and password before turning it on', "es": 'Completa servidor, usuario y contraseña antes de activar'}
+ERROS['A leitura já está em andamento'] = {"en": 'Reading is already in progress', "es": 'La lectura ya está en curso'}
+ERROS['Envie a planilha CSV'] = {"en": 'Upload the CSV spreadsheet', "es": 'Sube la planilla CSV'}

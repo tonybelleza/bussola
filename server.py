@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 import empresas
+import entrada
 import erros_i18n
 import mensagens
 import voz
@@ -2944,6 +2945,10 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
+        # -- entrada de candidatos (e-mail do Indeed e CSV) e quadro do dia --
+        if entrada.rotear_gestor(self, method, path, conn, gestor):
+            return None
+
         # -- módulo Triagem por Voz --
         if voz.rotear_gestor(self, method, path, conn, gestor):
             return None
@@ -3974,6 +3979,7 @@ def backup_diario():
 
 voz.ligar(sys.modules[__name__])
 mensagens.ligar(sys.modules[__name__])
+entrada.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
 
 
@@ -3983,6 +3989,7 @@ def main():
     init_db()
     import threading
     threading.Thread(target=rotina_automatica, daemon=True).start()
+    threading.Thread(target=entrada.rotina_entrada, daemon=True).start()
     if os.environ.get("VOZ_FILA_DESLIGADA") != "1":
         threading.Thread(target=voz.rotina_voz, daemon=True).start()
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)
