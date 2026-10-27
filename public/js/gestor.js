@@ -1541,19 +1541,19 @@ function cartaoCargo(c) {
       </div>
       <div class="tabela-wrap mt">
         <table class="tabela">
-          <thead><tr><th>${tg("r_th_comp")}</th><th>${tg("r_th_tipo")}</th><th class="num">${tg("cg_nivel_exigido")}</th><th class="num">${tg("cg_obrigatoria")}</th><th></th></tr></thead>
+          <thead><tr><th>${tg("r_th_comp")}</th><th>${tg("r_th_tipo")}</th><th class="num">${tg("cg_nivel_exigido")}</th><th class="num">${tg("cg_obrigatoria")}</th></tr></thead>
           <tbody>
             ${c.competencias.map((k) => `
               <tr>
-                <td>${esc(k.nome)}</td>
+                <td>${esc(k.nome)}
+                  <div style="margin-top:4px;white-space:nowrap">
+                    <button class="btn ghost small" data-editar-comp="${c.id}:${k.id}" title="${tg("editar")}">${icone("lapis")} ${tg("editar")}</button>
+                    <button class="btn ghost small" data-excluir-comp="${k.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
+                  </div></td>
                 <td><span class="badge tipo">${esc(TIPOS_COMPETENCIA[k.tipo] || k.tipo)}</span></td>
                 <td class="num">${k.nivel_requerido}</td>
                 <td class="num">${k.obrigatoria ? '<span class="badge neutral">' + tg("sim") + "</span>" : "·"}</td>
-                <td class="num">
-                  <button class="btn ghost small" data-editar-comp="${c.id}:${k.id}" title="${tg("editar")}">${icone("lapis")}</button>
-                  <button class="btn ghost small" data-excluir-comp="${k.id}" title="${tg("excluir")}">${icone("lixeira")}</button>
-                </td>
-              </tr>`).join("") || '<tr><td colspan="5" style="color:var(--muted)">' + tg("cg_nenhuma_comp") + "</td></tr>"}
+              </tr>`).join("") || '<tr><td colspan="4" style="color:var(--muted)">' + tg("cg_nenhuma_comp") + "</td></tr>"}
           </tbody>
         </table>
       </div>
