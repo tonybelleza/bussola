@@ -9,3 +9,8 @@ nohup.out
 docs/
 # chave de criptografia dos dados do onboarding: nunca versionar, nunca sobrescrever
 chave_dados.key
+# chave da máquina do backup externo (operacao.py): nunca versionar
+backups.key
+.claude/settings.local.json
+# exportações de dados das empresas (conta.py): nunca versionar
+exportacoes/

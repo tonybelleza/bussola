@@ -234,6 +234,9 @@ async function onboardingPreencherFicha(candidatoId, el) {
     const id = b.dataset.onbId, acao = b.dataset.onbAcao;
     if (acao === "cancelar" && !confirm(tg("onb_confirmar_cancelar"))) return;
     if (acao === "purgar" && !confirm(tg("onb_purgar_aviso"))) return;
+    // verificação de antecedentes exigida (gestor-integracoes-rh.js)
+    if (acao === "contratado" && b.dataset.onbCandidatura && typeof integracoesRhAvisoContratar === "function"
+        && !(await integracoesRhAvisoContratar(b.dataset.onbCandidatura))) return;
     if (acao === "copiar") {
       navigator.clipboard.writeText(b.dataset.link).then(() => { b.textContent = tg("onb_copiado"); }).catch(() => {});
       return;
@@ -299,7 +302,7 @@ function onbHtmlOnboarding(o, r, aberto) {
         <div class="linha-acoes no-print">
           <button class="btn secondary small" data-onb-acao="copiar" data-onb-id="${o.id}" data-link="${esc(o.link)}">${icone("link")} ${tg("onb_copiar")}</button>
           <button class="btn secondary small" data-onb-acao="reenviar" data-onb-id="${o.id}">${tg("onb_reenviar")}</button>
-          <button class="btn secondary small" data-onb-acao="contratado" data-onb-id="${o.id}">${tg("onb_contratado")}</button>
+          <button class="btn secondary small" data-onb-acao="contratado" data-onb-id="${o.id}" data-onb-candidatura="${o.candidatura_id || ""}">${tg("onb_contratado")}</button>
           ${r.admin ? `<button class="btn danger small" data-onb-acao="cancelar" data-onb-id="${o.id}">${tg("onb_cancelar")}</button>` : ""}
         </div>` : ""}
       <h3 style="margin-top:14px">${tg("onb_docs")}</h3>

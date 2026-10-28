@@ -771,3 +771,36 @@ function montarSeletorIdioma(aoTrocar) {
 
 // aplica o idioma inicial assim que o arquivo carrega
 definirIdioma(idiomaCand);
+
+// consentimento para ligações e mensagens automáticas (TCPA) e "Parar ligações e mensagens".
+// O texto de cad_contato é o mesmo guardado pelo servidor (conta.py, TEXTO_CONSENTIMENTO).
+Object.assign(I18N_CAND.pt, {
+  cad_contato: "Concordo que {empresa} pode me ligar e enviar mensagens de texto sobre a minha candidatura, inclusive com tecnologia automatizada e uma assistente de IA, no número que informei. As ligações podem ser gravadas. O consentimento não é condição para a contratação. Responda STOP para deixar de receber mensagens.",
+  cad_contato_empresa: "a empresa",
+  ct_titulo: "Ligações e mensagens",
+  ct_desc: "Você pode pedir a qualquer momento que a empresa pare de ligar e de enviar mensagens automáticas sobre a sua candidatura.",
+  ct_consentiu: "Você autorizou ligações e mensagens em {data}.",
+  ct_parar: "Parar ligações e mensagens",
+  ct_confirmar: "Parar as ligações e mensagens automáticas sobre a sua candidatura? A empresa ainda pode falar com você por e-mail.",
+  ct_revogado: "Pronto. Você pediu para não receber ligações nem mensagens automáticas sobre a sua candidatura.",
+});
+Object.assign(I18N_CAND.en, {
+  cad_contato: "I agree that {empresa} may call and text me about my application, including with automated technology and an AI assistant, at the number I provided. Calls may be recorded. Consent is not a condition of employment. Reply STOP to opt out of texts.",
+  cad_contato_empresa: "the company",
+  ct_titulo: "Calls and texts",
+  ct_desc: "You can ask the company at any time to stop calling and sending automated texts about your application.",
+  ct_consentiu: "You agreed to calls and texts on {data}.",
+  ct_parar: "Stop calls and texts",
+  ct_confirmar: "Stop automated calls and texts about your application? The company can still reach you by email.",
+  ct_revogado: "Done. You asked not to receive automated calls or texts about your application.",
+});
+Object.assign(I18N_CAND.es, {
+  cad_contato: "Acepto que {empresa} me llame y me envíe mensajes de texto sobre mi postulación, incluso con tecnología automatizada y una asistente de IA, al número que proporcioné. Las llamadas pueden ser grabadas. El consentimiento no es una condición para el empleo. Responde STOP para dejar de recibir mensajes.",
+  cad_contato_empresa: "la empresa",
+  ct_titulo: "Llamadas y mensajes",
+  ct_desc: "Puedes pedirle a la empresa en cualquier momento que deje de llamarte y de enviarte mensajes automáticos sobre tu postulación.",
+  ct_consentiu: "Autorizaste llamadas y mensajes el {data}.",
+  ct_parar: "Dejar de recibir llamadas y mensajes",
+  ct_confirmar: "¿Quieres dejar de recibir llamadas y mensajes automáticos sobre tu postulación? La empresa aún puede escribirte por correo.",
+  ct_revogado: "Listo. Pediste no recibir llamadas ni mensajes automáticos sobre tu postulación.",
+});

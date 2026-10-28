@@ -120,6 +120,10 @@ def criar_candidato(conn, empresa_id, dados, vaga_id, origem, auto_fila=False, a
          empresa_id, json.dumps(etiquetas, ensure_ascii=False), "externo", "", criado_em),
     )
     cid = cur.lastrowid
+    # importado (CSV ou e-mail): sem consentimento escrito para ligações automáticas (conta.py)
+    _conta = getattr(srv, "conta", None)
+    if _conta is not None:
+        _conta.marcar_importado(conn, cid)
     if dados.get("curriculo"):
         nome_arq, conteudo = dados["curriculo"]
         nome_arq = re.sub(r"[^A-Za-z0-9._-]", "_", nome_arq or "curriculo.pdf")[-80:]

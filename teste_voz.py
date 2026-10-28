@@ -26,7 +26,7 @@ from zoneinfo import ZoneInfo
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="voz-teste-")
 for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "eventos_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py", "planos.py", "indicacoes.py") + tuple(
-        f for f in ("onboarding.py", "formularios.py", "vagas_publicas.py", "relatorios.py", "campanhas.py", "assistente.py", "telefonia.py") if os.path.exists(os.path.join(AQUI, f))):
+        f for f in ("onboarding.py", "formularios.py", "vagas_publicas.py", "relatorios.py", "campanhas.py", "assistente.py", "telefonia.py", "operacao.py", "integracoes_rh.py", "conta.py", "sms.py", "google_cal.py", "dominios.py") if os.path.exists(os.path.join(AQUI, f))):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
@@ -88,10 +88,11 @@ class FalsoElevenLabs:
     def link_assinado(self):
         return "wss://exemplo/assinado"
 
-    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
+    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura, voz=None):
         nome = variaveis["candidate_name"]
         self.ultimas_variaveis = variaveis
         self.ultima_abertura = abertura
+        self.ultima_voz = voz
         if self.falhar:
             self.falhar = False
             raise RuntimeError("twilio fora do ar")
@@ -915,6 +916,325 @@ class TestHTTP(unittest.TestCase):
         finally:
             conn.execute("UPDATE empresas SET modulos=? WHERE id=?", (modulos_b, self.eb))
             conn.commit()
+
+
+# ================================================================ voz por empresa e ligações recebidas
+
+class TestVozEEntrada(unittest.TestCase):
+    """Voz escolhida pela empresa e ligações recebidas (webhook de início do ElevenLabs)."""
+    TERCA_10H = ct("2026-10-27 10:00")
+    PLATAFORMA = "+18602003180"
+
+    def setUp(self):
+        if os.path.exists(server.DB_PATH):
+            os.remove(server.DB_PATH)
+        server.init_db()
+        self.falso = FalsoElevenLabs()
+        voz.GATEWAY_TESTE = self.falso
+        self.conn = server.db()
+        c = self.conn
+        self.ea, _ = empresas.criar_empresa(c, "BHS CT")
+        self.eb, _ = empresas.criar_empresa(c, "Outra Limpeza")
+        for e in (self.ea, self.eb):
+            c.execute("UPDATE empresas SET modulos='[\"voz\"]' WHERE id=?", (e,))
+        self.cargo = c.execute(
+            "INSERT INTO cargos (nome, area, nivel, voz_ativa, peso_voz, empresa_id, roteiro_voz)"
+            " VALUES ('Cleaning Tech','Ops','',1,0.30,?,?)",
+            (self.ea, json.dumps({"fatos": "Pay starts at $18 per hour. Monday to Friday."})),
+        ).lastrowid
+        self.vaga = c.execute(
+            "INSERT INTO vagas (cargo_id, titulo, local, status, empresa_id)"
+            " VALUES (?, 'Cleaning Technician', 'Hartford', 'aberta', ?)", (self.cargo, self.ea),
+        ).lastrowid
+        cargo_b = c.execute("INSERT INTO cargos (nome, voz_ativa, empresa_id) VALUES ('Office',1,?)", (self.eb,)).lastrowid
+        c.execute("INSERT INTO vagas (cargo_id, titulo, local, status, empresa_id) VALUES (?, 'Office Coordinator', '', 'aberta', ?)",
+                  (cargo_b, self.eb))
+        # número próprio da empresa B (telefonia.py)
+        c.execute("INSERT INTO numeros_empresa (empresa_id, numero, elevenlabs_phone_id, status) VALUES (?,?,?, 'ativo')",
+                  (self.eb, "+18605550900", "phnum_b"))
+        server.config_set(c, "elevenlabs_inbound_secret", "segredo-entrada")
+        c.commit()
+        self.enviados = []
+        self._email_original = server.enviar_email
+        server.enviar_email = lambda conn, para, assunto, corpo, **kw: (self.enviados.append((para, assunto, corpo)) or (True, ""))
+
+    def tearDown(self):
+        server.enviar_email = self._email_original
+        voz.GATEWAY_TESTE = None
+        self.conn.close()
+
+    def candidato(self, nome="Maria", telefone="(860) 555-0101", email="maria@example.com", empresa=None):
+        c = self.conn
+        cid = c.execute(
+            "INSERT INTO candidatos (token, nome, email, local, telefone, cargo_desejado_id, empresa_id)"
+            " VALUES (?,?,?,?,?,?,?)",
+            (nome + str(time.time()), nome, email, "BHS CT", telefone, self.cargo, empresa or self.ea),
+        ).lastrowid
+        c.execute("INSERT INTO candidaturas (candidato_id, vaga_id) VALUES (?,?)", (cid, self.vaga))
+        voz.nova_candidatura(c, cid, self.vaga)
+        c.commit()
+        return cid
+
+    def entrada(self, origem, chamado=None, conv="conv_in_1"):
+        return voz.inicio_entrada(self.conn, {
+            "caller_id": origem, "called_number": chamado or self.PLATAFORMA, "agent_id": "agent_x",
+            "call_sid": "CA123", "conversation_id": conv,
+        })
+
+    # ---------------------------------------------------------- voz por empresa
+    def test_voz_so_vai_no_override_quando_escolhida(self):
+        self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.assertIsNone(self.falso.ultima_voz)  # voz padrão do agente: sem override
+        self.assertEqual(voz.override_da_ligacao("es", "Hola"), {"agent": {"language": "es", "first_message": "Hola"}})
+
+        self.assertEqual(voz.validar_config({"voz_es": "voz_que_nao_existe"})[1], "invalid_voice")
+        self.assertEqual(voz.validar_config({"voz_es": "GDzHdQOi6jjf8zaXhCYD"})[1], "invalid_voice")  # voz de outro idioma
+        dados, erro = voz.validar_config({"voz_es": "kcQkGnn0HAT2JRDQ4Ljp", "voz_en": ""})
+        self.assertIsNone(erro)
+        voz.salvar_config(self.conn, self.ea, dados)
+        self.conn.execute("UPDATE candidaturas SET voz_status='para_ligar', voz_tentativas=0")
+        self.conn.execute("UPDATE voz_chamadas SET status='concluida'")
+        self.conn.commit()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.assertEqual(self.falso.ultima_voz, "kcQkGnn0HAT2JRDQ4Ljp")
+        self.assertEqual(voz.override_da_ligacao("es", "Hola", "kcQkGnn0HAT2JRDQ4Ljp")["tts"], {"voice_id": "kcQkGnn0HAT2JRDQ4Ljp"})
+
+        # escolher a voz padrão de novo volta a não mandar override; outra empresa não é afetada
+        cfg = voz.config_empresa(self.conn, self.ea)
+        self.assertIsNone(voz.voz_escolhida(dict(cfg, voz_es="CaJslL1xziwefCeTNzHv"), "es"))
+        self.assertIsNone(voz.voz_escolhida(voz.config_empresa(self.conn, self.eb), "es"))
+        self.assertIsNone(voz.voz_escolhida(cfg, "en"))
+        for idioma, lista in voz.VOZES.items():
+            self.assertEqual(sum(1 for v in lista if v.get("padrao")), 1)
+            self.assertGreaterEqual(len(lista), 3)
+            self.assertTrue(all(v["preview_url"].startswith("https://") for v in lista))
+
+    def test_voz_escolhida_vai_na_ligacao_recebida(self):
+        voz.salvar_config(self.conn, self.ea, {"voz_es": "qHkrJuifPpn95wK3rm2A"})
+        self.candidato()
+        r = self.entrada("+18605550101")
+        self.assertEqual(r["conversation_config_override"]["tts"], {"voice_id": "qHkrJuifPpn95wK3rm2A"})
+        r = self.entrada("+18605559999", "+18605550900", conv="conv_in_2")  # empresa B, voz padrão
+        self.assertNotIn("tts", r["conversation_config_override"])
+
+    # ---------------------------------------------------------- resolução
+    def test_candidato_conhecido_no_numero_da_plataforma(self):
+        a = self.candidato()
+        r = self.entrada("+1 860-555-0101")
+        self.assertEqual(r["type"], "conversation_initiation_client_data")
+        v = r["dynamic_variables"]
+        self.assertEqual((v["candidate_name"], v["company_name"], v["role_name"], v["call_direction"]),
+                         ("Maria", "BHS CT", "Cleaning Tech", "inbound"))
+        self.assertIn("Cleaning Technician (Hartford): Pay starts at $18", v["open_jobs"])
+        ag = r["conversation_config_override"]["agent"]
+        self.assertEqual(ag["language"], "es")
+        self.assertIn("¿Hablo con Maria? ¿Llama por su solicitud de empleo?", ag["first_message"])
+        ch = self.conn.execute("SELECT * FROM voz_chamadas WHERE conversation_id='conv_in_1'").fetchone()
+        ca = self.conn.execute("SELECT * FROM candidaturas WHERE candidato_id=?", (a,)).fetchone()
+        self.assertEqual((ch["direcao"], ch["status"], ch["candidatura_id"], ch["candidato_id"], ch["empresa_id"], ch["telefone"]),
+                         ("entrada", "em_andamento", ca["id"], a, self.ea, "+18605550101"))
+        # a fila não disca para quem está ligando agora
+        self.assertEqual(voz.tick(self.conn, self.TERCA_10H)["iniciadas"], 0)
+        # o webhook repetido não duplica a ligação
+        self.entrada("+18605550101")
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM voz_chamadas").fetchone()[0], 1)
+
+    def test_empresa_pelo_numero_proprio_e_candidato_so_da_empresa(self):
+        self.candidato()  # Maria é candidata da empresa A
+        r = self.entrada("+18605550101", "(860) 555-0900")  # ligou para o número da empresa B
+        v = r["dynamic_variables"]
+        self.assertEqual((v["company_name"], v["candidate_name"]), ("Outra Limpeza", "unknown"))
+        self.assertIn("Office Coordinator", v["open_jobs"])
+        self.assertNotIn("Cleaning Technician", v["open_jobs"])
+        ch = self.conn.execute("SELECT * FROM voz_chamadas WHERE conversation_id='conv_in_1'").fetchone()
+        self.assertEqual((ch["empresa_id"], ch["candidatura_id"], ch["candidato_id"]), (self.eb, None, None))
+        self.assertEqual(voz.empresa_da_entrada(self.conn, "+18605550101", self.PLATAFORMA), (self.ea, "candidato"))
+
+    def test_desconhecido_recebe_variaveis_genericas_da_empresa_padrao(self):
+        # duas empresas com voz: sem padrão configurado não há como escolher
+        self.assertEqual(voz.empresa_da_entrada(self.conn, "+12035550000", self.PLATAFORMA), (None, ""))
+        r = self.entrada("+12035550000")
+        self.assertEqual(r["dynamic_variables"]["company_name"], "our company")
+        server.config_set(self.conn, "voz_empresa_entrada", str(self.ea))
+        voz.salvar_config(self.conn, self.ea, {"nome_ligacao": "Belleza's Home Services", "gerente": "Carine", "idioma_padrao": "en"})
+        self.conn.commit()
+        r = self.entrada("+12035550000", conv="conv_in_2")
+        v = r["dynamic_variables"]
+        self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.assertEqual(set(v), set(self.falso.ultimas_variaveis))  # mesmas chaves das ligações de saída
+        self.assertEqual(self.falso.ultimas_variaveis["call_direction"], "outbound")
+        self.assertEqual((v["candidate_name"], v["company_name"], v["hiring_manager"], v["call_direction"]),
+                         ("unknown", "Belleza's Home Services", "Carine", "inbound"))
+        self.assertIn("Cleaning Technician", v["open_jobs"])
+        vazios_ok = {"voicemail_message", "company_city", "callback_phone"}
+        self.assertTrue(all(isinstance(x, str) and (x != "" or k in vazios_ok) for k, x in v.items()))
+        self.assertEqual(r["conversation_config_override"]["agent"]["first_message"],
+                         "Hi, this is Francisca, the AI recruiting assistant for Belleza's Home Services. "
+                         "I'm an automated assistant, not a person. Are you calling about a job application?")
+
+    # ---------------------------------------------------------- resultado
+    def test_resultado_do_candidato_que_ligou_aplica_a_triagem(self):
+        server.config_set(self.conn, "smtp_host", "smtp.exemplo")
+        a = self.candidato()
+        self.entrada("+18605550101")
+        self.falso.conversas["conv_in_1"] = conversa(FATOS_FORTES)
+        self.assertTrue(voz.processar_conversa(self.conn, "conv_in_1"))
+        ca = self.conn.execute("SELECT * FROM candidaturas WHERE candidato_id=?", (a,)).fetchone()
+        self.assertEqual((ca["voz_status"], ca["voz_score"], ca["voz_tier"], ca["etapa"], ca["voz_tentativas"]),
+                         ("concluida", 100, "STRONG", "avaliacoes", 0))
+        ch = self.conn.execute("SELECT * FROM voz_chamadas WHERE conversation_id='conv_in_1'").fetchone()
+        self.assertEqual((ch["status"], ch["direcao"]), ("concluida", "entrada"))
+        self.assertTrue(self.enviados)  # convite para os testes, como na ligação de saída
+        # número errado numa ligação recebida também encerra
+        b = self.candidato(nome="Ana", telefone="8605550102", email="ana@example.com")
+        self.entrada("+18605550102", conv="conv_in_2")
+        self.falso.conversas["conv_in_2"] = conversa({"outcome": "NOT_INTERESTED"})
+        voz.processar_conversa(self.conn, "conv_in_2")
+        cb = self.conn.execute("SELECT * FROM candidaturas WHERE candidato_id=?", (b,)).fetchone()
+        self.assertEqual((cb["voz_status"], cb["etapa"]), ("nao_interessado", "reprovado"))
+
+    def test_ligacao_recebida_sem_resultado_nao_mexe_na_fila(self):
+        a = self.candidato()
+        self.entrada("+18605550101")
+        self.falso.conversas["conv_in_1"] = conversa(None, falou=False)
+        voz.processar_conversa(self.conn, "conv_in_1")
+        ca = self.conn.execute("SELECT * FROM candidaturas WHERE candidato_id=?", (a,)).fetchone()
+        self.assertEqual((ca["voz_status"], ca["voz_tentativas"]), ("para_ligar", 0))
+
+    def test_desconhecido_que_deixou_nome_e_email_vira_candidato(self):
+        server.config_set(self.conn, "smtp_host", "smtp.exemplo")
+        server.config_set(self.conn, "url_publica", "https://rh.exemplo.com")
+        self.conn.commit()
+        self.entrada("+12035550000", "+18605550900")  # empresa B
+        self.entrada("+12035550001", self.PLATAFORMA, conv="conv_in_2")  # sem empresa: nada é criado
+        fatos = {"candidate_name": "Joana Silva", "preferred_language": "pt", "outcome": "NEEDS_REVIEW",
+                 "extra_answers": "email: Joana.Silva@Example.com\njob_interest: office coordinator"}
+        self.falso.conversas["conv_in_1"] = conversa(fatos)
+        self.falso.conversas["conv_in_2"] = conversa(fatos)
+        voz.reconciliar(self.conn, minutos=0)
+        cand = self.conn.execute("SELECT * FROM candidatos WHERE email='joana.silva@example.com'").fetchone()
+        self.assertIsNotNone(cand)
+        self.assertEqual((cand["nome"], cand["empresa_id"], cand["telefone"], cand["idioma"]),
+                         ("Joana Silva", self.eb, "+12035550000", "pt"))
+        self.assertIn("ligou", json.loads(cand["tags"]))
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM candidatos WHERE email='joana.silva@example.com'").fetchone()[0], 1)
+        ch = self.conn.execute("SELECT * FROM voz_chamadas WHERE conversation_id='conv_in_1'").fetchone()
+        self.assertEqual((ch["candidato_id"], ch["status"]), (cand["id"], "concluida"))
+        textos = [e["texto"] for e in self.conn.execute("SELECT texto FROM eventos WHERE candidato_id=?", (cand["id"],))]
+        self.assertIn("Ligou para a empresa (interesse: office coordinator)", textos)
+        self.assertIn("Resumo", textos)  # anotação com o resumo da ligação
+        para, assunto, corpo = self.enviados[-1]
+        self.assertEqual(para, "joana.silva@example.com")
+        self.assertIn("Outra Limpeza", assunto)
+        self.assertRegex(corpo, r"https://rh\.exemplo\.com/vaga\?id=\d+&lang=pt")
+        # ligou de novo e deu o mesmo e-mail: reaproveita a ficha
+        self.entrada("+12035550000", "+18605550900", conv="conv_in_3")
+        self.falso.conversas["conv_in_3"] = conversa(fatos)
+        voz.processar_conversa(self.conn, "conv_in_3")
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM candidatos WHERE email='joana.silva@example.com'").fetchone()[0], 1)
+
+    def test_desconhecido_sem_email_nao_cria_candidato(self):
+        self.entrada("+12035550000", "+18605550900")
+        self.falso.conversas["conv_in_1"] = conversa({"candidate_name": "Pedro", "outcome": "NEEDS_REVIEW"})
+        voz.processar_conversa(self.conn, "conv_in_1")
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM candidatos").fetchone()[0], 0)
+        ch = self.conn.execute("SELECT * FROM voz_chamadas WHERE conversation_id='conv_in_1'").fetchone()
+        self.assertEqual((ch["status"], ch["candidato_id"]), ("concluida", None))
+        self.assertEqual(voz.contato_do_chamador({"candidate_name": "unknown", "notes": "Email: ze at x"}), ("", "", ""))
+
+    def test_painel_mostra_ligacao_recebida(self):
+        self.entrada("+12035550000", "+18605550900")
+        self.falso.conversas["conv_in_1"] = conversa({"candidate_name": "Pedro", "outcome": "NEEDS_REVIEW"})
+        voz.processar_conversa(self.conn, "conv_in_1")
+        linhas = self.conn.execute(
+            "SELECT vc.*, c.nome FROM voz_chamadas vc LEFT JOIN candidatos c ON c.id=vc.candidato_id").fetchall()
+        d = voz._chamada_publica(linhas[0])
+        self.assertEqual(d["direcao"], "entrada")
+
+    def test_migracao_de_banco_antigo(self):
+        caminho = os.path.join(PASTA, "antigo.db")
+        import sqlite3
+        c = sqlite3.connect(caminho)
+        c.execute("CREATE TABLE candidaturas (id INTEGER PRIMARY KEY, candidato_id INTEGER, vaga_id INTEGER)")
+        c.execute("CREATE TABLE candidatos (id INTEGER PRIMARY KEY, tags TEXT)")
+        c.execute("CREATE TABLE cargos (id INTEGER PRIMARY KEY, voz_ativa INTEGER DEFAULT 0, peso_voz REAL DEFAULT 0.3, roteiro_voz TEXT DEFAULT '')")
+        c.execute("ALTER TABLE candidatos ADD COLUMN idioma TEXT DEFAULT ''")
+        c.execute("CREATE TABLE voz_chamadas (id INTEGER PRIMARY KEY AUTOINCREMENT, candidatura_id INTEGER NOT NULL,"
+                  " candidato_id INTEGER NOT NULL, conversation_id TEXT UNIQUE, call_sid TEXT DEFAULT '',"
+                  " status TEXT NOT NULL DEFAULT 'iniciando', idioma TEXT DEFAULT 'es', disparada_por TEXT DEFAULT '',"
+                  " iniciada_em TEXT DEFAULT (datetime('now')), terminada_em TEXT DEFAULT '', duracao INTEGER,"
+                  " transcricao TEXT DEFAULT '[]', fatos TEXT DEFAULT '', resultado TEXT DEFAULT '',"
+                  " invalidos TEXT DEFAULT '[]', resumo TEXT DEFAULT '', tem_audio INTEGER DEFAULT 0, erro TEXT DEFAULT '')")
+        c.execute("INSERT INTO voz_chamadas (candidatura_id, candidato_id, conversation_id, status) VALUES (7, 9, 'conv_velha', 'concluida')")
+        c.commit()
+        voz.init_voz(c.cursor())
+        c.commit()
+        info = {r[1]: r[3] for r in c.execute("PRAGMA table_info(voz_chamadas)")}
+        self.assertEqual((info["candidatura_id"], info["candidato_id"]), (0, 0))
+        self.assertEqual(c.execute("SELECT candidatura_id, candidato_id, conversation_id, status, direcao FROM voz_chamadas").fetchall(),
+                         [(7, 9, "conv_velha", "concluida", "saida")])
+        voz.init_voz(c.cursor())  # idempotente
+        c.close()
+
+
+class TestEntradaHTTP(unittest.TestCase):
+    """POST /api/voz/inicio-entrada: só com o segredo compartilhado no cabeçalho."""
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.exists(server.DB_PATH):
+            os.remove(server.DB_PATH)
+        server.init_db()
+        conn = server.db()
+        cls.ea, _ = empresas.criar_empresa(conn, "BHS CT")
+        conn.execute("UPDATE empresas SET modulos='[\"voz\"]' WHERE id=?", (cls.ea,))
+        conn.commit()
+        conn.close()
+        voz.GATEWAY_TESTE = FalsoElevenLabs()
+        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+        cls.base = "http://127.0.0.1:%d" % cls.httpd.server_address[1]
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        voz.GATEWAY_TESTE = None
+
+    def post(self, cabecalhos=None, corpo=None):
+        dados = corpo if corpo is not None else json.dumps({
+            "caller_id": "+12035550000", "called_number": "+18602003180", "agent_id": "agent_x",
+            "call_sid": "CA1", "conversation_id": "conv_http_%d" % time.time_ns()}).encode()
+        r = urllib.request.Request(self.base + "/api/voz/inicio-entrada", data=dados, method="POST",
+                                   headers=dict({"Content-Type": "application/json"}, **(cabecalhos or {})))
+        try:
+            with urllib.request.urlopen(r) as resp:
+                return resp.status, json.loads(resp.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read() or b"{}")
+
+    def test_autenticacao(self):
+        conn = server.db()
+        conn.execute("DELETE FROM config WHERE chave IN ('elevenlabs_inbound_secret','elevenlabs_webhook_secret')")
+        conn.commit()
+        self.assertEqual(self.post({"X-Bussola-Secret": "qualquer"})[0], 503)  # sem segredo configurado: recusa
+        server.config_set(conn, "elevenlabs_inbound_secret", "segredo-entrada")
+        conn.commit()
+        self.assertEqual(self.post()[0], 401)
+        self.assertEqual(self.post({"X-Bussola-Secret": "errado"})[0], 401)
+        self.assertEqual(self.post({"X-Bussola-Secret": "segredo-entrada"}, b"[1,2]")[0], 400)
+        status, d = self.post({"X-Bussola-Secret": "segredo-entrada"})
+        self.assertEqual(status, 200)
+        self.assertEqual(d["type"], "conversation_initiation_client_data")
+        self.assertEqual(d["dynamic_variables"]["call_direction"], "inbound")
+        self.assertEqual(d["dynamic_variables"]["company_name"], "BHS CT")  # única empresa com voz
+        # sem segredo próprio, vale o segredo do webhook pós-ligação
+        conn.execute("DELETE FROM config WHERE chave='elevenlabs_inbound_secret'")
+        server.config_set(conn, "elevenlabs_webhook_secret", "wsec_abc")
+        conn.commit()
+        self.assertEqual(self.post({"X-Bussola-Secret": "wsec_abc"})[0], 200)
+        conn.close()
 
 
 if __name__ == "__main__":

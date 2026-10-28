@@ -1884,6 +1884,8 @@ def enviar_lembretes(conn, agora=None):
                             (hoje_iso, ob["id"], hoje_iso)).rowcount:
             continue
         conn.commit()
+        if getattr(srv, "sms", None):
+            srv.sms.enviar_modelo(conn, ob["candidato_id"], "onboarding_pendente", {"link": link(conn, ob)})
         cand = conn.execute("SELECT email FROM candidatos WHERE id=?", (ob["candidato_id"],)).fetchone()
         if not cand or not (cand["email"] or "").strip():
             continue
@@ -2000,7 +2002,8 @@ def resumo_gestor(conn, ob, gestor):
                        and (_hoje() - concl).days >= cfg["retencao_dias"] and ob["sensiveis"])
     cons = _json(ob["consentimento"], {})
     return {
-        "id": ob["id"], "status": ob["status"], "tipo": ob["tipo"], "oferta": pl["oferta"], "prazo": ob["prazo"],
+        "id": ob["id"], "candidatura_id": ob["candidatura_id"], "status": ob["status"], "tipo": ob["tipo"],
+        "oferta": pl["oferta"], "prazo": ob["prazo"],
         "criado_em": ob["criado_em"], "criado_por": ob["criado_por"], "concluido_em": ob["concluido_em"],
         "cancelado_em": ob["cancelado_em"], "idioma": ob["idioma"],
         "link": link(conn, ob) if ob["status"] in ATIVOS else "",

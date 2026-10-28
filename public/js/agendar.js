@@ -26,6 +26,7 @@ const AG_TXT = {
     link_invalido: "Este link de agendamento não é válido. Confira o e-mail que você recebeu.",
     erro: "Não foi possível concluir. Tente de novo.", ocupado: "Esse horário acabou de ser escolhido por outra pessoa. Escolha outro.",
     atual: "Sua entrevista atual",
+    meet: "Entrar na videochamada (Google Meet)",
   },
   en: {
     titulo: "Interview", carregando: "Loading…", idioma: "Language",
@@ -43,6 +44,7 @@ const AG_TXT = {
     link_invalido: "This scheduling link isn't valid. Please check the email you received.",
     erro: "Something went wrong. Please try again.", ocupado: "Someone just took that time. Please pick another one.",
     atual: "Your current interview",
+    meet: "Join the video call (Google Meet)",
   },
   es: {
     titulo: "Entrevista", carregando: "Cargando…", idioma: "Idioma",
@@ -60,6 +62,7 @@ const AG_TXT = {
     link_invalido: "Este enlace de agenda no es válido. Revisa el correo que recibiste.",
     erro: "No se pudo completar. Inténtalo de nuevo.", ocupado: "Alguien acaba de elegir ese horario. Elige otro.",
     atual: "Tu entrevista actual",
+    meet: "Unirse a la videollamada (Google Meet)",
   },
 };
 
@@ -178,6 +181,7 @@ function telaConfirmada() {
       <div class="ag-quando">${escHtml(quandoTexto(ent.inicio_utc))}</div>
       <p class="ag-fuso">${escHtml(tx("fuso", { fuso: agDados.rotulo_fuso }))}</p>
       <p class="desc">${tx("marcada_desc")}</p>
+      ${/^https:\/\//i.test(ent.meet_link || "") ? `<p><a class="btn" href="${escHtml(ent.meet_link)}" target="_blank" rel="noopener">${tx("meet")}</a></p>` : ""}
       <div class="ag-msg" id="ag-msg"></div>
       <div class="linha-acoes" style="justify-content:center">
         ${agDados.ativo ? `<button class="btn" id="ag-remarcar">${tx("remarcar")}</button>` : ""}

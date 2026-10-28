@@ -16,6 +16,11 @@ horário na empresa: a marcação revalida o horário dentro de uma transação
 E-mails (candidato no idioma dele, gestores no idioma de cada um) levam um
 convite .ics (METHOD:REQUEST ao marcar ou remarcar, METHOD:CANCEL ao cancelar).
 Um lembrete único sai cerca de 24 horas antes.
+
+Google Agenda (google_cal.py, opcional): os períodos ocupados das agendas
+Google escolhidas pela empresa saem dos horários livres; marcar cria o evento
+na agenda do entrevistador (com link do Google Meet na videochamada), remarcar
+atualiza e cancelar apaga. Qualquer falha do Google volta aos horários normais.
 """
 import json
 import re
@@ -25,6 +30,11 @@ import threading
 import time
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+try:  # Google Agenda nos dois sentidos, com Google Meet (google_cal.py)
+    import google_cal
+except ImportError:  # pragma: no cover
+    google_cal = None
 
 srv = None  # módulo server, injetado por ligar()
 
@@ -51,6 +61,8 @@ PADRAO = {
     "entrevistador": "",
     "fuso": "",                        # vazio = fuso da triagem por voz ou America/New_York
     "bloqueios": [],                   # ["AAAA-MM-DD", ...]
+    "google_entrevistadores": [],      # ids dos gestores com Google Agenda conectado que valem para a agenda
+    "google_organizador": 0,           # gestor em cuja agenda Google o evento é criado (0 = o primeiro)
 }
 
 # ------------------------------------------------------------- textos (pt, en, es)
@@ -93,6 +105,8 @@ T = {
         "ics_resumo": "Entrevista: {empresa}",
         "ics_resumo_gestor": "Entrevista: {nome}",
         "ics_arquivo": "entrevista.ics",
+        "rot_meet": "Link da videochamada (Google Meet)",
+        "botao_meet": "Entrar na videochamada",
     },
     "en": {
         "formatos": {"presencial": "In person", "telefone": "Phone call", "video": "Video call"},
@@ -131,6 +145,8 @@ T = {
         "ics_resumo": "Interview: {empresa}",
         "ics_resumo_gestor": "Interview: {nome}",
         "ics_arquivo": "interview.ics",
+        "rot_meet": "Video call link (Google Meet)",
+        "botao_meet": "Join the video call",
     },
     "es": {
         "formatos": {"presencial": "Presencial", "telefone": "Llamada telefónica", "video": "Videollamada"},
@@ -169,6 +185,8 @@ T = {
         "ics_resumo": "Entrevista: {empresa}",
         "ics_resumo_gestor": "Entrevista: {nome}",
         "ics_arquivo": "entrevista.ics",
+        "rot_meet": "Enlace de la videollamada (Google Meet)",
+        "botao_meet": "Unirse a la videollamada",
     },
 }
 
@@ -208,6 +226,14 @@ def init_agenda(c):
     if "agenda_token" not in {r[1] for r in c.execute("PRAGMA table_info(candidatos)").fetchall()}:
         c.execute("ALTER TABLE candidatos ADD COLUMN agenda_token TEXT DEFAULT ''")
     c.execute("CREATE INDEX IF NOT EXISTS ix_candidatos_agenda_token ON candidatos(agenda_token)")
+    # Google Agenda: evento criado, gestor dono da agenda e link do Google Meet
+    colunas = {r[1] for r in c.execute("PRAGMA table_info(entrevistas_agenda)").fetchall()}
+    for coluna, tipo in (("google_evento_id", "TEXT DEFAULT ''"), ("google_gestor_id", "INTEGER DEFAULT 0"),
+                         ("meet_link", "TEXT DEFAULT ''")):
+        if coluna not in colunas:
+            c.execute("ALTER TABLE entrevistas_agenda ADD COLUMN %s %s" % (coluna, tipo))
+    if google_cal:
+        google_cal.init_google(c)
 
 
 # ------------------------------------------------------------- utilidades
@@ -347,6 +373,19 @@ def validar(d, atual):
                 return None, "Data bloqueada inválida (use AAAA-MM-DD)"
             saida.append(item)
         cfg["bloqueios"] = sorted(set(saida))
+    if "google_entrevistadores" in d:
+        try:
+            ids = [int(x) for x in (d["google_entrevistadores"] or [])]
+        except (TypeError, ValueError):
+            return None, "Entrevistador inválido"
+        cfg["google_entrevistadores"] = list(dict.fromkeys(ids))[:20]
+    if "google_organizador" in d:
+        try:
+            cfg["google_organizador"] = int(d["google_organizador"] or 0)
+        except (TypeError, ValueError):
+            return None, "Entrevistador inválido"
+    if cfg.get("google_organizador") and cfg["google_organizador"] not in (cfg.get("google_entrevistadores") or []):
+        cfg["google_organizador"] = 0
     if cfg["ativo"] and not cfg["dias"]:
         return None, "Escolha ao menos um dia da semana"
     return cfg, None
@@ -365,11 +404,13 @@ def _ocupadas(conn, empresa_id, ignorar_id=None):
         (empresa_id, ignorar_id or 0)).fetchall()]
 
 
-def gerar_horarios(cfg, ocupadas=(), agora=None):
+def gerar_horarios(cfg, ocupadas=(), agora=None, externos=()):
     """Horários livres [(inicio_utc, fim_utc, data_local, hora_local)] pelas regras da empresa.
     Os horários de parede (09:00, 09:30...) são montados no fuso da empresa, então
     continuam iguais na troca do horário de verão; horários que não existem no
-    relógio local (pulo da primavera) são descartados."""
+    relógio local (pulo da primavera) são descartados.
+    externos: períodos ocupados fora da Bússola (Google Agenda). Bloqueiam o
+    horário (com o intervalo), mas não contam no limite de entrevistas por dia."""
     agora = agora or _agora()
     z = zona(cfg)
     duracao = timedelta(minutes=int(cfg["duracao"]))
@@ -382,6 +423,7 @@ def gerar_horarios(cfg, ocupadas=(), agora=None):
     limite_dia = int(cfg.get("max_por_dia") or 0)
     hoje = agora.astimezone(z).date()
     ocupadas = list(ocupadas)
+    externos = list(externos)
     por_dia = {}
     for ini, _fim in ocupadas:
         d = ini.astimezone(z).date()
@@ -406,13 +448,54 @@ def gerar_horarios(cfg, ocupadas=(), agora=None):
                 continue
             if any(inicio < o_fim + gap and o_ini < fim + gap for o_ini, o_fim in ocupadas):
                 continue
+            if any(inicio < o_fim + gap and o_ini < fim + gap for o_ini, o_fim in externos):
+                continue
             saida.append((inicio, fim, dia.isoformat(), local.strftime("%H:%M")))
     return saida
 
 
+def _subtrair(blocos, ini, fim):
+    """Tira [ini, fim) de cada bloco (o próprio evento de quem está remarcando)."""
+    saida = []
+    for b_ini, b_fim in blocos:
+        if b_fim <= ini or b_ini >= fim:
+            saida.append((b_ini, b_fim))
+            continue
+        if b_ini < ini:
+            saida.append((b_ini, ini))
+        if b_fim > fim:
+            saida.append((fim, b_fim))
+    return saida
+
+
+def google_ocupados(conn, empresa_id, cfg, ignorar_id=None, agora=None):
+    """Períodos ocupados nas agendas Google escolhidas pela empresa (cache de 5 min
+    no google_cal). Sem Google, sem contas ou com falha: lista vazia (horários normais)."""
+    if not google_cal or not cfg.get("google_entrevistadores"):
+        return []
+    try:
+        if not google_cal.configurado(conn):
+            return []
+        agora = agora or _agora()
+        # janela arredondada (hora cheia até o fim do dia) para o cache servir às próximas consultas
+        ini = agora.replace(minute=0, second=0, microsecond=0)
+        fim_dia = (agora + timedelta(days=int(cfg.get("horizonte_dias") or 0) + 2)).astimezone(timezone.utc)
+        fim = fim_dia.replace(hour=0, minute=0, second=0, microsecond=0)
+        blocos = google_cal.ocupados(conn, empresa_id, cfg["google_entrevistadores"], ini, fim)
+        if ignorar_id:
+            atual = conn.execute("SELECT inicio_utc, fim_utc FROM entrevistas_agenda WHERE id=?", (ignorar_id,)).fetchone()
+            if atual:
+                blocos = _subtrair(blocos, ler_utc(atual["inicio_utc"]), ler_utc(atual["fim_utc"]))
+        return blocos
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write("Agenda: Google Agenda indisponível: %s\n" % type(exc).__name__)
+        return []
+
+
 def horarios_livres(conn, empresa_id, cfg=None, ignorar_id=None, agora=None):
     cfg = cfg or config(conn, empresa_id)
-    return gerar_horarios(cfg, _ocupadas(conn, empresa_id, ignorar_id), agora)
+    return gerar_horarios(cfg, _ocupadas(conn, empresa_id, ignorar_id), agora,
+                          google_ocupados(conn, empresa_id, cfg, ignorar_id, agora))
 
 
 def agrupar_por_dia(horarios):
@@ -534,6 +617,9 @@ def marcar(conn, cand, inicio_texto, agora=None):
     cfg = config(conn, empresa_id)
     if not cfg.get("ativo"):
         raise ErroAgenda(400, "A agenda de entrevistas está desativada")
+    # Google Agenda antes da transação (chamada de rede nunca segura a trava do banco)
+    antes = entrevista_ativa(conn, cand["id"])
+    externos = google_ocupados(conn, empresa_id, cfg, antes["id"] if antes else None, agora)
     conn.commit()
     conn.execute("BEGIN IMMEDIATE")
     try:
@@ -541,7 +627,7 @@ def marcar(conn, cand, inicio_texto, agora=None):
         if atual and ler_utc(atual["inicio_utc"]) == inicio:
             conn.rollback()
             return atual, "sem_mudanca"
-        livres = gerar_horarios(cfg, _ocupadas(conn, empresa_id, atual["id"] if atual else None), agora)
+        livres = gerar_horarios(cfg, _ocupadas(conn, empresa_id, atual["id"] if atual else None), agora, externos)
         escolhido = next((h for h in livres if h[0] == inicio), None)
         if not escolhido:
             raise ErroAgenda(409, "Este horário não está mais disponível")
@@ -576,6 +662,8 @@ def marcar(conn, cand, inicio_texto, agora=None):
         if "UNIQUE" in str(exc):
             raise ErroAgenda(409, "Este horário não está mais disponível")
         raise
+    sincronizar_google(conn, ent["id"], acao)
+    ent = conn.execute("SELECT * FROM entrevistas_agenda WHERE id=?", (ent["id"],)).fetchone()
     avisar(conn, ent["id"], acao)
     return ent, acao
 
@@ -611,6 +699,7 @@ def cancelar(conn, ent, autor="candidato"):
                              formatar(cfg, ler_utc(ent["inicio_utc"]), "pt")),
                          "sistema" if autor == "candidato" else autor)
     conn.commit()
+    sincronizar_google(conn, ent["id"], "cancelada")
     avisar(conn, ent["id"], "cancelada")
     return True
 
@@ -628,6 +717,111 @@ def mudar_status(conn, ent, status, gestor):
     srv.registrar_evento(conn, ent["candidato_id"], "entrevista",
                          "Entrevista %s" % ("realizada" if status == "realizada" else "marcada como falta (não compareceu)"),
                          gestor["nome"])
+    conn.commit()
+
+
+# ------------------------------------------------------------- Google Agenda (google_cal.py)
+
+def _meet(ent):
+    return (ent["meet_link"] or "") if ent is not None and "meet_link" in ent.keys() else ""
+
+
+def _vaga_da_entrevista(conn, ent, cand):
+    if ent["candidatura_id"]:
+        r = conn.execute("SELECT v.titulo FROM candidaturas ca JOIN vagas v ON v.id=ca.vaga_id WHERE ca.id=?",
+                         (ent["candidatura_id"],)).fetchone()
+        if r and r["titulo"]:
+            return r["titulo"]
+    if cand["cargo_desejado_id"]:
+        r = conn.execute("SELECT nome FROM cargos WHERE id=?", (cand["cargo_desejado_id"],)).fetchone()
+        if r:
+            return r["nome"]
+    return ""
+
+
+def organizador_google(conn, empresa_id, cfg):
+    """Conta Google ativa onde o evento é criado: a escolhida, senão a primeira ativa da lista."""
+    ids = list(cfg.get("google_entrevistadores") or [])
+    if not ids:
+        return None
+    ordem = ([cfg["google_organizador"]] if cfg.get("google_organizador") in ids else []) + ids
+    for row in google_cal.contas_validas(conn, empresa_id, ordem):
+        if row["status"] == "ativa":
+            return row
+    return None
+
+
+def corpo_evento_google(conn, ent, cfg, gestor_id, meet):
+    cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (ent["candidato_id"],)).fetchone()
+    g = conn.execute("SELECT idioma FROM gestores WHERE id=?", (gestor_id,)).fetchone()
+    lang = idioma(g["idioma"] if g else "pt")
+    tt = google_cal.T.get(lang) or google_cal.T["pt"]
+    ficha = "%s/gestor#candidato=%d" % (srv.url_publica(conn), cand["id"])
+    linhas = ["%s: %s" % (tt["ficha"], ficha),
+              "%s: %s" % (tt["formato"], t(lang, "formatos").get(cfg["formato"], cfg["formato"]))]
+    if cfg.get("local"):
+        linhas.append("%s: %s" % (tt["local"], cfg["local"]))
+    linhas += ["", tt["rodape"]]
+    return google_cal.corpo_evento(
+        google_cal.titulo_evento(lang, cand["nome"] or "", _vaga_da_entrevista(conn, ent, cand)),
+        "\n".join(linhas), ler_utc(ent["inicio_utc"]), ler_utc(ent["fim_utc"]), zona(cfg).key,
+        (cand["email"] or "").strip(), cand["nome"] or "",
+        cfg.get("local") if cfg["formato"] == "presencial" else "",
+        meet, "bussola-%d-%d" % (ent["id"], int(ent["sequencia"] or 0)))
+
+
+def sincronizar_google(conn, entrevista_id, acao):
+    """Cria (marcada), atualiza (remarcada) ou apaga (cancelada) o evento no Google
+    Agenda. Nunca lança exceção: sem Google, a agenda segue com os próprios e-mails."""
+    if not google_cal:
+        return
+    try:
+        _sincronizar_google(conn, entrevista_id, acao)
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write("Agenda: sincronização com o Google Agenda falhou: %s\n" % type(exc).__name__)
+
+
+def _sincronizar_google(conn, entrevista_id, acao):
+    ent = conn.execute("SELECT * FROM entrevistas_agenda WHERE id=?", (entrevista_id,)).fetchone()
+    if not ent:
+        return
+    evento_id, dono = ent["google_evento_id"] or "", int(ent["google_gestor_id"] or 0)
+    falha = "Google Agenda: não foi possível sincronizar o evento"
+    if acao == "cancelada":
+        if not (evento_id and dono):
+            return
+        if google_cal.apagar_evento(conn, dono, evento_id):
+            conn.execute("UPDATE entrevistas_agenda SET google_evento_id='' WHERE id=?", (ent["id"],))
+            srv.registrar_evento(conn, ent["candidato_id"], "entrevista", "Google Agenda: evento removido")
+        else:
+            srv.registrar_evento(conn, ent["candidato_id"], "entrevista", falha)
+        conn.commit()
+        return
+    if not google_cal.configurado(conn):
+        return
+    cfg = config(conn, ent["empresa_id"])
+    video = cfg["formato"] == "video"
+    if evento_id and dono:
+        corpo = corpo_evento_google(conn, ent, cfg, dono, video and not _meet(ent))
+        ok, meet = google_cal.atualizar_evento(conn, dono, evento_id, corpo)
+        if ok:
+            conn.execute("UPDATE entrevistas_agenda SET meet_link=? WHERE id=?", (meet or _meet(ent), ent["id"]))
+            srv.registrar_evento(conn, ent["candidato_id"], "entrevista", "Google Agenda: evento atualizado")
+        else:
+            srv.registrar_evento(conn, ent["candidato_id"], "entrevista", falha)
+        conn.commit()
+        return
+    org = organizador_google(conn, ent["empresa_id"], cfg)
+    if not org:
+        return
+    novo_id, meet = google_cal.criar_evento(conn, org["gestor_id"], corpo_evento_google(conn, ent, cfg, org["gestor_id"], video))
+    if novo_id:
+        conn.execute("UPDATE entrevistas_agenda SET google_evento_id=?, google_gestor_id=?, meet_link=? WHERE id=?",
+                     (novo_id, org["gestor_id"], meet or "", ent["id"]))
+        srv.registrar_evento(conn, ent["candidato_id"], "entrevista",
+                             "Google Agenda: evento criado com link do Google Meet" if meet else "Google Agenda: evento criado")
+    else:
+        srv.registrar_evento(conn, ent["candidato_id"], "entrevista", falha)
     conn.commit()
 
 
@@ -689,6 +883,9 @@ def gerar_ics(conn, ent, lang, para_gestor=False, cancelar_evento=False):
         descricao.append(t(lang, "rot_entrevistador") + ": " + cfg["entrevistador"])
     if cfg.get("local"):
         descricao.append(t(lang, "rot_local") + ": " + cfg["local"])
+    meet = _meet(ent) if not cancelar_evento else ""
+    if meet:
+        descricao.append(t(lang, "rot_meet") + ": " + meet)
     if para_gestor:
         descricao.append(t(lang, "rot_candidato") + ": " + cand["nome"] + (" <%s>" % cand["email"] if cand["email"] else ""))
     linhas = [
@@ -703,8 +900,12 @@ def gerar_ics(conn, ent, lang, para_gestor=False, cancelar_evento=False):
         "SUMMARY:" + _ics_texto(resumo),
         "DESCRIPTION:" + _ics_texto("\n".join(descricao)),
     ]
-    if cfg.get("local"):
+    if meet and cfg["formato"] == "video":
+        linhas.append("LOCATION:" + _ics_texto(meet))
+    elif cfg.get("local"):
         linhas.append("LOCATION:" + _ics_texto(cfg["local"]))
+    if meet:
+        linhas.append("URL:" + meet)
     if remetente:
         linhas.append("ORGANIZER;CN=%s:mailto:%s" % (_ics_texto(empresa or "Bussola"), remetente))
     if cand["email"]:
@@ -723,6 +924,7 @@ def _detalhes_html(cfg, ent, lang, com_candidato=None):
     linhas += m._linha(t(lang, "rot_formato"), t(lang, "formatos").get(cfg["formato"], cfg["formato"]))
     linhas += m._linha(t(lang, "rot_local"), cfg.get("local"))
     linhas += m._linha(t(lang, "rot_entrevistador"), cfg.get("entrevistador"))
+    linhas += m._linha(t(lang, "rot_meet"), _meet(ent))
     if com_candidato:
         linhas += m._linha(t(lang, "rot_candidato"), com_candidato)
     return ('<div style="background:#f5f7fb;border-radius:12px;padding:12px 16px;margin:6px 0 16px">'
@@ -736,6 +938,8 @@ def _detalhes_texto(cfg, ent, lang):
         saida.append("%s: %s" % (t(lang, "rot_local"), cfg["local"]))
     if cfg.get("entrevistador"):
         saida.append("%s: %s" % (t(lang, "rot_entrevistador"), cfg["entrevistador"]))
+    if _meet(ent):
+        saida.append("%s: %s" % (t(lang, "rot_meet"), _meet(ent)))
     return saida
 
 
@@ -764,6 +968,8 @@ def email_candidato(conn, ent, acao):
     else:
         texto += _detalhes_texto(cfg, ent, lang) + ["", t(lang, "botao_gerenciar") + ":", url, ""]
         corpo.append(_detalhes_html(cfg, ent, lang))
+        if _meet(ent):
+            corpo.append(m._botao(_meet(ent), t(lang, "botao_meet"), "#2E9E6A"))
         corpo.append(m._botao(url, t(lang, "botao_gerenciar"), "#5E7086"))
     texto.append(t(lang, "assinatura", empresa=empresa))
     corpo.append(m._paragrafo(t(lang, "assinatura", empresa=empresa), "#4a5568", 14))
@@ -870,8 +1076,10 @@ def enviar_link(conn, cand, autor="sistema"):
 # ------------------------------------------------------------- lembrete
 
 def enviar_lembretes(conn, agora=None):
-    """Lembrete único ao candidato cerca de 24 horas antes da entrevista."""
-    if not srv.config_get(conn, "smtp_host"):
+    """Lembrete único ao candidato cerca de 24 horas antes da entrevista (e-mail e SMS)."""
+    tem_smtp = bool(srv.config_get(conn, "smtp_host"))
+    tem_sms = getattr(srv, "sms", None) is not None
+    if not tem_smtp and not tem_sms:
         return 0
     agora = agora or _agora()
     enviados = 0
@@ -883,6 +1091,15 @@ def enviar_lembretes(conn, agora=None):
                             (ent["id"],)).rowcount:
             continue
         conn.commit()
+        if tem_sms:
+            try:
+                local = ler_utc(ent["inicio_utc"]).astimezone(zona(config(conn, ent["empresa_id"])))
+                srv.sms.enviar_modelo(conn, ent["candidato_id"], "lembrete_entrevista",
+                                      {"data": local.strftime("%m/%d"), "hora": local.strftime("%I:%M %p").lstrip("0")})
+            except Exception:  # noqa: BLE001  (o SMS nunca impede o e-mail)
+                pass
+        if not tem_smtp:
+            continue
         cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (ent["candidato_id"],)).fetchone()
         if not cand or not (cand["email"] or "").strip():
             continue
@@ -916,7 +1133,8 @@ def _ent_publica(cfg, ent):
     inicio = ler_utc(ent["inicio_utc"])
     local = inicio.astimezone(zona(cfg))
     return {"id": ent["id"], "inicio_utc": ent["inicio_utc"], "fim_utc": ent["fim_utc"], "status": ent["status"],
-            "data": local.date().isoformat(), "hora": local.strftime("%H:%M")}
+            "data": local.date().isoformat(), "hora": local.strftime("%H:%M"),
+            "meet_link": _meet(ent) if ent["status"] == "marcada" else ""}
 
 
 def dados_publicos(conn, cand):
@@ -1002,15 +1220,29 @@ def rotear_gestor(h, method, path, conn, gestor):
         return None
     empresa_id = gestor["empresa_id"]
 
+    # Google Agenda do gestor: estado, conectar e desconectar (google_cal.py)
+    if google_cal and path.startswith("/api/gestor/agenda/google"):
+        return google_cal.rotear_gestor(h, method, path, conn, gestor)
+
     if path == "/api/gestor/agenda/config":
         if not gestor["is_admin"]:
             return _resp(h, 403, {"erro": "Apenas o administrador da empresa configura a agenda"})
         if method == "GET":
             return _resp(h, 200, {"config": config(conn, empresa_id), "formatos": list(FORMATOS)})
         if method == "POST":
-            cfg, erro = validar(h._body() or {}, config(conn, empresa_id))
+            corpo = h._body() or {}
+            cfg, erro = validar(corpo, config(conn, empresa_id))
             if erro:
                 return _resp(h, 400, {"erro": erro})
+            if cfg.get("google_entrevistadores"):
+                # só contas Google conectadas de gestores desta empresa
+                validos = [r["gestor_id"] for r in google_cal.contas_validas(
+                    conn, empresa_id, cfg["google_entrevistadores"])] if google_cal else []
+                if "google_entrevistadores" in corpo and len(validos) != len(cfg["google_entrevistadores"]):
+                    return _resp(h, 400, {"erro": "Entrevistador inválido"})
+                cfg["google_entrevistadores"] = validos  # contas desconectadas saem da lista
+                if cfg.get("google_organizador") not in validos:
+                    cfg["google_organizador"] = 0
             salvar(conn, empresa_id, cfg)
             return _resp(h, 200, {"ok": True, "config": config(conn, empresa_id)})
 

@@ -62,6 +62,11 @@ EXEMPLOS = [
     "Entrevista cancelada: e-mail ao candidato e a 0 gestor(es)",
     "Link de agendamento de entrevista enviado (es)",
     "Lembrete de entrevista enviado",
+    "Google Agenda: evento criado",
+    "Google Agenda: evento criado com link do Google Meet",
+    "Google Agenda: evento atualizado",
+    "Google Agenda: evento removido",
+    "Google Agenda: não foi possível sincronizar o evento",
     # campanhas.py
     "Avisado por e-mail sobre a vaga: Cleaning Technician (banco de talentos)",
     "Falha ao avisar sobre a vaga: Cleaning Technician (banco de talentos)",
@@ -91,10 +96,23 @@ EXEMPLOS = [
     "Lembrete de onboarding enviado",
     "I-9 Seção 2 preenchida pelo empregador",
     "Dados sensíveis do onboarding apagados (retenção)",
+    # integracoes_rh.py
+    "Verificação de antecedentes solicitada (Checkr, pacote tasker_standard)",
+    "Verificação de antecedentes (Checkr): convite enviado",
+    "Verificação de antecedentes (Checkr): em andamento",
+    "Verificação de antecedentes (Checkr): clear (sem apontamentos)",
+    "Verificação de antecedentes (Checkr): consider (revisar)",
+    "Verificação de antecedentes (Checkr): suspensa",
+    "Verificação de antecedentes (Checkr): cancelada",
+    "Verificação de antecedentes (Checkr): convite expirado",
+    "Verificação de antecedentes concluída: aviso a 2 administrador(es)",
     # talentos.py
     "Lembrete para 2026-12-01: ligar de novo",
     "Lembrete para 2026-12-01",
     "Lembrete removido",
+    # conta.py (consentimento para ligações e mensagens automáticas)
+    "Autorizou ligações e mensagens automáticas",
+    "Pediu para não receber ligações nem mensagens automáticas",
     # voz.py
     "Entrou na fila da triagem por voz",
     "Falha ao iniciar a ligação",
@@ -106,9 +124,26 @@ EXEMPLOS = [
     "Vaga Warehouse Associate: movido para Reprovado (Número errado (triagem por voz))",
     "Convite para os testes enviado (en)",
     "Falha ao enviar convite: SMTP não configurado",
+    "Ligação recebida: o candidato ligou para a Francisca",
+    "Cadastro criado pela Francisca (ligação recebida)",
+    "Ligou para a empresa (interesse: Cleaning Technician)",
+    "Link de inscrição enviado a quem ligou (es)",
+    "Falha ao enviar o link de inscrição: SMTP não configurado",
     "Voltou para a fila da triagem por voz",
     "Marcado como Não ligar",
     "Tentativas da triagem por voz zeradas",
+    # sms.py
+    "SMS enviado: convite para os testes",
+    "SMS enviado: lembrete de entrevista",
+    "SMS enviado: lembrete do onboarding",
+    "SMS enviado: tentamos ligar",
+    "SMS enviado: candidatura recebida",
+    "SMS enviado: mensagem do gestor",
+    "SMS agendado para o horário permitido (8h às 21h)",
+    "SMS recebido",
+    "Pediu para não receber SMS (STOP)",
+    "Voltou a receber SMS (START)",
+    "Falha ao enviar SMS: HTTP 500",
 ]
 
 

@@ -13,6 +13,14 @@ let telaAtual = null;        // função que redesenha a tela de login/setup atu
 let pipelineAberto = null;   // { vagaId, modo } quando o pipeline de uma vaga está aberto
 let idiomaEscolhidoSemLogin = false;
 
+// SMS (gestor-sms.js): carregado aqui, sem depender de uma tag no gestor.html
+(function carregarSms() {
+  if (typeof smsPreencherFicha === "function" || document.querySelector('script[src^="js/gestor-sms.js"]')) return;
+  const s = document.createElement("script");
+  s.src = "js/gestor-sms.js";
+  document.head.appendChild(s);
+})();
+
 // ------------------------------------------------ API
 async function api(caminho, opcoes = {}) {
   const headers = { "Content-Type": "application/json", "X-Idioma": idiomaGestor };
@@ -100,6 +108,8 @@ function atualizarTopo() {
   } else {
     sub.textContent = tg("topo_sub");
   }
+  // faixa vermelha do modo suporte do dono (gestor-conta.js)
+  if (typeof contaBannerSuporte === "function") contaBannerSuporte(painelAtivo);
 }
 
 function salvarSessao(r) {
@@ -967,6 +977,11 @@ async function telaPipeline(el, vagaId, modo) {
     if (etapa === "reprovado") {
       motivo = prompt(tg("pp_motivo")) || "";
     }
+    // Checkr: aviso quando a empresa exige verificação clear antes de contratar (gestor-integracoes-rh.js)
+    if (etapa === "contratado" && typeof integracoesRhAvisoContratar === "function" && !(await integracoesRhAvisoContratar(candidaturaId))) {
+      telaPipeline(el, vagaId, modo);
+      return;
+    }
     const notificar = confirm(tg("pp_notificar"));
     const resp = await api("/api/gestor/candidatura", {
       method: "POST",
@@ -1215,6 +1230,8 @@ async function abrirDetalheCandidato(id) {
   if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
   blocos.push('<div class="card" id="bloco-agenda"></div>'); // agenda de entrevistas (gestor-agenda.js)
   if (typeof onboardingPreencherFicha === "function") blocos.push('<div class="card" id="bloco-onboarding"></div>'); // onboarding (gestor-onboarding.js)
+  if (typeof integracoesRhPreencherFicha === "function") blocos.push('<div class="card" id="bloco-integracoes-rh"></div>'); // Checkr e E-Verify (gestor-integracoes-rh.js)
+  if (typeof smsPreencherFicha === "function") blocos.push('<div class="card" id="bloco-sms"></div>'); // conversa por SMS (gestor-sms.js)
   if (typeof indicacoesPreencherFicha === "function") blocos.push('<div class="card" id="bloco-indicacoes"></div>'); // indicações (gestor-indicacoes.js)
   if (c.testes.disc) blocos.push(`<div class="card">${htmlResultadoDisc(c.testes.disc.payload)}</div>`);
   if (c.testes.base) blocos.push(`<div class="card">${htmlResultadoBase(c.testes.base.payload)}</div>`);
@@ -1305,7 +1322,8 @@ async function abrirDetalheCandidato(id) {
   fundo.innerHTML = `
     <div class="modal">
       <button class="btn ghost small fechar" id="modal-fechar">${icone("fechar")} ${tg("fechar")}</button>
-      <h2>${esc(c.candidato.nome)} ${c.candidato.tipo === "interno" ? '<span class="badge neutral">' + tg("colaborador_interno") + "</span>" : ""}</h2>
+      <h2>${esc(c.candidato.nome)} ${c.candidato.tipo === "interno" ? '<span class="badge neutral">' + tg("colaborador_interno") + "</span>" : ""}
+        ${typeof contaBadgeConsentimento === "function" ? contaBadgeConsentimento(c.consentimento_contato) : ""}</h2>
       <p class="desc">${esc(c.candidato.email)}
         ${c.candidato.telefone ? ` · <strong>${tg("d_tel")}</strong> ${linkTelefone(c.candidato.telefone)}` : ""}
         ${c.candidato.local ? " · " + tg("d_local") + " " + esc(c.candidato.local) : ""}
@@ -1339,6 +1357,8 @@ async function abrirDetalheCandidato(id) {
   if (typeof agendaPreencherFicha === "function") agendaPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-agenda"));
   if (typeof talentosPreencherFicha === "function") talentosPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-talentos")); // gestor-talentos.js
   if (typeof onboardingPreencherFicha === "function") onboardingPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-onboarding")); // gestor-onboarding.js
+  if (typeof integracoesRhPreencherFicha === "function") integracoesRhPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-integracoes-rh")); // gestor-integracoes-rh.js
+  if (typeof smsPreencherFicha === "function") smsPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-sms")); // gestor-sms.js
   if (typeof indicacoesPreencherFicha === "function") indicacoesPreencherFicha(c.candidato.id, c.candidato.nome, fundo.querySelector("#bloco-indicacoes")); // gestor-indicacoes.js
   if (typeof campanhasPreencherFicha === "function") campanhasPreencherFicha(c.candidato.id, fundo); // e-mails de vagas: descadastro (gestor-campanhas.js)
   const baixar = fundo.querySelector("#baixar-cv");
@@ -1898,20 +1918,30 @@ async function abaConfig(el) {
     <div id="cfg-marca"></div>
     <div id="cfg-entrada"></div>
     <div id="cfg-auditoria"></div>
+    <div id="cfg-conta"></div>
     <div id="cfg-agenda"></div>
     <div id="cfg-onboarding"></div>
+    <div id="cfg-integracoes-rh"></div>
+    <div id="cfg-sms"></div>
     <div id="cfg-indicacoes"></div>
     <div id="cfg-plano"></div>
+    <div id="cfg-sms-uso"></div>
+    <div id="cfg-dominio"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
   if (typeof assistenteConfig === "function") assistenteConfig(document.getElementById("cfg-assistente")); // guia de configuração (gestor-assistente.js)
   secaoMarca(document.getElementById("cfg-marca"));
   secaoEntrada(document.getElementById("cfg-entrada"));
   if (typeof secaoAuditoria === "function") secaoAuditoria(document.getElementById("cfg-auditoria"));
+  if (typeof secaoConta === "function") secaoConta(document.getElementById("cfg-conta")); // consentimento, dados e conta (gestor-conta.js)
   if (typeof secaoAgenda === "function") secaoAgenda(document.getElementById("cfg-agenda")); // agenda de entrevistas
   if (typeof secaoOnboarding === "function") secaoOnboarding(document.getElementById("cfg-onboarding")); // onboarding (gestor-onboarding.js)
+  if (typeof secaoIntegracoesRh === "function") secaoIntegracoesRh(document.getElementById("cfg-integracoes-rh")); // folha e Checkr (gestor-integracoes-rh.js)
   if (typeof secaoIndicacoes === "function") secaoIndicacoes(document.getElementById("cfg-indicacoes")); // indicações (gestor-indicacoes.js)
   if (typeof secaoPlano === "function") secaoPlano(document.getElementById("cfg-plano")); // plano e uso (gestor-plano.js)
+  if (typeof secaoSms === "function") secaoSms(document.getElementById("cfg-sms")); // SMS: ligar, consentimento e modelos (gestor-sms.js)
+  if (typeof smsUsoPlano === "function") smsUsoPlano(document.getElementById("cfg-sms-uso")); // uso de SMS no mês (gestor-sms.js)
+  if (info.admin) carregarSecaoDominio(document.getElementById("cfg-dominio")); // domínio próprio das vagas (gestor-dominio.js)
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = tg("copiado");
@@ -1949,6 +1979,16 @@ async function abaConfig(el) {
     // e-mail, IA e endereço público agora são da plataforma: ficam no painel do administrador do sistema
     await secaoTemplates(document.getElementById("cfg-templates"));
   }
+}
+
+// domínio próprio das páginas de vagas: o script é carregado sob demanda (gestor-dominio.js)
+function carregarSecaoDominio(el) {
+  if (!el) return;
+  if (typeof secaoDominio === "function") return secaoDominio(el);
+  const s = document.createElement("script");
+  s.src = "/js/gestor-dominio.js";
+  s.onload = () => { if (typeof secaoDominio === "function") secaoDominio(el); };
+  document.head.appendChild(s);
 }
 
 async function secaoTemplates(el) {
@@ -2142,6 +2182,8 @@ function formGestor(g) {
     const setup = await api("/api/gestor/setup");
     if (setup.precisa_setup) return telaSetup();
   } catch (e) { /* segue para o login */ }
+  // aba aberta pelo dono em modo suporte (#suporte=código de uso único, gestor-conta.js)
+  if (typeof contaBootSuporte === "function") await contaBootSuporte();
   const token = localStorage.getItem("gestor_token");
   if (!token) return telaLogin();
   try {

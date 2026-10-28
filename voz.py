@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import re
+import secrets
 import sys
 import threading
 import time
@@ -131,7 +132,60 @@ CONFIG_PADRAO = {
     "cidade": "",
     "telefone_retorno": "",
     "gerente": "",
+    # voz da Francisca por idioma (vazio = a voz padrão do agente)
+    "voz_es": "",
+    "voz_en": "",
+    "voz_pt": "",
 }
+
+# Vozes que a empresa pode escolher para a Francisca, por idioma. A primeira de
+# cada lista é a padrão do agente no ElevenLabs (escolhida pelo Tony em 2026-10-27)
+# e não precisa de override. Todas estão na biblioteca da conta ElevenLabs e
+# funcionam com o modelo do agente (eleven_v4_turbo). preview_url = amostra pública.
+VOZES = {
+    "es": [
+        {"id": "CaJslL1xziwefCeTNzHv", "nome": "Cristina Campos", "padrao": True,
+         "descricao": {"pt": "Mexicana, simpática e suave", "en": "Mexican, friendly and soft", "es": "Mexicana, amable y suave"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/c093a158b7da4dadb8f9a5fae10b7211/voices/CaJslL1xziwefCeTNzHv/piQKkajjFXnelvIxcX33.mp3"},
+        {"id": "kcQkGnn0HAT2JRDQ4Ljp", "nome": "Norah",
+         "descricao": {"pt": "Latino-americana neutra, calorosa e clara", "en": "Neutral Latin American, warm and clear", "es": "Latinoamericana neutra, cálida y clara"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/06c63e017f47462b814df82e5e4bd95e/voices/kcQkGnn0HAT2JRDQ4Ljp/ahsfnWSIKEI3UbM2BaEE.mp3"},
+        {"id": "qHkrJuifPpn95wK3rm2A", "nome": "Andrea",
+         "descricao": {"pt": "Colombiana, educada, alegre e calma", "en": "Colombian, polite, cheerful and calm", "es": "Colombiana, educada, alegre y tranquila"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/9a2055f7d05c40ceb1fc9f0d32a5301f/voices/qHkrJuifPpn95wK3rm2A/C0HIbK1Fqc9zwzlyvuTI.mp3"},
+    ],
+    "pt": [
+        {"id": "RGymW84CSmfVugnA5tvA", "nome": "Roberta", "padrao": True,
+         "descricao": {"pt": "Brasileira, suave e confiante", "en": "Brazilian, smooth and confident", "es": "Brasileña, suave y segura"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/d2d6d8fb79be40a2a3a1599d78da8346/voices/RGymW84CSmfVugnA5tvA/3vmILerGd3NQICCWM4Wa.mp3"},
+        {"id": "GDzHdQOi6jjf8zaXhCYD", "nome": "Raquel",
+         "descricao": {"pt": "Brasileira, jovem, expressiva e animada", "en": "Brazilian, young, expressive and upbeat", "es": "Brasileña, joven, expresiva y animada"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/d2d6d8fb79be40a2a3a1599d78da8346/voices/GDzHdQOi6jjf8zaXhCYD/LCt0ufE4oVO5zb1QbhsQ.mp3"},
+        {"id": "KHmfNHtEjHhLK9eER20w", "nome": "Fernanda",
+         "descricao": {"pt": "Brasileira, formal e neutra", "en": "Brazilian, formal and neutral", "es": "Brasileña, formal y neutra"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/3597c00ae82b4a969f3df6c90373fe46/voices/KHmfNHtEjHhLK9eER20w/yEntfRlJ2mSKw6OFC1PF.mp3"},
+    ],
+    "en": [
+        {"id": "kdmDKE6EkgrWrrykO9Qt", "nome": "Alexandra", "padrao": True,
+         "descricao": {"pt": "Americana, natural e conversadora", "en": "American, natural and conversational", "es": "Estadounidense, natural y conversadora"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/1df4b21393b74964b03d3690a173eb80/voices/kdmDKE6EkgrWrrykO9Qt/yJT6XwhJHSWv3Pb05OIk.mp3"},
+        {"id": "OYTbf65OHHFELVut7v2H", "nome": "Hope",
+         "descricao": {"pt": "Americana, clara e calma", "en": "American, clear and calm", "es": "Estadounidense, clara y tranquila"},
+         "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/workspace/e219aba9bd7442daa87c084f511be4f3/voices/OYTbf65OHHFELVut7v2H/kTLS0DfvlR1QTyjUzOiT.mp3"},
+        {"id": "yM93hbw8Qtvdma2wCnJG", "nome": "Ivanna",
+         "descricao": {"pt": "Americana, jovem e descontraída", "en": "American, young and casual", "es": "Estadounidense, joven y relajada"},
+         "preview_url": "https://api.us.elevenlabs.io/v1/voices/yM93hbw8Qtvdma2wCnJG/previews/audio?payload=eyJ2b2ljZV9zb3VyY2UiOiJjdXN0b20iLCJ3b3Jrc3BhY2VfaWQiOiJiYjljZjVhM2YxZjY0ZWE4YmZhYjRlYzkyNzcxM2FiNSIsImZpbGVuYW1lIjoib01UbEJITUlPdURMd2NtN0kxdkoubXAzIiwidGltZXN0YW1wIjoxNzkzMTU2NDAwMDAwMDAwfQ%3D%3D"},
+    ],
+}
+
+
+def voz_escolhida(cfg, idioma):
+    """voice_id para o override da ligação, ou None quando a empresa usa a voz padrão."""
+    escolha = (cfg or {}).get("voz_" + idioma) or ""
+    for v in VOZES.get(idioma, []):
+        if v["id"] == escolha:
+            return None if v.get("padrao") else v["id"]
+    return None
 
 # roteiro da Francisca por cargo: cada empresa edita no painel
 ROTEIRO_PADRAO = {
@@ -583,11 +637,13 @@ def init_voz(c):
         " dados TEXT NOT NULL DEFAULT '{}',"
         " atualizado_em TEXT DEFAULT (datetime('now')))"
     )
-    c.execute(
-        "CREATE TABLE IF NOT EXISTS voz_chamadas ("
+    # ligações recebidas de quem não é candidato não têm candidatura nem candidato:
+    # por isso candidatura_id e candidato_id aceitam NULL e a empresa fica na própria linha
+    criar_chamadas = (
+        "CREATE TABLE IF NOT EXISTS %s ("
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        " candidatura_id INTEGER NOT NULL REFERENCES candidaturas(id) ON DELETE CASCADE,"
-        " candidato_id INTEGER NOT NULL REFERENCES candidatos(id) ON DELETE CASCADE,"
+        " candidatura_id INTEGER REFERENCES candidaturas(id) ON DELETE CASCADE,"
+        " candidato_id INTEGER REFERENCES candidatos(id) ON DELETE CASCADE,"
         " conversation_id TEXT UNIQUE,"
         " call_sid TEXT DEFAULT '',"
         " status TEXT NOT NULL DEFAULT 'iniciando',"
@@ -602,8 +658,28 @@ def init_voz(c):
         " invalidos TEXT DEFAULT '[]',"
         " resumo TEXT DEFAULT '',"
         " tem_audio INTEGER DEFAULT 0,"
-        " erro TEXT DEFAULT '')"
+        " erro TEXT DEFAULT '',"
+        " direcao TEXT DEFAULT 'saida',"   # saida (a Francisca ligou) ou entrada (ligaram para ela)
+        " empresa_id INTEGER,"
+        " telefone TEXT DEFAULT '')"       # número de quem ligou (entrada)
     )
+    info = c.execute("PRAGMA table_info(voz_chamadas)").fetchall()
+    if not info:
+        c.execute(criar_chamadas % "voz_chamadas")
+    elif any(r[1] == "candidatura_id" and r[3] for r in info):
+        # banco antigo (candidatura obrigatória): recria a tabela com os mesmos dados
+        antigas = [r[1] for r in info]
+        c.execute("DROP INDEX IF EXISTS idx_voz_chamadas_status")
+        c.execute("ALTER TABLE voz_chamadas RENAME TO voz_chamadas_antiga")
+        c.execute(criar_chamadas % "voz_chamadas")
+        novas = {r[1] for r in c.execute("PRAGMA table_info(voz_chamadas)").fetchall()}
+        cols = ", ".join(x for x in antigas if x in novas)
+        c.execute("INSERT INTO voz_chamadas (%s) SELECT %s FROM voz_chamadas_antiga" % (cols, cols))
+        c.execute("DROP TABLE voz_chamadas_antiga")
+    colunas = {r[1] for r in c.execute("PRAGMA table_info(voz_chamadas)").fetchall()}
+    for nome, tipo in (("direcao", "TEXT DEFAULT 'saida'"), ("empresa_id", "INTEGER"), ("telefone", "TEXT DEFAULT ''")):
+        if nome not in colunas:
+            c.execute("ALTER TABLE voz_chamadas ADD COLUMN %s %s" % (nome, tipo))
     c.execute("CREATE INDEX IF NOT EXISTS idx_voz_chamadas_status ON voz_chamadas(status)")
     colunas = {r[1] for r in c.execute("PRAGMA table_info(candidaturas)").fetchall()}
     for nome, tipo in (
@@ -742,6 +818,13 @@ def validar_config(d):
         if d["idioma_padrao"] not in IDIOMAS_LIGACAO:
             return None, "invalid_language"
         saida["idioma_padrao"] = d["idioma_padrao"]
+    for idioma in IDIOMAS_LIGACAO:
+        chave = "voz_" + idioma
+        if chave in d:
+            valor = str(d[chave] or "").strip()
+            if valor and valor not in {v["id"] for v in VOZES[idioma]}:
+                return None, "invalid_voice"
+            saida[chave] = valor
     return saida, None
 
 
@@ -802,7 +885,7 @@ def anonimizar(conn, candidato_id):
     apagar_gravacoes(conn, candidato_id)
     conn.execute("UPDATE candidatos SET telefone='' WHERE id=?", (candidato_id,))
     conn.execute(
-        "UPDATE voz_chamadas SET transcricao='[]', fatos='', resumo='', call_sid=''"
+        "UPDATE voz_chamadas SET transcricao='[]', fatos='', resumo='', call_sid='', telefone=''"
         " WHERE candidato_id=?", (candidato_id,),
     )
     conn.execute(
@@ -827,6 +910,16 @@ def voz_para_match(conn, candidato_id, cargo_id):
 
 
 # ------------------------------------------------------------ ElevenLabs
+
+def override_da_ligacao(idioma, abertura, voz=None):
+    """conversation_config_override: idioma e abertura sempre; a voz só quando a
+    empresa escolheu uma que não é a padrão (o agente aceita o override de
+    tts.voice_id, liberado pelo agent:sync do bhs-voice-screener)."""
+    override = {"agent": {"language": CODIGO_ELEVENLABS[idioma], "first_message": abertura}}
+    if voz:
+        override["tts"] = {"voice_id": voz}
+    return override
+
 
 class ElevenLabs:
     API = "https://api.elevenlabs.io/v1/convai"
@@ -859,7 +952,7 @@ class ElevenLabs:
         r = self._req("GET", "/conversation/get_signed_url?agent_id=" + urllib.parse.quote(self.agent_id))
         return r.get("signed_url") or ""
 
-    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura):
+    def iniciar(self, telefone, variaveis, idioma, candidato_id, abertura, voz=None):
         r = self._req("POST", "/twilio/outbound-call", {
             "agent_id": self.agent_id,
             "agent_phone_number_id": self.phone_number_id,
@@ -868,10 +961,7 @@ class ElevenLabs:
             "conversation_initiation_client_data": {
                 "user_id": str(candidato_id),
                 "dynamic_variables": variaveis,
-                "conversation_config_override": {"agent": {
-                    "language": CODIGO_ELEVENLABS[idioma],
-                    "first_message": abertura,
-                }},
+                "conversation_config_override": override_da_ligacao(idioma, abertura, voz),
             },
         })
         if not r.get("success") or not r.get("conversation_id"):
@@ -1017,7 +1107,33 @@ def variaveis_da_ligacao(conn, row, cfg, roteiro, idioma="es"):
         "team_notes": notas_equipe,
         "voicemail_message": recado_correio_voz(
             idioma, row["nome"], nome_empresa, row["cargo_nome"], cfg.get("telefone_retorno") or ""),
+        "call_direction": "outbound",
+        "open_jobs": vagas_abertas_texto(conn, row["empresa_id"]),
     }
+
+
+def vagas_abertas_texto(conn, empresa_id, limite=15):
+    """Vagas abertas da empresa em texto para a Francisca (ligações recebidas de
+    quem ainda não se candidatou). Só fatos que a empresa escreveu no roteiro."""
+    if not empresa_id:
+        return "none"
+    linhas = []
+    for v in conn.execute(
+        "SELECT v.titulo, v.local, g.roteiro_voz FROM vagas v JOIN cargos g ON g.id=v.cargo_id"
+        " WHERE v.empresa_id=? AND v.status='aberta' ORDER BY v.id DESC LIMIT ?",
+        (empresa_id, limite),
+    ).fetchall():
+        fatos = ""
+        try:
+            fatos = (json.loads(v["roteiro_voz"] or "{}") or {}).get("fatos") or ""
+        except ValueError:
+            pass
+        fatos = re.sub(r"\s+", " ", fatos).strip()
+        texto = "- " + v["titulo"] + (" (%s)" % v["local"].strip() if (v["local"] or "").strip() else "")
+        if fatos:
+            texto += ": " + (fatos[:280] + "..." if len(fatos) > 280 else fatos)
+        linhas.append(texto)
+    return "\n".join(linhas)[:3000] or "none"
 
 
 def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False, agora=None):
@@ -1058,8 +1174,12 @@ def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False, agora=Non
     telefone = para_e164(row["telefone"])
     variaveis = variaveis_da_ligacao(conn, row, cfg, roteiro_do_cargo(conn, row["cargo_id"]), idioma)
     abertura = primeira_frase(idioma, variaveis["company_name"], variaveis["company_city"])
+    voz_id = voz_escolhida(cfg, idioma)
     try:
-        conversation_id, call_sid = gw.iniciar(telefone, variaveis, idioma, row["candidato_id"], abertura)
+        if voz_id:
+            conversation_id, call_sid = gw.iniciar(telefone, variaveis, idioma, row["candidato_id"], abertura, voz=voz_id)
+        else:
+            conversation_id, call_sid = gw.iniciar(telefone, variaveis, idioma, row["candidato_id"], abertura)
     except Exception as exc:  # noqa: BLE001
         conn.execute(
             "UPDATE voz_chamadas SET status='falhou', erro=?, terminada_em=datetime('now') WHERE id=?",
@@ -1098,12 +1218,20 @@ def processar_conversa(conn, conversation_id):
     gw = gateway(conn)
     if gw is None:
         return False
-    conversa = gw.conversa(conversation_id)
+    inicio = _de_sql(chamada["iniciada_em"])
+    minutos = (_agora_utc() - inicio).total_seconds() / 60 if inicio else 0
+    try:
+        conversa = gw.conversa(conversation_id)
+    except Exception:  # noqa: BLE001
+        # conversa que o ElevenLabs não encontra (ex.: ligação recebida que caiu antes
+        # de começar): depois do limite, encerra para não consultar para sempre
+        if minutos >= LIMITE_LIGACAO:
+            aplicar_resultado(conn, chamada, {"status": "failed", "transcript": []}, erro="not_found")
+            return True
+        raise
     status = conversa.get("status")
     # ligação que nunca conectou (fica "initiated" para sempre) ou que não termina:
     # encerra como sem resposta para não travar a fila
-    inicio = _de_sql(chamada["iniciada_em"])
-    minutos = (_agora_utc() - inicio).total_seconds() / 60 if inicio else 0
     if (status == "initiated" and minutos >= LIMITE_SEM_CONECTAR) or (
         status not in ("done", "failed", "processing") and minutos >= LIMITE_LIGACAO
     ):
@@ -1128,7 +1256,15 @@ def falha_de_inicio(conn, conversation_id, motivo):
     aplicar_resultado(conn, chamada, {"status": "failed", "transcript": []}, erro=motivo)
 
 
+def _e_entrada(chamada):
+    return "direcao" in chamada.keys() and chamada["direcao"] == "entrada"
+
+
 def aplicar_resultado(conn, chamada, conversa, erro=""):
+    entrada = _e_entrada(chamada)
+    if entrada and not chamada["candidatura_id"]:
+        aplicar_resultado_sem_candidatura(conn, chamada, conversa, erro)
+        return
     row = conn.execute(_SQL_CANDIDATURA + " WHERE ca.id=?", (chamada["candidatura_id"],)).fetchone()
     if not row:
         return
@@ -1138,16 +1274,34 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
     fatos, invalidos = extrair_fatos(conversa)
     atendeu = conversa.get("status") == "done" and (candidato_falou or fatos.get("outcome") == "VOICEMAIL")
     resultado = pontuar(fatos, roteiro_do_cargo(conn, row["cargo_id"])) if atendeu else None
-    novo_status, tentar_de_novo, nota = transicao(
-        resultado["outcome"] if resultado else None, row["voz_tentativas"] or 0, cfg["max_tentativas"]
-    )
+    if entrada:
+        # o candidato ligou: não gasta tentativa; só um resultado claro muda a triagem
+        outcome = resultado["outcome"] if resultado else None
+        if outcome in OUTCOME_STATUS:
+            novo_status, tentar_de_novo, nota = OUTCOME_STATUS[outcome], False, "inbound"
+        else:
+            novo_status, tentar_de_novo, nota = row["voz_status"], False, "inbound"
+    else:
+        novo_status, tentar_de_novo, nota = transicao(
+            resultado["outcome"] if resultado else None, row["voz_tentativas"] or 0, cfg["max_tentativas"]
+        )
     retorno = None
     if resultado and resultado["outcome"] in ("CALLBACK", "NOT_AVAILABLE") and fatos.get("callback_time"):
         retorno = horario_de_retorno(fatos["callback_time"], _agora_utc(), cfg)
         if retorno:
             # liga de novo no horário pedido; não gasta tentativa
-            novo_status, tentar_de_novo, nota = "para_ligar", False, "callback_scheduled"
-            conn.execute("UPDATE candidaturas SET voz_tentativas=MAX(COALESCE(voz_tentativas,0)-1,0) WHERE id=?", (row["id"],))
+            novo_status, tentar_de_novo, nota = "para_ligar", False, "inbound" if entrada else "callback_scheduled"
+            if not entrada:
+                conn.execute("UPDATE candidaturas SET voz_tentativas=MAX(COALESCE(voz_tentativas,0)-1,0) WHERE id=?",
+                             (row["id"],))
+    if retorno:
+        proxima = _sql(retorno)
+    elif tentar_de_novo:
+        proxima = _sql(proxima_tentativa(_agora_utc(), cfg))
+    elif entrada and novo_status == row["voz_status"]:
+        proxima = row["voz_proxima"] or ""
+    else:
+        proxima = ""
     transcricao = [
         {"papel": t.get("role"), "texto": limpar_marcas_de_voz(t.get("message")),
          "t": int(round(t.get("time_in_call_secs") or 0))}
@@ -1177,7 +1331,7 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
         " voz_tier=?, voz_resultado=?, atualizado_em=datetime('now') WHERE id=?",
         (
             novo_status,
-            _sql(retorno) if retorno else (_sql(proxima_tentativa(_agora_utc(), cfg)) if tentar_de_novo else ""),
+            proxima,
             resultado["outcome"] if resultado else (row["voz_outcome"] or ""),
             resultado["score"] if pontuou else row["voz_score"],
             resultado["tier"] if pontuou else (row["voz_tier"] or ""),
@@ -1210,8 +1364,13 @@ def aplicar_resultado(conn, chamada, conversa, erro=""):
         )
     conn.commit()  # grava tudo antes do e-mail (I/O de rede)
 
+    if nota in ("no_answer_exhausted", "voicemail_exhausted") and getattr(srv, "sms", None):
+        srv.sms.enviar_modelo(conn, row["candidato_id"], "tentamos_ligar", {"vaga": row["vaga_titulo"]})
+
     if destaque and not row["voz_convite_enviado"]:
         enviar_convite(conn, row, fatos.get("preferred_language") or row["idioma"] or cfg["idioma_padrao"])
+        if getattr(srv, "sms", None):  # SMS do convite (só sai com A2P aprovado e consentimento)
+            srv.sms.enviar_modelo(conn, row["candidato_id"], "convite_teste", {"vaga": row["vaga_titulo"]})
         # os gestores recebem um aviso único quando os testes terminam (ou após 48 horas sem eles)
 
 
@@ -1317,6 +1476,8 @@ def tick(conn, agora=None, empresa_id=None):
             if motivo:
                 relatorio["locais"].setdefault(str(chave), motivo)
                 continue
+            if getattr(srv, "conta", None) is not None and not srv.conta.pode_ligar_automatico(conn, row):
+                continue
             try:
                 iniciar_ligacao(conn, row["id"], "fila", agora=agora)
                 em_curso[chave] = em_curso.get(chave, 0) + 1
@@ -1326,6 +1487,339 @@ def tick(conn, agora=None, empresa_id=None):
         return relatorio
     finally:
         _trava_tick.release()
+
+
+# ------------------------------------------------------------ ligações recebidas
+
+# Quem liga para o número da empresa (ou da plataforma) é atendido pela Francisca.
+# O ElevenLabs chama POST /api/voz/inicio-entrada (webhook "conversation initiation
+# client data" para chamadas Twilio recebidas) com caller_id, called_number,
+# agent_id, call_sid e conversation_id, e espera as variáveis dinâmicas e os
+# overrides da conversa. A autenticação é um cabeçalho com segredo compartilhado
+# (o ElevenLabs só envia cabeçalhos fixos, guardados no gerenciador de segredos dele).
+
+CABECALHO_SEGREDO_ENTRADA = "X-Bussola-Secret"
+TAG_LIGOU = "ligou"
+MINUTOS_SEGURA_FILA = 30  # durante uma ligação recebida a fila não disca para a mesma pessoa
+
+PRIMEIRAS_FRASES_ENTRADA = {
+    "es": ("Hola, soy Francisca, la asistente virtual de reclutamiento de {empresa}. Soy una asistente "
+           "automatizada, no una persona. {pergunta}"),
+    "en": ("Hi, this is Francisca, the AI recruiting assistant for {empresa}. I'm an automated assistant, "
+           "not a person. {pergunta}"),
+    "pt": ("Oi, aqui é a Francisca, a assistente virtual de recrutamento da {empresa}. Sou uma assistente "
+           "automatizada, não uma pessoa. {pergunta}"),
+}
+PERGUNTA_CONHECIDO = {
+    "es": "¿Hablo con {nome}? ¿Llama por su solicitud de empleo?",
+    "en": "Am I speaking with {nome}? Are you calling about your job application?",
+    "pt": "Estou falando com {nome}? Você está ligando sobre a sua candidatura?",
+}
+PERGUNTA_DESCONHECIDO = {
+    "es": "¿Llama por una solicitud de empleo?",
+    "en": "Are you calling about a job application?",
+    "pt": "Você está ligando sobre uma vaga de emprego?",
+}
+
+
+def primeira_frase_entrada(idioma, empresa, nome=None):
+    nome = (nome or "").strip().split(" ")[0]
+    pergunta = PERGUNTA_CONHECIDO[idioma].format(nome=nome) if nome else PERGUNTA_DESCONHECIDO[idioma]
+    return PRIMEIRAS_FRASES_ENTRADA[idioma].format(empresa=empresa, pergunta=pergunta)
+
+
+def segredo_entrada(conn):
+    """Segredo do webhook de ligações recebidas (Integração ElevenLabs no painel do
+    dono). Sem um próprio, vale o segredo do webhook pós-ligação."""
+    return (srv.config_get(conn, "elevenlabs_inbound_secret")
+            or srv.config_get(conn, "elevenlabs_webhook_secret") or "").strip()
+
+
+def _empresa_ativa(conn, empresa_id):
+    return bool(empresa_id) and conn.execute(
+        "SELECT 1 FROM empresas WHERE id=? AND status IN ('ativa','teste')", (empresa_id,)
+    ).fetchone() is not None
+
+
+def candidato_pelo_telefone(conn, telefone, empresa_id=None):
+    """Candidato mais recente (não anonimizado, de empresa ativa) com este telefone."""
+    e164 = para_e164(telefone)
+    if not e164:
+        return None
+    sql = ("SELECT c.* FROM candidatos c JOIN empresas e ON e.id=c.empresa_id"
+           " WHERE c.anonimizado=0 AND e.status IN ('ativa','teste') AND c.telefone LIKE ?")
+    args = ["%" + e164[-4:] + "%"]
+    if empresa_id:
+        sql += " AND c.empresa_id=?"
+        args.append(empresa_id)
+    for r in conn.execute(sql + " ORDER BY c.id DESC", args).fetchall():
+        if para_e164(r["telefone"]) == e164:
+            return r
+    return None
+
+
+def empresa_padrao_entrada(conn):
+    """Empresa que atende ligações sem dono claro no número da plataforma: a definida
+    em voz_empresa_entrada ou, se só uma empresa ativa tiver o módulo de voz, ela."""
+    try:
+        eid = int(srv.config_get(conn, "voz_empresa_entrada") or 0)
+    except (TypeError, ValueError):
+        eid = 0
+    if _empresa_ativa(conn, eid):
+        return eid
+    com_voz = conn.execute(
+        "SELECT id FROM empresas WHERE status IN ('ativa','teste') AND modulos LIKE '%\"voz\"%'"
+    ).fetchall()
+    return com_voz[0]["id"] if len(com_voz) == 1 else None
+
+
+def empresa_da_entrada(conn, telefone_origem, numero_chamado):
+    """(empresa_id, origem): número próprio da empresa; no número da plataforma, a
+    empresa do candidato mais recente com o telefone de quem liga; senão a padrão."""
+    chamado = para_e164(numero_chamado) or (numero_chamado or "").strip()
+    if chamado:
+        try:
+            r = conn.execute(
+                "SELECT empresa_id FROM numeros_empresa WHERE numero=? AND status='ativo' ORDER BY id DESC LIMIT 1",
+                (chamado,),
+            ).fetchone()
+        except Exception:  # noqa: BLE001  (tabela da telefonia ausente)
+            r = None
+        if r and _empresa_ativa(conn, r["empresa_id"]):
+            return r["empresa_id"], "numero_empresa"
+    cand = candidato_pelo_telefone(conn, telefone_origem)
+    if cand:
+        return cand["empresa_id"], "candidato"
+    padrao = empresa_padrao_entrada(conn)
+    return (padrao, "padrao") if padrao else (None, "")
+
+
+def ultima_candidatura(conn, candidato_id):
+    """Candidatura mais recente do candidato, preferindo as que estão na triagem por voz."""
+    return conn.execute(
+        _SQL_CANDIDATURA + " WHERE ca.candidato_id=?"
+        " ORDER BY (ca.voz_status != '') DESC, ca.atualizado_em DESC, ca.id DESC LIMIT 1",
+        (candidato_id,),
+    ).fetchone()
+
+
+def variaveis_desconhecido(conn, empresa_id, cfg, idioma, nome=None):
+    """Mesmas chaves das ligações de saída (o agente exige todas), sem candidatura."""
+    nome_empresa = cfg.get("nome_ligacao") or ""
+    if not nome_empresa and empresa_id:
+        e = conn.execute("SELECT nome FROM empresas WHERE id=?", (empresa_id,)).fetchone()
+        nome_empresa = e["nome"] if e else ""
+    return {
+        "candidate_name": (nome or "").strip() or "unknown",
+        "company_name": nome_empresa or "our company",
+        "company_city": cfg.get("cidade") or "",
+        "callback_phone": cfg.get("telefone_retorno") or "",
+        "hiring_manager": cfg.get("gerente") or "the hiring manager",
+        "role_name": "one of our open positions",
+        "job_facts": "none",
+        "faq": "none",
+        "extra_questions": "none",
+        "requirements": "none",
+        "service_area": "none",
+        "resume_summary": "none",
+        "team_notes": "none",
+        "voicemail_message": "",
+        "call_direction": "inbound",
+        "open_jobs": vagas_abertas_texto(conn, empresa_id),
+    }
+
+
+def inicio_entrada(conn, dados):
+    """Resposta ao webhook de início de uma ligação recebida. Grava a ligação (direção
+    'entrada') para a reconciliação aplicar o resultado quando terminar."""
+    origem = str(dados.get("caller_id") or "")
+    chamado = str(dados.get("called_number") or "")
+    conversation_id = str(dados.get("conversation_id") or "").strip() or None
+    call_sid = str(dados.get("call_sid") or "")[:80]
+    empresa_id, _como = empresa_da_entrada(conn, origem, chamado)
+    cfg = config_empresa(conn, empresa_id)
+    cand = candidato_pelo_telefone(conn, origem, empresa_id) if empresa_id else None
+    row = ultima_candidatura(conn, cand["id"]) if cand else None
+    idioma_cand = cand["idioma"] if cand is not None and "idioma" in cand.keys() else ""
+    idioma = idioma_cand if idioma_cand in IDIOMAS_LIGACAO else cfg["idioma_padrao"]
+    if row:
+        variaveis = variaveis_da_ligacao(conn, row, cfg, roteiro_do_cargo(conn, row["cargo_id"]), idioma)
+        variaveis["call_direction"] = "inbound"
+    else:
+        variaveis = variaveis_desconhecido(conn, empresa_id, cfg, idioma, cand["nome"] if cand else None)
+    abertura = primeira_frase_entrada(idioma, variaveis["company_name"], cand["nome"] if cand else None)
+    if conversation_id:
+        conn.execute(
+            "INSERT OR IGNORE INTO voz_chamadas (candidatura_id, candidato_id, conversation_id, call_sid, status,"
+            " idioma, disparada_por, direcao, empresa_id, telefone) VALUES (?,?,?,?, 'em_andamento', ?, 'entrada', 'entrada', ?, ?)",
+            (row["id"] if row else None, cand["id"] if cand else None, conversation_id, call_sid, idioma,
+             empresa_id, para_e164(origem) or origem[:40]),
+        )
+        if row and row["voz_status"] == "para_ligar":
+            conn.execute("UPDATE candidaturas SET voz_proxima=? WHERE id=?",
+                         (_sql(_agora_utc() + timedelta(minutes=MINUTOS_SEGURA_FILA)), row["id"]))
+        if cand:
+            srv.registrar_evento(conn, cand["id"], "voz", "Ligação recebida: o candidato ligou para a Francisca")
+        conn.commit()
+    return {
+        "type": "conversation_initiation_client_data",
+        "dynamic_variables": variaveis,
+        "conversation_config_override": override_da_ligacao(idioma, abertura, voz_escolhida(cfg, idioma)),
+    }
+
+
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+
+
+def contato_do_chamador(fatos):
+    """(nome, e-mail, interesse) que a Francisca coletou de quem ligou. O e-mail e o
+    interesse vêm em extra_answers ('email: ...' e 'job_interest: ...')."""
+    nome = (fatos.get("candidate_name") or "").strip()
+    texto = "\n".join(x for x in (fatos.get("extra_answers"), fatos.get("notes")) if x)
+    email = interesse = ""
+    for linha in texto.splitlines():
+        chave, _, valor = linha.partition(":")
+        chave = chave.strip().lower().replace(" ", "_")
+        if chave in ("email", "e-mail", "e_mail") and not email:
+            m = _EMAIL_RE.search(valor.replace(" ", ""))
+            email = m.group(0).lower() if m else ""
+        elif chave in ("job_interest", "interest", "role") and not interesse:
+            interesse = valor.strip()[:120]
+    if not email:
+        m = _EMAIL_RE.search(texto)
+        email = m.group(0).lower() if m else ""
+    if nome.lower() in ("unknown", "none", "null"):
+        nome = ""
+    return nome[:120], email[:200], interesse
+
+
+def vaga_do_interesse(conn, empresa_id, interesse):
+    """Vaga aberta da empresa cujo título ou cargo combina com o interesse dito."""
+    alvo = (interesse or "").strip().lower()
+    if not alvo:
+        return None
+    for v in conn.execute(
+        "SELECT v.id, v.titulo, v.cargo_id, g.nome AS cargo FROM vagas v JOIN cargos g ON g.id=v.cargo_id"
+        " WHERE v.empresa_id=? AND v.status='aberta' ORDER BY v.id DESC", (empresa_id,),
+    ).fetchall():
+        for nome in (v["titulo"], v["cargo"]):
+            n = (nome or "").strip().lower()
+            if n and (n in alvo or alvo in n):
+                return v
+    return None
+
+
+def _marcar_tag(conn, candidato_id, etiqueta):
+    cand = conn.execute("SELECT tags FROM candidatos WHERE id=?", (candidato_id,)).fetchone()
+    try:
+        tags = json.loads(cand["tags"] or "[]") if cand else []
+    except ValueError:
+        tags = []
+    if etiqueta not in tags:
+        tags.append(etiqueta)
+        conn.execute("UPDATE candidatos SET tags=? WHERE id=?", (json.dumps(tags, ensure_ascii=False), candidato_id))
+
+
+def aplicar_resultado_sem_candidatura(conn, chamada, conversa, erro=""):
+    """Ligação recebida de quem não tem candidatura: grava a conversa e, se a pessoa
+    deixou nome e e-mail, cria o candidato na empresa (etiqueta 'ligou') e envia por
+    e-mail o link de inscrição."""
+    empresa_id = chamada["empresa_id"]
+    falas = [t for t in (conversa.get("transcript") or []) if (t.get("message") or "").strip()]
+    falou = any(t.get("role") == "user" for t in falas)
+    fatos, invalidos = extrair_fatos(conversa)
+    atendeu = conversa.get("status") == "done" and falou
+    resumo = ((conversa.get("analysis") or {}).get("transcript_summary") or "")[:4000]
+    candidato_id = chamada["candidato_id"]
+    nome, email, interesse = contato_do_chamador(fatos) if atendeu else ("", "", "")
+    criado = False
+    if atendeu and not candidato_id and empresa_id and nome and email:
+        existente = conn.execute(
+            "SELECT id FROM candidatos WHERE lower(email)=lower(?) AND empresa_id=? AND anonimizado=0",
+            (email, empresa_id),
+        ).fetchone()
+        if existente:
+            candidato_id = existente["id"]
+        else:
+            vaga = vaga_do_interesse(conn, empresa_id, interesse)
+            idioma = fatos.get("preferred_language") if fatos.get("preferred_language") in IDIOMAS_LIGACAO else chamada["idioma"]
+            candidato_id = conn.execute(
+                "INSERT INTO candidatos (token, nome, email, local, telefone, cargo_desejado_id, idioma, empresa_id, tipo)"
+                " VALUES (?,?,?,?,?,?,?,?, 'externo')",
+                (_token(), nome, email, "",
+                 chamada["telefone"] or "", vaga["cargo_id"] if vaga else None, idioma or "", empresa_id),
+            ).lastrowid
+            criado = True
+            srv.registrar_evento(conn, candidato_id, "cadastro", "Cadastro criado pela Francisca (ligação recebida)")
+    meta = conversa.get("metadata") or {}
+    conn.execute(
+        "UPDATE voz_chamadas SET status=?, terminada_em=datetime('now'), duracao=?, transcricao=?, fatos=?,"
+        " invalidos=?, resumo=?, tem_audio=?, erro=?, candidato_id=? WHERE id=?",
+        (
+            "concluida" if conversa.get("status") == "done" else "falhou",
+            meta.get("call_duration_secs"),
+            json.dumps([{"papel": t.get("role"), "texto": limpar_marcas_de_voz(t.get("message")),
+                         "t": int(round(t.get("time_in_call_secs") or 0))} for t in falas], ensure_ascii=False),
+            json.dumps(fatos, ensure_ascii=False) if atendeu else "",
+            json.dumps(invalidos, ensure_ascii=False),
+            resumo,
+            1 if conversa.get("has_audio") else 0,
+            erro or ("" if atendeu else "no_answer"),
+            candidato_id,
+            chamada["id"],
+        ),
+    )
+    if candidato_id and atendeu:
+        _marcar_tag(conn, candidato_id, TAG_LIGOU)
+        srv.registrar_evento(conn, candidato_id, "voz",
+                             "Ligou para a empresa (interesse: %s)" % (interesse or "-"))
+        if resumo:
+            srv.registrar_evento(conn, candidato_id, "anotacao", resumo[:1500], "Francisca")
+    conn.commit()
+    if candidato_id and atendeu and email and (criado or not conn.execute(
+            "SELECT 1 FROM candidaturas WHERE candidato_id=?", (candidato_id,)).fetchone()):
+        enviar_link_inscricao(conn, candidato_id, empresa_id, interesse,
+                              fatos.get("preferred_language") or chamada["idioma"])
+
+
+def _token():
+    return secrets.token_urlsafe(24)
+
+
+def link_inscricao(conn, empresa_id, interesse, idioma):
+    base = srv.url_publica(conn)
+    vaga = vaga_do_interesse(conn, empresa_id, interesse)
+    if vaga:
+        return "%s/vaga?id=%d&lang=%s" % (base, vaga["id"], idioma)
+    e = conn.execute("SELECT slug FROM empresas WHERE id=?", (empresa_id,)).fetchone()
+    return "%s/vagas?e=%s&lang=%s" % (base, urllib.parse.quote(e["slug"] if e else ""), idioma)
+
+
+def enviar_link_inscricao(conn, candidato_id, empresa_id, interesse, idioma):
+    """E-mail para quem ligou com o link para se inscrever (vaga do interesse ou a
+    página de vagas da empresa), no idioma da ligação."""
+    cand = conn.execute("SELECT * FROM candidatos WHERE id=?", (candidato_id,)).fetchone()
+    if not cand or not (cand["email"] or "").strip() or not srv.config_get(conn, "smtp_host"):
+        return False
+    idioma = idioma if idioma in IDIOMAS_LIGACAO else "es"
+    cfg = config_empresa(conn, empresa_id)
+    e = conn.execute("SELECT nome FROM empresas WHERE id=?", (empresa_id,)).fetchone()
+    variaveis = {
+        "nome": (cand["nome"] or "").split(" ")[0] or cand["nome"],
+        "empresa": cfg.get("nome_ligacao") or (e["nome"] if e else ""),
+        "link": link_inscricao(conn, empresa_id, interesse, idioma),
+    }
+    modelo = srv.templates_email(conn, empresa_id)["voz_ligou_" + idioma]
+    ok, msg = srv.enviar_email(
+        conn, cand["email"], srv.renderizar(modelo["assunto"], variaveis), srv.renderizar(modelo["corpo"], variaveis),
+        marca=srv.mensagens.marca(conn, empresa_id), idioma=idioma,
+    )
+    srv.registrar_evento(
+        conn, candidato_id, "email",
+        "Link de inscrição enviado a quem ligou (%s)" % idioma if ok else "Falha ao enviar o link de inscrição: %s" % msg,
+    )
+    conn.commit()
+    return ok
 
 
 def rotina_voz(intervalo=60):
@@ -1369,11 +1863,33 @@ TEMPLATES_VOZ = {
                   "{link}\n\nAo concluir, nossa gerente de contratação vai entrar em contato.\n\n"
                   "Atenciosamente,\nEquipe de Seleção"),
     },
+    # quem ligou para a Francisca sem ter se candidatado recebe o link de inscrição
+    "voz_ligou_es": {
+        "assunto": "Su solicitud en {empresa}",
+        "corpo": ("¡Hola, {nome}!\n\nGracias por llamar a {empresa}. Como conversó con Francisca, "
+                  "este es el enlace para enviar su solicitud:\n\n{link}\n\n"
+                  "Toma pocos minutos y se hace desde el celular.\n\nAtentamente,\nEquipo de Selección"),
+    },
+    "voz_ligou_en": {
+        "assunto": "Your application at {empresa}",
+        "corpo": ("Hi {nome},\n\nThanks for calling {empresa}. As you discussed with Francisca, "
+                  "here is the link to apply:\n\n{link}\n\n"
+                  "It takes a few minutes on your phone.\n\nBest regards,\nHiring Team"),
+    },
+    "voz_ligou_pt": {
+        "assunto": "Sua candidatura na {empresa}",
+        "corpo": ("Olá, {nome}!\n\nObrigado por ligar para a {empresa}. Como combinado com a Francisca, "
+                  "este é o link para se candidatar:\n\n{link}\n\n"
+                  "Leva poucos minutos e pode ser feito pelo celular.\n\nAtenciosamente,\nEquipe de Seleção"),
+    },
 }
 NOMES_TEMPLATES_VOZ = {
     "voz_convite_es": "Triagem por voz: convite para os testes (espanhol)",
     "voz_convite_en": "Triagem por voz: convite para os testes (inglês)",
     "voz_convite_pt": "Triagem por voz: convite para os testes (português)",
+    "voz_ligou_es": "Triagem por voz: link de inscrição para quem ligou (espanhol)",
+    "voz_ligou_en": "Triagem por voz: link de inscrição para quem ligou (inglês)",
+    "voz_ligou_pt": "Triagem por voz: link de inscrição para quem ligou (português)",
 }
 
 
@@ -1536,15 +2052,16 @@ def placar_semanal(conn, gestor, semanas=PLACAR_MAX_SEMANAS, agora=None):
     primeira = segunda - timedelta(weeks=semanas - 1)
     inicio_local = datetime(primeira.year, primeira.month, primeira.day, tzinfo=zona)
     linhas = conn.execute(
-        "SELECT vc.*, c.empresa_id AS empresa_id, c.local AS cand_local"
+        "SELECT vc.*, c.empresa_id AS cand_empresa, c.local AS cand_local"
         " FROM voz_chamadas vc JOIN candidatos c ON c.id=vc.candidato_id"
-        " WHERE c.empresa_id=? AND vc.iniciada_em >= ? ORDER BY vc.iniciada_em",
+        " WHERE c.empresa_id=? AND vc.iniciada_em >= ? AND COALESCE(vc.direcao, 'saida')='saida'"
+        " ORDER BY vc.iniciada_em",
         (empresa_id, _sql(inicio_local)),
     ).fetchall()
     por_semana = [[] for _ in range(semanas)]
     todos = []
     for r in linhas:
-        if not visivel_para(gestor, r):
+        if not visivel_para(gestor, {"empresa_id": r["cand_empresa"], "cand_local": r["cand_local"]}):
             continue
         inicio = _de_sql(r["iniciada_em"])
         if not inicio:
@@ -1578,6 +2095,7 @@ def _chamada_publica(r, completa=False):
         "iniciada_em": r["iniciada_em"], "terminada_em": r["terminada_em"], "duracao": r["duracao"],
         "resultado": json.loads(r["resultado"]) if r["resultado"] else None,
         "tem_audio": bool(r["tem_audio"]), "erro": r["erro"],
+        "direcao": r["direcao"] if "direcao" in r.keys() else "saida",
     }
     if completa:
         d["transcricao"] = json.loads(r["transcricao"] or "[]")
@@ -1601,7 +2119,9 @@ def _candidatura_publica(r):
 
 
 def rotear_publico(h, method, path, conn):
-    """Rotas sem login (webhook do ElevenLabs). Devolve a resposta ou None."""
+    """Rotas sem login (webhooks do ElevenLabs). Devolve a resposta ou None."""
+    if path == "/api/voz/inicio-entrada" and method == "POST":
+        return rota_inicio_entrada(h, conn)
     if path != "/api/voz/webhook" or method != "POST":
         return None
     segredo = srv.config_get(conn, "elevenlabs_webhook_secret")
@@ -1625,6 +2145,23 @@ def rotear_publico(h, method, path, conn):
     return _resp(h, 200, {"ok": True})
 
 
+def rota_inicio_entrada(h, conn):
+    """Webhook 'conversation initiation client data' de uma ligação recebida."""
+    segredo = segredo_entrada(conn)
+    if not segredo:
+        return _resp(h, 503, {"erro": "inbound_not_configured"})
+    enviado = (h.headers.get(CABECALHO_SEGREDO_ENTRADA) or "").strip()
+    if not enviado or not hmac.compare_digest(enviado.encode("utf-8"), segredo.encode("utf-8")):
+        return _resp(h, 401, {"erro": "invalid_secret"})
+    try:
+        dados = json.loads((getattr(h, "_raw", b"") or b"{}").decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return _resp(h, 400, {"erro": "invalid_payload"})
+    if not isinstance(dados, dict):
+        return _resp(h, 400, {"erro": "invalid_payload"})
+    return _resp(h, 200, inicio_entrada(conn, dados))
+
+
 def _resp(h, status, dados):
     """Responde e sinaliza ao server.py que a rota foi tratada."""
     h._json(status, dados)
@@ -1643,15 +2180,25 @@ def rotear_dono(h, method, path, conn):
             "phone_number_id": srv.config_get(conn, "elevenlabs_phone_number_id"),
             "webhook_configurado": bool(srv.config_get(conn, "elevenlabs_webhook_secret")),
             "webhook_url": srv.url_publica(conn, h.headers.get("Host")) + "/api/voz/webhook",
+            # ligações recebidas: segredo enviado no cabeçalho X-Bussola-Secret e empresa padrão
+            "entrada_configurada": bool(segredo_entrada(conn)),
+            "entrada_url": srv.url_publica(conn, h.headers.get("Host")) + "/api/voz/inicio-entrada",
+            "entrada_cabecalho": CABECALHO_SEGREDO_ENTRADA,
+            "empresa_entrada": srv.config_get(conn, "voz_empresa_entrada") or "",
         })
     if method == "POST":
         d = h._body()
         for chave in ("agent_id", "phone_number_id"):
             if chave in d:
                 srv.config_set(conn, "elevenlabs_" + chave, (d.get(chave) or "").strip())
-        for chave in ("api_key", "webhook_secret"):
+        for chave in ("api_key", "webhook_secret", "inbound_secret"):
             if d.get(chave):
                 srv.config_set(conn, "elevenlabs_" + chave, d[chave].strip())
+        if "empresa_entrada" in d:
+            bruto = str(d.get("empresa_entrada") or "").strip()
+            if bruto and not (bruto.isdigit() and _empresa_ativa(conn, int(bruto))):
+                return _resp(h, 400, {"erro": "Empresa não encontrada", "codigo": "not_found"})
+            srv.config_set(conn, "voz_empresa_entrada", bruto)
         conn.commit()
         return _resp(h, 200, {"ok": True})
     return None
@@ -1689,10 +2236,13 @@ def rotear_gestor(h, method, path, conn, gestor):
         ids = {r["id"] for r in linhas}
         chamadas = [
             c for c in conn.execute(
-                "SELECT vc.*, c.nome FROM voz_chamadas vc JOIN candidatos c ON c.id=vc.candidato_id"
-                " WHERE c.empresa_id=? ORDER BY vc.iniciada_em DESC LIMIT 200",
+                "SELECT vc.*, c.nome, c.local AS cand_local FROM voz_chamadas vc"
+                " LEFT JOIN candidatos c ON c.id=vc.candidato_id"
+                " WHERE COALESCE(c.empresa_id, vc.empresa_id)=? ORDER BY vc.iniciada_em DESC LIMIT 200",
                 (empresa_id,),
-            ).fetchall() if c["candidatura_id"] in ids
+            ).fetchall()
+            if c["candidatura_id"] in ids or (c["direcao"] == "entrada" and not c["candidatura_id"] and visivel(
+                {"empresa_id": empresa_id, "cand_local": c["cand_local"] or ""}))
         ]
         cfg = config_empresa(conn, empresa_id)
         zona = _zona(cfg)
@@ -1720,6 +2270,9 @@ def rotear_gestor(h, method, path, conn, gestor):
         for c in chamadas[:40]:
             d = _chamada_publica(c)
             d["nome"] = c["nome"]
+            if d["direcao"] == "entrada" and not c["candidato_id"]:
+                d["telefone"] = c["telefone"]
+                d["resumo"] = c["resumo"]
             recentes.append(d)
         return _resp(h, 200, {
             "configurado": gateway(conn) is not None,
@@ -1736,6 +2289,7 @@ def rotear_gestor(h, method, path, conn, gestor):
             "ativas": sum(1 for c in chamadas if c["status"] in ("iniciando", "em_andamento", "processando")),
             "cargos": cargos,
             "admin": bool(gestor["is_admin"]),
+            "vozes": VOZES,
         })
 
     if method == "POST" and path == "/api/gestor/voz/config":
@@ -1789,6 +2343,7 @@ def rotear_gestor(h, method, path, conn, gestor):
         return _resp(h, 200, {
             "signed_url": url, "dynamic_variables": variaveis, "language": CODIGO_ELEVENLABS[idioma],
             "first_message": primeira_frase(idioma, variaveis["company_name"], variaveis["company_city"]),
+            "voice_id": voz_escolhida(cfg, idioma) or "",
         })
 
     m = re.match(r"^/api/gestor/voz/cargo/(\d+)/roteiro$", path)

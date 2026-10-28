@@ -17,6 +17,7 @@ const NOMES_IDIOMA_DONO = { pt: "Português", en: "English", es: "Español" };
 const I18N_DONO = {
   // ================================================================ PT
   pt: {
+    voz_entrada_segredo: "Segredo das ligações recebidas", voz_entrada_empresa: "Empresa padrão para quem liga e não é candidato (ID)", voz_entrada_url: "Endereço das ligações recebidas:",
     titulo_pagina: "Bússola · Painel do Dono",
     topo_sub: "Painel do dono do software",
     inicio: "Início",
@@ -188,6 +189,7 @@ const I18N_DONO = {
 
   // ================================================================ EN
   en: {
+    voz_entrada_segredo: "Inbound calls secret", voz_entrada_empresa: "Default company for callers who are not candidates (ID)", voz_entrada_url: "Inbound calls address:",
     titulo_pagina: "Bússola · Owner Panel",
     topo_sub: "Software owner panel",
     inicio: "Home",
@@ -350,6 +352,7 @@ const I18N_DONO = {
 
   // ================================================================ ES
   es: {
+    voz_entrada_segredo: "Secreto de las llamadas entrantes", voz_entrada_empresa: "Empresa predeterminada para quien llama y no es candidato (ID)", voz_entrada_url: "Dirección de las llamadas entrantes:",
     titulo_pagina: "Bússola · Panel del Propietario",
     topo_sub: "Panel del propietario del software",
     inicio: "Inicio",
@@ -842,3 +845,132 @@ Object.assign(I18N_DONO.es, {
   tel_twilio_confirma_remover: "¿Quitar las credenciales de Twilio? Los números ya comprados siguen funcionando.",
 });
 // ================================================================ fim números por empresa
+
+// ================================================================ Google Agenda (google_cal.py)
+Object.assign(I18N_DONO.pt, {
+  g_titulo: "Google Agenda e Google Meet",
+  g_desc: "Um único cliente OAuth do Google Cloud para a plataforma. Cada gestor conecta a própria conta Google na agenda de entrevistas: os horários ocupados somem da lista do candidato e cada entrevista vira um evento na agenda dele, com link do Google Meet nas videochamadas.",
+  g_contas: "{n} conta(s) conectada(s)",
+  g_passos_titulo: "Como configurar no Google Cloud",
+  g_passo1: "Em console.cloud.google.com, crie um projeto (ex.: Bússola).",
+  g_passo2: "APIs e serviços > Biblioteca: ative a Google Calendar API.",
+  g_passo3: "Tela de consentimento OAuth: tipo Externo, nome do app, e-mail de suporte e domínio autorizado (o da URL pública).",
+  g_passo4: "Escopos: adicione calendar.events e calendar.freebusy (ou calendar.readonly no lugar de calendar.freebusy), além de openid e email.",
+  g_passo5: "Enquanto o app não for verificado pelo Google, adicione em Usuários de teste o e-mail de cada gestor que vai conectar.",
+  g_passo6: "Credenciais > Criar credenciais > ID do cliente OAuth > Aplicativo da Web. Em URIs de redirecionamento autorizados, cole a URI abaixo. Copie o ID e a chave secreta do cliente para cá.",
+  g_escopos: "Escopos pedidos:",
+  g_redirect: "URI de redirecionamento autorizado", g_redirect_dica: "vem da URL pública (acima)",
+  g_client_id: "ID do cliente", g_client_secret: "Chave secreta do cliente",
+  g_segredo_salvo: "salva, termina em {final}",
+  g_salvar: "Salvar Google Agenda", g_salvo: "Google Agenda salvo.",
+  g_copiar: "Copiar URI", g_copiado: "URI copiada.",
+  g_remover: "Remover credenciais",
+  g_confirma_remover: "Remover as credenciais do Google? As contas conectadas param de sincronizar até você salvar de novo.",
+});
+Object.assign(I18N_DONO.en, {
+  g_titulo: "Google Calendar and Google Meet",
+  g_desc: "One Google Cloud OAuth client for the whole platform. Each manager connects their own Google account in interview scheduling: busy times disappear from the candidate's list and each interview becomes an event on their calendar, with a Google Meet link for video calls.",
+  g_contas: "{n} connected account(s)",
+  g_passos_titulo: "How to set it up in Google Cloud",
+  g_passo1: "At console.cloud.google.com, create a project (e.g. Bússola).",
+  g_passo2: "APIs & Services > Library: enable the Google Calendar API.",
+  g_passo3: "OAuth consent screen: External type, app name, support email and authorized domain (the one in the public URL).",
+  g_passo4: "Scopes: add calendar.events and calendar.freebusy (or calendar.readonly instead of calendar.freebusy), plus openid and email.",
+  g_passo5: "While the app is not verified by Google, add the email of every manager who will connect under Test users.",
+  g_passo6: "Credentials > Create credentials > OAuth client ID > Web application. Under Authorized redirect URIs, paste the URI below. Copy the client ID and client secret here.",
+  g_escopos: "Requested scopes:",
+  g_redirect: "Authorized redirect URI", g_redirect_dica: "comes from the public URL (above)",
+  g_client_id: "Client ID", g_client_secret: "Client secret",
+  g_segredo_salvo: "saved, ends in {final}",
+  g_salvar: "Save Google Calendar", g_salvo: "Google Calendar saved.",
+  g_copiar: "Copy URI", g_copiado: "URI copied.",
+  g_remover: "Remove credentials",
+  g_confirma_remover: "Remove the Google credentials? Connected accounts stop syncing until you save them again.",
+});
+Object.assign(I18N_DONO.es, {
+  g_titulo: "Google Calendar y Google Meet",
+  g_desc: "Un único cliente OAuth de Google Cloud para la plataforma. Cada gestor conecta su propia cuenta de Google en la agenda de entrevistas: los horarios ocupados desaparecen de la lista del candidato y cada entrevista se vuelve un evento en su calendario, con enlace de Google Meet en las videollamadas.",
+  g_contas: "{n} cuenta(s) conectada(s)",
+  g_passos_titulo: "Cómo configurarlo en Google Cloud",
+  g_passo1: "En console.cloud.google.com, crea un proyecto (ej.: Bússola).",
+  g_passo2: "APIs y servicios > Biblioteca: habilita la Google Calendar API.",
+  g_passo3: "Pantalla de consentimiento de OAuth: tipo Externo, nombre de la app, correo de soporte y dominio autorizado (el de la URL pública).",
+  g_passo4: "Alcances: agrega calendar.events y calendar.freebusy (o calendar.readonly en lugar de calendar.freebusy), además de openid y email.",
+  g_passo5: "Mientras Google no verifique la app, agrega en Usuarios de prueba el correo de cada gestor que va a conectar.",
+  g_passo6: "Credenciales > Crear credenciales > ID de cliente de OAuth > Aplicación web. En URI de redireccionamiento autorizados, pega la URI de abajo. Copia aquí el ID y el secreto del cliente.",
+  g_escopos: "Alcances solicitados:",
+  g_redirect: "URI de redireccionamiento autorizado", g_redirect_dica: "viene de la URL pública (arriba)",
+  g_client_id: "ID de cliente", g_client_secret: "Secreto del cliente",
+  g_segredo_salvo: "guardado, termina en {final}",
+  g_salvar: "Guardar Google Calendar", g_salvo: "Google Calendar guardado.",
+  g_copiar: "Copiar URI", g_copiado: "URI copiada.",
+  g_remover: "Quitar credenciales",
+  g_confirma_remover: "¿Quitar las credenciales de Google? Las cuentas conectadas dejan de sincronizar hasta que las guardes de nuevo.",
+});
+// ================================================================ fim Google Agenda
+
+// ================================================================ SMS (sms.py)
+Object.assign(I18N_DONO.pt, {
+  sms_titulo: "Mensagens de texto (SMS)",
+  sms_desc: "SMS para candidatos pela Twilio, do número próprio da empresa ou do número da plataforma. Fica desligado até a campanha A2P 10DLC ser aprovada.",
+  sms_ligado: "SMS ligado", sms_desligado: "SMS desligado",
+  sms_sem_twilio: "Configure a Twilio (Account SID e Auth Token) no cartão de Telefonia acima.",
+  sms_habilitar: "Ligar o envio de SMS na plataforma",
+  sms_habilitar_dica: "Só liga com a campanha A2P marcada como aprovada. Cada empresa também precisa estar ligada na tabela abaixo (ou nas Configurações dela).",
+  sms_a2p_titulo: "Registro A2P 10DLC", sms_a2p_status: "Status da campanha",
+  sms_a2p_st_nao_iniciado: "Não iniciado", sms_a2p_st_em_analise: "Em análise", sms_a2p_st_aprovado: "Aprovada", sms_a2p_st_rejeitado: "Rejeitada",
+  sms_a2p_brand: "Brand ID", sms_a2p_campanha: "Campaign ID", sms_a2p_servico: "Messaging Service SID (opcional)",
+  sms_a2p_notas: "Notas (pendências, datas, contato na Twilio)", sms_a2p_atualizado: "Atualizado em {data}",
+  sms_numero: "Número da plataforma para SMS", sms_numero_dica: "usado pelas empresas sem número próprio",
+  sms_responder: "Responder STOP, START e HELP (desligue se o Advanced Opt-Out da Twilio já responde)",
+  sms_webhook_entrada: "Webhook de mensagens recebidas (A message comes in, POST):", sms_webhook_status: "Status de entrega (enviado em cada SMS):",
+  sms_salvar: "Salvar SMS", sms_salvo: "SMS salvo.",
+  sms_webhooks: "Apontar os números para o webhook", sms_webhooks_ok: "{n} número(s) configurado(s).", sms_webhooks_falha: "Falharam: {lista}.",
+  sms_empresas: "Empresas ({mes})", sms_col_numero: "Número de envio", sms_col_ativo: "SMS", sms_col_uso: "Segmentos no mês",
+  sms_col_msgs: "Enviadas / recebidas", sms_col_msgs_dica: "Segmentos contam só as mensagens aceitas pela Twilio. O limite vem do campo SMS por mês do plano.",
+  sms_plataforma: "(plataforma)", sms_sem_numero: "sem número", sms_empresa_ativo: "Ligado",
+  sms_uso_ilimitado: "{n} (sem limite)", sms_uso_limite: "{n} de {limite}",
+});
+Object.assign(I18N_DONO.en, {
+  sms_titulo: "Text messages (SMS)",
+  sms_desc: "Texts to candidates through Twilio, from the company's own number or the platform number. It stays off until the A2P 10DLC campaign is approved.",
+  sms_ligado: "Texting on", sms_desligado: "Texting off",
+  sms_sem_twilio: "Set up Twilio (Account SID and Auth Token) in the Phone service card above.",
+  sms_habilitar: "Turn on text messaging for the platform",
+  sms_habilitar_dica: "It only turns on when the A2P campaign is marked as approved. Each company also needs to be turned on in the table below (or in its Settings).",
+  sms_a2p_titulo: "A2P 10DLC registration", sms_a2p_status: "Campaign status",
+  sms_a2p_st_nao_iniciado: "Not started", sms_a2p_st_em_analise: "In review", sms_a2p_st_aprovado: "Approved", sms_a2p_st_rejeitado: "Rejected",
+  sms_a2p_brand: "Brand ID", sms_a2p_campanha: "Campaign ID", sms_a2p_servico: "Messaging Service SID (optional)",
+  sms_a2p_notas: "Notes (open items, dates, Twilio contact)", sms_a2p_atualizado: "Updated on {data}",
+  sms_numero: "Platform number for texts", sms_numero_dica: "used by companies without their own number",
+  sms_responder: "Reply to STOP, START, and HELP (turn off if Twilio Advanced Opt-Out already replies)",
+  sms_webhook_entrada: "Incoming message webhook (A message comes in, POST):", sms_webhook_status: "Delivery status (sent with each text):",
+  sms_salvar: "Save texting", sms_salvo: "Texting saved.",
+  sms_webhooks: "Point numbers to the webhook", sms_webhooks_ok: "{n} number(s) set up.", sms_webhooks_falha: "Failed: {lista}.",
+  sms_empresas: "Companies ({mes})", sms_col_numero: "Sending number", sms_col_ativo: "Texts", sms_col_uso: "Segments this month",
+  sms_col_msgs: "Sent / received", sms_col_msgs_dica: "Segments only count messages accepted by Twilio. The limit comes from the plan's SMS per month field.",
+  sms_plataforma: "(platform)", sms_sem_numero: "no number", sms_empresa_ativo: "On",
+  sms_uso_ilimitado: "{n} (no limit)", sms_uso_limite: "{n} of {limite}",
+});
+Object.assign(I18N_DONO.es, {
+  sms_titulo: "Mensajes de texto (SMS)",
+  sms_desc: "SMS a los candidatos por Twilio, desde el número propio de la empresa o el número de la plataforma. Queda desactivado hasta que se apruebe la campaña A2P 10DLC.",
+  sms_ligado: "SMS activado", sms_desligado: "SMS desactivado",
+  sms_sem_twilio: "Configura Twilio (Account SID y Auth Token) en la tarjeta de Telefonía de arriba.",
+  sms_habilitar: "Activar el envío de SMS en la plataforma",
+  sms_habilitar_dica: "Solo se activa con la campaña A2P marcada como aprobada. Cada empresa también tiene que estar activada en la tabla de abajo (o en su Configuración).",
+  sms_a2p_titulo: "Registro A2P 10DLC", sms_a2p_status: "Estado de la campaña",
+  sms_a2p_st_nao_iniciado: "Sin iniciar", sms_a2p_st_em_analise: "En revisión", sms_a2p_st_aprovado: "Aprobada", sms_a2p_st_rejeitado: "Rechazada",
+  sms_a2p_brand: "Brand ID", sms_a2p_campanha: "Campaign ID", sms_a2p_servico: "Messaging Service SID (opcional)",
+  sms_a2p_notas: "Notas (pendientes, fechas, contacto en Twilio)", sms_a2p_atualizado: "Actualizado el {data}",
+  sms_numero: "Número de la plataforma para SMS", sms_numero_dica: "lo usan las empresas sin número propio",
+  sms_responder: "Responder STOP, START y HELP (desactívalo si el Advanced Opt-Out de Twilio ya responde)",
+  sms_webhook_entrada: "Webhook de mensajes recibidos (A message comes in, POST):", sms_webhook_status: "Estado de entrega (se envía con cada SMS):",
+  sms_salvar: "Guardar SMS", sms_salvo: "SMS guardado.",
+  sms_webhooks: "Apuntar los números al webhook", sms_webhooks_ok: "{n} número(s) configurado(s).", sms_webhooks_falha: "Fallaron: {lista}.",
+  sms_empresas: "Empresas ({mes})", sms_col_numero: "Número de envío", sms_col_ativo: "SMS", sms_col_uso: "Segmentos del mes",
+  sms_col_msgs: "Enviados / recibidos", sms_col_msgs_dica: "Los segmentos solo cuentan los mensajes aceptados por Twilio. El límite viene del campo SMS por mes del plan.",
+  sms_plataforma: "(plataforma)", sms_sem_numero: "sin número", sms_empresa_ativo: "Activado",
+  sms_uso_ilimitado: "{n} (sin límite)", sms_uso_limite: "{n} de {limite}",
+});
+// ================================================================ fim SMS

@@ -241,8 +241,44 @@ def _esc(texto):
     return html.escape(str(texto or ""), quote=True)
 
 
+def _dominios():
+    return getattr(srv, "dominios", None)
+
+
+def empresa_do_host(conn, handler):
+    """Empresa do domínio próprio do Host do pedido (dominios.py) ou None."""
+    dom = _dominios()
+    if not dom or handler is None:
+        return None
+    try:
+        return dom.empresa_do_pedido(handler, conn)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _base(conn, handler):
+    emp = empresa_do_host(conn, handler)
+    if emp:  # pedido chegou pelo domínio próprio da empresa
+        return "https://" + emp["dominio"]
     return srv.url_publica(conn, handler.headers.get("Host") if handler else None).rstrip("/")
+
+
+def base_canonica(conn, handler, empresa_id):
+    """Base das URLs canônicas da empresa: o domínio próprio verificado, quando existe."""
+    dom = _dominios()
+    if dom:
+        try:
+            propria = dom.base_da_empresa(conn, empresa_id)
+        except Exception:  # noqa: BLE001
+            propria = None
+        if propria:
+            return propria
+    return _base(conn, handler)
+
+
+def pagina_vagas_url(base, slug, dominio_proprio=False):
+    """Página de vagas da empresa: "/" no domínio próprio, /vagas?e=<slug> no principal."""
+    return base + "/" if dominio_proprio else "%s/vagas?e=%s" % (base, quote(slug))
 
 
 def _idioma(handler, qs):
@@ -328,8 +364,10 @@ def json_ld(conn, r, base):
     v = campos(r)
     descricao = texto_para_html(v["descricao_rica"] or r["descricao"] or "") or \
         "<p>%s</p>" % _esc("%s, %s" % (r["titulo"], r["empresa_nome"]))
+    dom = _dominios()
+    proprio = bool(dom) and base == (dom.base_da_empresa(conn, r["emp_id"]) or "")
     org = {"@type": "Organization", "name": r["empresa_nome"],
-           "sameAs": "%s/vagas?e=%s" % (base, quote(r["empresa_slug"]))}
+           "sameAs": pagina_vagas_url(base, r["empresa_slug"], proprio)}
     logo = logo_relativa(conn, r["emp_id"])
     if logo:
         org["logo"] = base + logo
@@ -444,10 +482,11 @@ def pagina_vaga(handler, conn, qs):
     except ValueError:
         return _pagina_404(handler, lang)
     r = vaga_publica(conn, vaga_id)
-    if not r:
-        return _pagina_404(handler, lang)
+    emp_host = empresa_do_host(conn, handler)
+    if not r or (emp_host and emp_host["empresa_id"] != r["emp_id"]):
+        return _pagina_404(handler, lang)  # no domínio próprio só as vagas da própria empresa
     v = campos(r)
-    base = _base(conn, handler)
+    base = base_canonica(conn, handler, r["emp_id"])
     ref = re.sub(r"[^a-zA-Z0-9]", "", qs.get("ref", [""])[0] or "")
     slug_q = quote(r["empresa_slug"])
 
@@ -521,20 +560,37 @@ def pagina_vaga(handler, conn, qs):
                "text/html; charset=utf-8")
 
 
-def sitemap(conn, base):
-    """XML do sitemap: início, página de vagas de cada empresa e cada vaga aberta."""
+def sitemap(conn, base, empresa_id=None):
+    """XML do sitemap: início, página de vagas de cada empresa e cada vaga aberta.
+    Com empresa_id (pedido pelo domínio próprio): só a empresa, com "/" como página de vagas.
+    Sem empresa_id (endereço principal): empresas com domínio próprio verificado ficam de
+    fora, pois as URLs canônicas delas estão no sitemap do próprio domínio."""
     hoje = datetime.now(timezone.utc).date().isoformat()  # mesmo fuso das datas do SQLite
     urls = [(base + "/", hoje)]
     por_empresa = {}
     vagas = []
+    com_dominio = {}
+    if empresa_id is None and _dominios():
+        try:
+            com_dominio = _dominios().empresas_com_dominio(conn)
+        except Exception:  # noqa: BLE001
+            com_dominio = {}
     for r in conn.execute(SQL_VAGA + " ORDER BY e.slug, v.id").fetchall():
         if _expirada(campos(r)):
+            continue
+        if empresa_id is not None and r["emp_id"] != empresa_id:
+            continue
+        if r["emp_id"] in com_dominio:
             continue
         mod = ((r["atualizado_em"] or "") or (r["criado_em"] or ""))[:10] or hoje
         por_empresa[r["empresa_slug"]] = max(por_empresa.get(r["empresa_slug"], ""), mod)
         vagas.append(("%s/vaga?id=%d" % (base, r["id"]), mod))
-    for slug, mod in por_empresa.items():
-        urls.append(("%s/vagas?e=%s" % (base, quote(slug)), mod))
+    if empresa_id is not None:
+        if por_empresa:
+            urls[0] = (base + "/", max(por_empresa.values()))
+    else:
+        for slug, mod in por_empresa.items():
+            urls.append(("%s/vagas?e=%s" % (base, quote(slug)), mod))
     urls.extend(vagas)
     linhas = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
@@ -574,7 +630,9 @@ def rotear_pagina(handler, path):
         if path == "/robots.txt":
             _responder(handler, 200, robots(_base(conn, handler)), "text/plain; charset=utf-8")
         elif path == "/sitemap.xml":
-            _responder(handler, 200, sitemap(conn, _base(conn, handler)), "application/xml; charset=utf-8")
+            emp = empresa_do_host(conn, handler)
+            _responder(handler, 200, sitemap(conn, _base(conn, handler), emp["empresa_id"] if emp else None),
+                       "application/xml; charset=utf-8")
         else:
             m = re.match(r"^/vagas/(\d+)$", path)
             if m:  # endereço alternativo /vagas/<id> redireciona para o canônico

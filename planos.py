@@ -491,8 +491,9 @@ def minutos_usados(conn, empresa_id, mes):
     ini, fim = limites_do_mes(mes)
     r = conn.execute(
         "SELECT COALESCE(SUM((vc.duracao + 59) / 60), 0) FROM voz_chamadas vc"
-        " JOIN candidatos c ON c.id=vc.candidato_id"
-        " WHERE c.empresa_id=? AND vc.duracao > 0 AND vc.iniciada_em >= ? AND vc.iniciada_em < ?",
+        " LEFT JOIN candidatos c ON c.id=vc.candidato_id"
+        " WHERE COALESCE(c.empresa_id, vc.empresa_id)=? AND vc.duracao > 0"
+        " AND vc.iniciada_em >= ? AND vc.iniciada_em < ?",
         (empresa_id, ini, fim),
     ).fetchone()
     return int(r[0] or 0)
@@ -547,7 +548,8 @@ def uso(conn, empresa, mes=None, cat=None, agora=None):
         "minutos_extra": int(_row_get(e, "minutos_extra", 0) or 0),
         "restantes": None if limite is None else max(limite - minutos, 0),
         "excedente": 0 if limite is None else max(minutos - limite, 0),
-        "pct": pct, "status": st, "sms": 0,
+        "pct": pct, "status": st,
+        "sms": (srv.sms.uso_mes(conn, e["id"], mes)["segmentos"] if getattr(srv, "sms", None) else 0),
         "sms_limite": (plano(cat, _row_get(e, "plano", "")) or {}).get("sms_mes", 0),
         "excedente_permitido": bool(_row_get(e, "excedente_permitido", 0)) and _row_get(e, "status") == "ativa",
     }
@@ -586,7 +588,8 @@ def limite_gestores(conn, empresa_id):
     """Gestores aprovados da empresa contra gestores_max do plano (mais gestores_extra).
     Contas pendentes de aprovação não contam."""
     return _limite_recurso(conn, empresa_id, "gestores_max", "gestores_extra",
-                           "SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND aprovado=1")
+                           "SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND aprovado=1"
+                           " AND COALESCE(suporte,0)=0")  # o gestor de suporte do dono não conta (conta.py)
 
 
 def limite_vagas(conn, empresa_id):

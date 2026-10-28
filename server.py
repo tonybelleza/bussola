@@ -24,11 +24,23 @@ try:
     import campanhas  # avisar o banco de talentos sobre vagas abertas (campanhas.py)
 except ImportError:  # pragma: no cover
     campanhas = None
+try:  # consentimento TCPA, suporte do dono, exportação e encerramento da conta (conta.py)
+    import conta
+except ImportError:  # pragma: no cover
+    conta = None
 import empresas
 import entrada
 import erros_i18n
 import eventos_i18n  # linha do tempo no idioma do gestor (eventos_i18n.py)
 import indicacoes
+try:  # exportação para a folha e verificação de antecedentes pela Checkr (integracoes_rh.py)
+    import integracoes_rh
+except ImportError:  # pragma: no cover
+    integracoes_rh = None
+try:  # Google Agenda nos dois sentidos, com Google Meet (google_cal.py)
+    import google_cal
+except ImportError:  # pragma: no cover
+    google_cal = None
 import mensagens
 import onboarding  # onboarding de novos contratados (onboarding.py)
 import planos  # planos, uso e cobrança (planos.py)
@@ -38,9 +50,21 @@ except ImportError:  # pragma: no cover
     relatorios = None
 import seguranca
 import telefonia  # números por empresa (Twilio + ElevenLabs) e alertas de uso (telefonia.py)
+try:  # SMS pela Twilio, desligado até a aprovação da campanha A2P 10DLC (sms.py)
+    import sms
+except ImportError:  # pragma: no cover
+    sms = None
 import talentos  # banco de talentos: resumo da ligação, filtros, comparação e lembretes (talentos.py)
 import vagas_publicas  # vagas no Google for Jobs, sitemap, robots e marca pública (vagas_publicas.py)
 import voz
+try:  # domínios próprios por empresa para as páginas de vagas (dominios.py)
+    import dominios
+except ImportError:  # pragma: no cover
+    dominios = None
+try:  # backups externos cifrados, saúde (/api/saude) e alertas ao dono (operacao.py)
+    import operacao
+except ImportError:  # pragma: no cover
+    operacao = None
 try:  # assistente de configuração e página Meu plano (assistente.py)
     import assistente
 except ImportError:  # cópias parciais do código (alguns testes) seguem sem o assistente
@@ -373,18 +397,32 @@ def init_db():
     agenda.init_agenda(c)  # agenda de entrevistas: tabela entrevistas_agenda e candidatos.agenda_token
     talentos.init_talentos(c)  # banco de talentos: tabela lembretes_talentos
     onboarding.init_onboarding(c)  # onboarding: onboardings, onboarding_docs, onboarding_templates
+    if integracoes_rh:
+        integracoes_rh.init_integracoes_rh(c)  # Checkr: checkr_verificacoes e checkr_eventos
     planos.init_planos(c)  # planos, uso e cobrança (planos.py)
     if campanhas:
         campanhas.init_campanhas(c)  # banco de talentos: campanhas, envios e descadastros
+    if operacao:
+        operacao.init_operacao(c)  # erros_servidor e alertas_operacao (operacao.py)
     telefonia.init_telefonia(c)  # números por empresa e alertas de uso (telefonia.py)
+    if sms:
+        sms.init_sms(c)  # mensagens de texto, descadastros e bloqueios (sms.py)
     vagas_publicas.init_vagas_publicas(c)  # campos da vaga para o Google for Jobs
+    if dominios:
+        dominios.init_dominios(c)  # domínios próprios das páginas de vagas (dominios.py)
     if assistente:
         assistente.init_assistente(c)  # pedidos de troca de plano e cancelamento (assistente.py)
+    if conta:
+        conta.init_conta(c)  # consentimento TCPA, suporte do dono, exportações e exclusões (conta.py)
     # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
     for tabela, coluna, ddl in (
         ("empresas", "logo", "TEXT DEFAULT ''"),
         ("gestores", "idioma", "TEXT DEFAULT 'pt'"),
         ("candidaturas", "aviso_pendente", "INTEGER DEFAULT 0"),
+        # sessão de suporte do dono (conta.py): validade e gestor oculto, sempre presentes
+        ("gestores", "suporte", "INTEGER DEFAULT 0"),
+        ("sessoes_gestor", "expira_em", "TEXT DEFAULT ''"),
+        ("sessoes_gestor", "suporte", "INTEGER DEFAULT 0"),
     ):
         if coluna not in {r[1] for r in c.execute("PRAGMA table_info(%s)" % tabela).fetchall()}:
             c.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, coluna, ddl))
@@ -1935,10 +1973,13 @@ class Handler(BaseHTTPRequestHandler):
             return None
         return conn.execute(
             "SELECT g.*, e.modulos AS empresa_modulos, e.slug AS empresa_slug,"
-            " e.nome AS empresa_nome FROM sessoes_gestor s"
+            " e.nome AS empresa_nome, s.suporte AS sessao_suporte, s.expira_em AS sessao_expira"
+            " FROM sessoes_gestor s"
             " JOIN gestores g ON g.id = s.gestor_id"
             " JOIN empresas e ON e.id = g.empresa_id"
-            " WHERE s.token=? AND g.aprovado=1 AND e.status IN ('ativa','teste')",
+            " WHERE s.token=? AND g.aprovado=1 AND e.status IN ('ativa','teste')"
+            # sessões com validade (suporte do dono, conta.py) expiram sozinhas
+            " AND (s.expira_em IS NULL OR s.expira_em='' OR s.expira_em > datetime('now'))",
             (token,),
         ).fetchone()
 
@@ -1954,6 +1995,9 @@ class Handler(BaseHTTPRequestHandler):
         if seguranca.filtrar(self, self.path):  # robôs de varredura e IPs bloqueados
             return None
         path = urlparse(self.path).path
+        # domínio próprio da empresa: "/" vira a página de vagas e /gestor, /dono vão ao endereço principal
+        if dominios and dominios.rotear_host(self, path):
+            return None
         if path.startswith("/api/"):
             return self.api("GET", path)
         if path == "/descadastrar" and campanhas:  # descadastro dos e-mails de vagas (campanhas.py)
@@ -2052,19 +2096,35 @@ class Handler(BaseHTTPRequestHandler):
             return self.route(method, path, conn)
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write("ERRO: %r\n" % exc)
+            if operacao:  # registra em erros_servidor e avisa o dono (operacao.py)
+                operacao.erro(self, method, path, exc)
             return self._json(500, {"erro": "Erro interno"})
         finally:
             conn.close()
 
     def route(self, method, path, conn):
         # ---- público ----
+        if operacao and operacao.rotear_publico(self, method, path, conn):  # GET /api/saude
+            return None
+        # código de suporte do dono e "parar ligações e mensagens" do candidato (conta.py)
+        if conta and conta.rotear_publico(self, method, path, conn):
+            return None
+        # webhooks assinados da Twilio: POST /api/sms/entrada e /api/sms/status (sms.py)
+        if sms and sms.rotear_publico(self, method, path, conn):
+            return None
         if voz.rotear_publico(self, method, path, conn):
             return None
         # agenda de entrevistas: link do candidato (/api/agenda/<token>)
         if agenda.rotear_publico(self, method, path, conn):
             return None
+        # volta do consentimento do Google Agenda: GET /api/google/callback (google_cal.py)
+        if google_cal and google_cal.rotear_publico(self, method, path, conn):
+            return None
         # onboarding do novo contratado: link próprio (/api/onboarding/<token>)
         if onboarding.rotear_publico(self, method, path, conn):
+            return None
+        # webhook da Checkr: POST /api/integracoes/checkr/webhook (integracoes_rh.py)
+        if integracoes_rh and integracoes_rh.rotear_publico(self, method, path, conn):
             return None
         if indicacoes.rotear_publico(self, method, path, conn):
             return None
@@ -2073,6 +2133,9 @@ class Handler(BaseHTTPRequestHandler):
             return None
         # marca pública da empresa: /api/empresa/<slug>/marca (vagas_publicas.py)
         if vagas_publicas.rotear_publico(self, method, path, conn):
+            return None
+        # empresa do domínio próprio (/api/dominio) e "ask" do Caddy (/api/dominios/permitido)
+        if dominios and dominios.rotear_publico(self, method, path, conn):
             return None
         # descadastro dos e-mails de vagas: botão da página e one-click RFC 8058 (campanhas.py)
         if campanhas and campanhas.rotear_publico(self, method, path, conn):
@@ -2240,6 +2303,9 @@ class Handler(BaseHTTPRequestHandler):
                 voz.nova_candidatura(conn, novo_id, vaga["id"])
             # link de indicação (?ref=) guardado no navegador do candidato
             indicacoes.registrar_cadastro(conn, novo_id, novo["empresa_id"], d.get("indicacao"))
+            # consentimento para ligações e mensagens automáticas (TCPA): caixa separada (conta.py)
+            if conta:
+                conta.registrar_consentimento_cadastro(conn, novo_id, d, self._ip_cliente(), novo["empresa_id"])
             # e-mails automáticos (só quando o SMTP estiver configurado)
             if config_get(conn, "smtp_host"):
                 variaveis = variaveis_candidato(conn, novo, self.headers.get("Host"))
@@ -2249,6 +2315,8 @@ class Handler(BaseHTTPRequestHandler):
                                      "E-mail de confirmação enviado ao candidato")
                 mensagens.avisar_novo_candidato(conn, novo, vaga["titulo"] if vaga else "")
             conn.commit()
+            if sms:  # SMS de candidatura recebida (só sai com A2P aprovado e consentimento)
+                sms.enviar_modelo(conn, novo_id, "candidatura_recebida", {"vaga": vaga["titulo"] if vaga else ""})
             return self._json(200, {"token": token})
 
         if method == "GET" and path == "/api/vagas":
@@ -2385,6 +2453,8 @@ class Handler(BaseHTTPRequestHandler):
         if method == "GET" and path == "/api/candidato/me":
             resumo = resumo_candidato(conn, cand)
             resumo["match"] = None  # a compatibilidade com o cargo fica só para a equipe
+            if conta:  # consentimento de contato e botão "Parar ligações e mensagens" (conta.py)
+                resumo["contato"] = conta.estado_candidato(cand)
             return self._json(200, resumo)
 
         if method == "GET" and path == "/api/candidato/relatorio.pdf":
@@ -2585,6 +2655,10 @@ class Handler(BaseHTTPRequestHandler):
             or seguranca.rotear_dono(self, method, path, conn)
             or planos.rotear_dono(self, method, path, conn)  # planos e preços (planos.py)
             or telefonia.rotear_dono(self, method, path, conn)  # números por empresa (telefonia.py)
+            or (operacao is not None and operacao.rotear_dono(self, method, path, conn))  # Sistema (operacao.py)
+            or (conta is not None and conta.rotear_dono(self, method, path, conn))  # suporte e exclusões (conta.py)
+            or (sms is not None and sms.rotear_dono(self, method, path, conn))  # SMS e status A2P (sms.py)
+            or (google_cal is not None and google_cal.rotear_dono(self, method, path, conn))  # Google Agenda (google_cal.py)
         ):
             return None
 
@@ -2592,7 +2666,8 @@ class Handler(BaseHTTPRequestHandler):
             gestores_lista = []
             for g in conn.execute(
                 "SELECT g.*, e.nome AS empresa_nome FROM gestores g"
-                " LEFT JOIN empresas e ON e.id=g.empresa_id ORDER BY e.nome, g.nome"
+                " LEFT JOIN empresas e ON e.id=g.empresa_id WHERE COALESCE(g.suporte,0)=0"  # sem o gestor de suporte
+                " ORDER BY e.nome, g.nome"
             ).fetchall():
                 cand_count = 0
                 for r in conn.execute(
@@ -2628,7 +2703,7 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             return self._json(200, {
                 "totais": {
-                    "gestores": conn.execute("SELECT COUNT(*) c FROM gestores").fetchone()["c"],
+                    "gestores": conn.execute("SELECT COUNT(*) c FROM gestores WHERE COALESCE(suporte,0)=0").fetchone()["c"],
                     "candidatos": conn.execute("SELECT COUNT(*) c FROM candidatos").fetchone()["c"],
                     "internos": conn.execute(
                         "SELECT COUNT(*) c FROM candidatos WHERE tipo='interno'"
@@ -2853,6 +2928,8 @@ class Handler(BaseHTTPRequestHandler):
                 ((d.get("login") or "").strip(),),
             ).fetchone()
             senha_ok = gestor_row and senha_confere(d.get("senha") or "", gestor_row["senha"])
+            if senha_ok and gestor_row["suporte"]:  # o gestor de suporte do dono nunca entra com senha (conta.py)
+                senha_ok = False
             if not senha_ok:
                 self._registrar_falha_login("gestor")
                 seguranca.registrar(conn, "login_falhou", None, (d.get("login") or "").strip(), self._ip_cliente(),
@@ -3041,6 +3118,9 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             return self._json(200, {"ok": True})
 
+        # -- dados e conta, consentimento e sessão de suporte (conta.py) --
+        if conta and conta.rotear_gestor(self, method, path, conn, gestor):
+            return None
         # -- entrada de candidatos (e-mail do Indeed e CSV) e quadro do dia --
         if seguranca.rotear_gestor(self, method, path, conn, gestor):
             return None
@@ -3049,6 +3129,10 @@ class Handler(BaseHTTPRequestHandler):
         if campanhas and campanhas.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (campanhas.py)
             return None
         if planos.rotear_gestor(self, method, path, conn, gestor):  # plano e uso (planos.py)
+            return None
+        if sms and sms.rotear_gestor(self, method, path, conn, gestor):  # SMS: conversa, modelos e uso (sms.py)
+            return None
+        if dominios and dominios.rotear_gestor(self, method, path, conn, gestor):  # domínio próprio (dominios.py)
             return None
         if assistente and assistente.rotear_gestor(self, method, path, conn, gestor):  # assistente e Meu plano
             return None
@@ -3061,6 +3145,8 @@ class Handler(BaseHTTPRequestHandler):
         if talentos.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (talentos.py)
             return None
         if onboarding.rotear_gestor(self, method, path, conn, gestor):  # onboarding (onboarding.py)
+            return None
+        if integracoes_rh and integracoes_rh.rotear_gestor(self, method, path, conn, gestor):  # folha e Checkr
             return None
         if relatorios and relatorios.rotear_gestor(self, method, path, conn, gestor):  # relatório de contratação
             return None
@@ -3204,7 +3290,7 @@ class Handler(BaseHTTPRequestHandler):
                      "aprovado": bool(g["aprovado"]),
                      "modulos": modulos_do_gestor(g)}
                     for g in conn.execute(
-                        "SELECT * FROM gestores WHERE empresa_id=? ORDER BY aprovado, nome",
+                        "SELECT * FROM gestores WHERE empresa_id=? AND COALESCE(suporte,0)=0 ORDER BY aprovado, nome",
                         (gestor["empresa_id"],),
                     ).fetchall()
                 ]
@@ -3213,7 +3299,7 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r"^/api/gestor/gestores/(\d+)/aprovar$", path)
             if m and method == "POST":
                 alvo = conn.execute(
-                    "SELECT * FROM gestores WHERE id=? AND empresa_id=?",
+                    "SELECT * FROM gestores WHERE id=? AND empresa_id=? AND COALESCE(suporte,0)=0",
                     (int(m.group(1)), gestor["empresa_id"]),
                 ).fetchone()
                 if not alvo:
@@ -3246,7 +3332,7 @@ class Handler(BaseHTTPRequestHandler):
                 senha = d.get("senha") or ""
                 if d.get("id"):
                     if not conn.execute(
-                        "SELECT 1 FROM gestores WHERE id=? AND empresa_id=?",
+                        "SELECT 1 FROM gestores WHERE id=? AND empresa_id=? AND COALESCE(suporte,0)=0",
                         (d["id"], gestor["empresa_id"]),
                     ).fetchone():
                         return self._json(404, {"erro": "Conta não encontrada"})
@@ -3292,7 +3378,8 @@ class Handler(BaseHTTPRequestHandler):
                 if alvo == gestor["id"]:
                     return self._json(400, {"erro": "Você não pode excluir a sua própria conta"})
                 conn.execute(
-                    "DELETE FROM gestores WHERE id=? AND empresa_id=?", (alvo, gestor["empresa_id"])
+                    "DELETE FROM gestores WHERE id=? AND empresa_id=? AND COALESCE(suporte,0)=0",
+                    (alvo, gestor["empresa_id"])
                 )
                 conn.commit()
                 return self._json(200, {"ok": True})
@@ -3935,6 +4022,8 @@ class Handler(BaseHTTPRequestHandler):
                 resumo["analise_ia"] = (
                     json.loads(cand_row["analise_ia"]) if cand_row["analise_ia"] else None
                 )
+                if conta:  # selo de consentimento para ligações e mensagens (conta.py)
+                    resumo["consentimento_contato"] = conta.resumo_consentimento(cand_row)
                 # recrutamento interno: match contra todos os cargos
                 resumo["matches_cargos"] = sorted(
                     [
@@ -4134,17 +4223,29 @@ indicacoes.ligar(sys.modules[__name__])
 entrada.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
 agenda.ligar(sys.modules[__name__])
+if google_cal:
+    google_cal.ligar(sys.modules[__name__])
 talentos.ligar(sys.modules[__name__])
 onboarding.ligar(sys.modules[__name__])
+if integracoes_rh:
+    integracoes_rh.ligar(sys.modules[__name__])
 planos.ligar(sys.modules[__name__])
 if campanhas:
     campanhas.ligar(sys.modules[__name__])
 telefonia.ligar(sys.modules[__name__])
+if sms:
+    sms.ligar(sys.modules[__name__])
+if operacao:
+    operacao.ligar(sys.modules[__name__])
 vagas_publicas.ligar(sys.modules[__name__])
+if dominios:
+    dominios.ligar(sys.modules[__name__])
 if assistente:
     assistente.ligar(sys.modules[__name__])
 if relatorios:
     relatorios.ligar(sys.modules[__name__])
+if conta:
+    conta.ligar(sys.modules[__name__])
 
 
 def main():
@@ -4157,6 +4258,12 @@ def main():
     threading.Thread(target=agenda.rotina_agenda, daemon=True).start()  # lembretes de entrevista
     threading.Thread(target=onboarding.rotina_onboarding, daemon=True).start()  # lembretes do onboarding
     threading.Thread(target=planos.rotina_planos, daemon=True).start()  # fim do teste grátis (planos.py)
+    if sms:  # SMS agendados para depois do horário de silêncio (sms.py)
+        threading.Thread(target=sms.rotina_sms, daemon=True).start()
+    if conta:  # exportações vencidas, sessões de suporte e exclusão de contas encerradas (conta.py)
+        threading.Thread(target=conta.rotina_conta, daemon=True).start()
+    if operacao:
+        operacao.iniciar()  # alertas a cada 15 min e backup externo diário (operacao.py)
     if os.environ.get("VOZ_FILA_DESLIGADA") != "1":
         threading.Thread(target=voz.rotina_voz, daemon=True).start()
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)

@@ -155,8 +155,13 @@
     desenharCabecalho();
     document.getElementById("filtro-pais").addEventListener("change", desenharVagas);
 
-    fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina)
-                               : "?e=" + encodeURIComponent(empresaPagina)))
+    // domínio próprio da empresa (ex.: jobs.empresa.com): sem ?e=, a empresa vem do endereço (/api/dominio)
+    const dominioPronto = (empresaPagina || gestorPagina) ? Promise.resolve() :
+      fetch("/api/dominio").then((r) => (r.ok ? r.json() : {})).then((d) => {
+        if (d && d.slug) empresaPagina = d.slug;
+      }).catch(() => {});
+    dominioPronto.then(() => fetch("/api/vagas" + (gestorPagina ? "?g=" + encodeURIComponent(gestorPagina)
+                               : "?e=" + encodeURIComponent(empresaPagina))))
       .then((r) => r.json()).then((d) => {
       const el = document.getElementById("lista-vagas");
       if (d.erro) {

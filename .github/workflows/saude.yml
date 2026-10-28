@@ -1,0 +1,39 @@
+# Verificação externa de disponibilidade da Bússola (sem contas novas).
+# Roda a cada 15 minutos e sob demanda. Se /api/saude não responder com
+# "ok": true depois de 5 tentativas, o job falha e o GitHub avisa o dono do
+# repositório por e-mail (Settings > Notifications > Actions). Ver DEPLOY.md.
+name: Saude
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saude
+  cancel-in-progress: true
+
+jobs:
+  saude:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: https://rh.tonybelleza.com/api/saude
+    steps:
+      - name: Conferir /api/saude
+        run: |
+          for tentativa in 1 2 3 4 5; do
+            corpo=$(curl -fsS --max-time 15 "$URL" || true)
+            if echo "$corpo" | jq -e '.ok == true' > /dev/null 2>&1; then
+              echo "OK na tentativa $tentativa"
+              echo "$corpo" | jq '{versao, uptime_s, db_ok, fila_voz, ultimo_backup, ultimo_backup_remoto}'
+              exit 0
+            fi
+            echo "Tentativa $tentativa falhou: ${corpo:-sem resposta}"
+            sleep 20
+          done
+          echo "::error::A Bussola nao respondeu ok em $URL"
+          exit 1

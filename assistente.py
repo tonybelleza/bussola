@@ -153,7 +153,8 @@ def feitos(conn, empresa_id):
         e = conn.execute("SELECT logo FROM empresas WHERE id=?", (eid,)).fetchone()
         r["logo"] = bool(e and e["logo"])
     # equipe: mais de um gestor aprovado
-    n = conn.execute("SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND aprovado=1", (eid,)).fetchone()[0]
+    n = conn.execute("SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND aprovado=1 AND COALESCE(suporte,0)=0",
+                     (eid,)).fetchone()[0]
     r["equipe"] = int(n or 0) > 1
     # pelo menos um cargo com competências
     r["cargos"] = _existe(conn, "SELECT 1 FROM cargos g JOIN competencias c ON c.cargo_id=g.id"

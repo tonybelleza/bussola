@@ -4,6 +4,9 @@
    - agendaPreencherFicha: entrevista marcada na ficha do candidato, com
      realizada, faltou, cancelar e "Enviar link de agendamento".
    - agendaHoje: entrevistas de hoje e de amanhã na visão geral.
+   - Google Agenda (google_cal.py): cada gestor conecta a própria conta;
+     o administrador escolhe quais agendas valem para as entrevistas e em
+     qual o evento é criado (com link do Google Meet na videochamada).
    Textos em pt, en e es (tg do i18n-gestor.js, chaves "ag_*").
    ===================================================================== */
 
@@ -27,6 +30,21 @@ Object.assign(I18N_GESTOR.pt, {
   ag_historico: "Histórico",
   ag_hoje_titulo: "Entrevistas de hoje e amanhã", ag_hoje: "Hoje", ag_amanha: "Amanhã", ag_vazio: "Nenhuma entrevista.",
   ag_horarios_em: "Horários em {fuso}",
+  ag_g_titulo: "Google Agenda",
+  ag_g_desc: "Conecte a sua conta Google: os horários ocupados na sua agenda somem da lista do candidato e cada entrevista marcada vira um evento na sua agenda, com link do Google Meet nas videochamadas.",
+  ag_g_indisponivel: "O Google Agenda ainda não foi configurado na plataforma.",
+  ag_g_conectar: "Conectar Google Agenda", ag_g_reconectar: "Reconectar", ag_g_desconectar: "Desconectar",
+  ag_g_conectado: "Conectado: {email}", ag_g_precisa: "Precisa reconectar",
+  ag_g_precisa_desc: "O Google recusou o acesso (senha trocada ou acesso removido). Enquanto isso, a agenda usa só os horários normais.",
+  ag_g_confirmar_desconectar: "Desconectar o Google Agenda? Os eventos já criados continuam na sua agenda.",
+  ag_g_desconectado: "Google Agenda desconectado.", ag_g_abrindo: "Abrindo o Google…",
+  ag_g_entrevistadores: "Agendas Google usadas nas entrevistas",
+  ag_g_entrevistadores_desc: "Os horários ocupados das agendas marcadas saem da lista do candidato.",
+  ag_g_sem_contas: "Nenhum gestor desta empresa conectou o Google Agenda ainda.",
+  ag_g_organizador: "Criar os eventos na agenda de", ag_g_primeira: "Primeira agenda marcada",
+  ag_g_ret_ok: "Google Agenda conectado.", ag_g_ret_negado: "A conexão com o Google Agenda foi cancelada.",
+  ag_g_ret_invalido: "O link de conexão expirou. Tente conectar de novo.", ag_g_ret_erro: "Não foi possível conectar ao Google Agenda. Tente de novo.",
+  ag_meet: "Entrar no Google Meet",
 });
 Object.assign(I18N_GESTOR.en, {
   ag_titulo: "Interview scheduling",
@@ -48,6 +66,21 @@ Object.assign(I18N_GESTOR.en, {
   ag_historico: "History",
   ag_hoje_titulo: "Interviews today and tomorrow", ag_hoje: "Today", ag_amanha: "Tomorrow", ag_vazio: "No interviews.",
   ag_horarios_em: "Times in {fuso}",
+  ag_g_titulo: "Google Calendar",
+  ag_g_desc: "Connect your Google account: busy times on your calendar disappear from the candidate's list, and each booked interview becomes an event on your calendar, with a Google Meet link for video calls.",
+  ag_g_indisponivel: "Google Calendar has not been set up on the platform yet.",
+  ag_g_conectar: "Connect Google Calendar", ag_g_reconectar: "Reconnect", ag_g_desconectar: "Disconnect",
+  ag_g_conectado: "Connected: {email}", ag_g_precisa: "Needs reconnecting",
+  ag_g_precisa_desc: "Google refused access (password changed or access removed). Meanwhile, scheduling uses the regular times only.",
+  ag_g_confirmar_desconectar: "Disconnect Google Calendar? Events already created stay on your calendar.",
+  ag_g_desconectado: "Google Calendar disconnected.", ag_g_abrindo: "Opening Google…",
+  ag_g_entrevistadores: "Google calendars used for interviews",
+  ag_g_entrevistadores_desc: "Busy times on the checked calendars are removed from the candidate's list.",
+  ag_g_sem_contas: "No manager at this company has connected Google Calendar yet.",
+  ag_g_organizador: "Create events on the calendar of", ag_g_primeira: "First checked calendar",
+  ag_g_ret_ok: "Google Calendar connected.", ag_g_ret_negado: "The Google Calendar connection was canceled.",
+  ag_g_ret_invalido: "The connection link expired. Try connecting again.", ag_g_ret_erro: "Could not connect to Google Calendar. Try again.",
+  ag_meet: "Join Google Meet",
 });
 Object.assign(I18N_GESTOR.es, {
   ag_titulo: "Agenda de entrevistas",
@@ -69,6 +102,21 @@ Object.assign(I18N_GESTOR.es, {
   ag_historico: "Historial",
   ag_hoje_titulo: "Entrevistas de hoy y mañana", ag_hoje: "Hoy", ag_amanha: "Mañana", ag_vazio: "Ninguna entrevista.",
   ag_horarios_em: "Horarios en {fuso}",
+  ag_g_titulo: "Google Calendar",
+  ag_g_desc: "Conecta tu cuenta de Google: los horarios ocupados en tu calendario desaparecen de la lista del candidato y cada entrevista agendada se vuelve un evento en tu calendario, con enlace de Google Meet en las videollamadas.",
+  ag_g_indisponivel: "Google Calendar todavía no está configurado en la plataforma.",
+  ag_g_conectar: "Conectar Google Calendar", ag_g_reconectar: "Reconectar", ag_g_desconectar: "Desconectar",
+  ag_g_conectado: "Conectado: {email}", ag_g_precisa: "Hay que reconectar",
+  ag_g_precisa_desc: "Google rechazó el acceso (contraseña cambiada o acceso eliminado). Mientras tanto, la agenda usa solo los horarios normales.",
+  ag_g_confirmar_desconectar: "¿Desconectar Google Calendar? Los eventos ya creados siguen en tu calendario.",
+  ag_g_desconectado: "Google Calendar desconectado.", ag_g_abrindo: "Abriendo Google…",
+  ag_g_entrevistadores: "Calendarios de Google usados en las entrevistas",
+  ag_g_entrevistadores_desc: "Los horarios ocupados de los calendarios marcados salen de la lista del candidato.",
+  ag_g_sem_contas: "Ningún gestor de esta empresa conectó Google Calendar todavía.",
+  ag_g_organizador: "Crear los eventos en el calendario de", ag_g_primeira: "Primer calendario marcado",
+  ag_g_ret_ok: "Google Calendar conectado.", ag_g_ret_negado: "Se canceló la conexión con Google Calendar.",
+  ag_g_ret_invalido: "El enlace de conexión venció. Intenta conectar de nuevo.", ag_g_ret_erro: "No se pudo conectar con Google Calendar. Inténtalo de nuevo.",
+  ag_meet: "Unirse a Google Meet",
 });
 
 // objetos e listas do dicionário (tg devolve só texto)
@@ -87,8 +135,87 @@ function agQuando(inicioUtc, fuso) {
 const AG_COR_STATUS = { marcada: "info", cancelada: "err", realizada: "ok", faltou: "warn" };
 
 // ------------------------------------------------------------ configuração (admin)
+// ------------------------------------------------------------ Google Agenda
+function agLinkSeguro(url) {
+  return /^https:\/\//i.test(String(url || "")) ? url : "";
+}
+
+// conexão do próprio gestor (todos os gestores)
+function agGoogleMinha(g) {
+  let corpo;
+  if (!g.disponivel && !g.minha) corpo = `<p class="hint">${tg("ag_g_indisponivel")}</p>`;
+  else if (!g.minha) corpo = `<button class="btn secondary small" data-ag-g="conectar">${tg("ag_g_conectar")}</button>`;
+  else if (g.minha.status !== "ativa") corpo = `
+      <p class="desc"><span class="badge warn">${tg("ag_g_precisa")}</span> ${esc(g.minha.email || "")}</p>
+      <p class="hint">${tg("ag_g_precisa_desc")}</p>
+      <div class="linha-acoes">${g.disponivel ? `<button class="btn small" data-ag-g="conectar">${tg("ag_g_reconectar")}</button>` : ""}
+        <button class="btn ghost small" data-ag-g="desconectar">${tg("ag_g_desconectar")}</button></div>`;
+  else corpo = `
+      <p class="desc"><span class="badge ok">${esc(tg("ag_g_conectado", { email: g.minha.email || "Google" }))}</span></p>
+      <div class="linha-acoes"><button class="btn ghost small" data-ag-g="desconectar">${tg("ag_g_desconectar")}</button></div>`;
+  return `
+    <div class="sub-card" style="margin:12px 0">
+      <h3 style="margin-top:0">${tg("ag_g_titulo")}</h3>
+      <p class="desc">${tg("ag_g_desc")}</p>
+      ${corpo}
+      <span class="hint" id="ag-g-msg"></span>
+    </div>`;
+}
+
+// escolha das agendas da empresa (administrador)
+function agGoogleEscolha(g, c) {
+  const contas = g.contas || [];
+  if (!g.disponivel && !contas.length) return "";
+  const marcados = (c.google_entrevistadores || []).map(Number);
+  return `
+    <div class="field" style="margin:6px 0 14px">${tg("ag_g_entrevistadores")}
+      <span class="hint">${tg("ag_g_entrevistadores_desc")}</span>
+      ${contas.length ? `
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+          ${contas.map((x) => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-ag-google="${x.gestor_id}" ${marcados.includes(x.gestor_id) ? "checked" : ""}>
+            <strong>${esc(x.nome)}</strong> <span class="hint">${esc(x.email || "")}</span>
+            ${x.status !== "ativa" ? `<span class="badge warn">${tg("ag_g_precisa")}</span>` : ""}</label>`).join("")}
+        </div>
+        <label class="field" style="margin-top:8px">${tg("ag_g_organizador")}
+          <select id="ag-g-org"><option value="0">${tg("ag_g_primeira")}</option>
+            ${contas.map((x) => `<option value="${x.gestor_id}" ${Number(c.google_organizador) === x.gestor_id ? "selected" : ""}>${esc(x.nome)}</option>`).join("")}
+          </select></label>` : `<p class="hint">${tg("ag_g_sem_contas")}</p>`}
+    </div>`;
+}
+
+function agLigarGoogle(el, recarregar) {
+  const msg = (texto, ok) => {
+    const m = el.querySelector("#ag-g-msg");
+    if (m) { m.style.color = ok ? "var(--ok)" : "var(--err)"; m.textContent = texto; } else alert(texto);
+  };
+  el.querySelectorAll("[data-ag-g]").forEach((b) => b.addEventListener("click", async () => {
+    if (b.dataset.agG === "conectar") {
+      b.disabled = true;
+      try {
+        const r = await api("/api/gestor/agenda/google/conectar", { method: "POST", body: {} });
+        msg(tg("ag_g_abrindo"), true);
+        location.href = r.url;
+      } catch (e) { msg(e.message); b.disabled = false; }
+      return;
+    }
+    if (!confirm(tg("ag_g_confirmar_desconectar"))) return;
+    try {
+      await api("/api/gestor/agenda/google/desconectar", { method: "POST", body: {} });
+      recarregar();
+    } catch (e) { msg(e.message); }
+  }));
+}
+
 async function secaoAgenda(el) {
-  if (!el || !infoGestor().admin) return;
+  if (!el) return;
+  let g = null;
+  try { g = await api("/api/gestor/agenda/google"); } catch (e) { g = null; }
+  if (!infoGestor().admin) {
+    // gestor sem administração: só a própria conexão com o Google Agenda
+    el.innerHTML = g && (g.disponivel || g.minha) ? `<div class="card">${agGoogleMinha(g)}</div>` : "";
+    agLigarGoogle(el, () => secaoAgenda(el));
+    return;
+  }
   let r;
   try { r = await api("/api/gestor/agenda/config"); } catch (e) { el.innerHTML = ""; return; }
   const c = r.config;
@@ -126,6 +253,7 @@ async function secaoAgenda(el) {
         <label class="field">${tg("ag_local")}<input type="text" id="ag-local" maxlength="500" value="${esc(c.local || "")}" placeholder="${esc(tg("ag_local_ph"))}"></label>
       </div>
       <label class="field">${tg("ag_bloqueios")}<textarea id="ag-bloqueios" rows="3" placeholder="2026-12-25">${esc((c.bloqueios || []).join("\n"))}</textarea></label>
+      ${g ? agGoogleMinha(g) + agGoogleEscolha(g, c) : ""}
       <div class="form-erro" id="ag-msg"></div>
       <div class="linha-acoes"><button class="btn" id="ag-salvar">${tg("ag_salvar")}</button></div>
     </div>`;
@@ -144,11 +272,16 @@ async function secaoAgenda(el) {
       formato: v("#ag-formato"), fuso: v("#ag-fuso"), entrevistador: v("#ag-entrevistador"), local: v("#ag-local"),
       bloqueios: v("#ag-bloqueios"),
     };
+    if (g && (g.contas || []).length) {
+      corpo.google_entrevistadores = [...el.querySelectorAll("[data-ag-google]")].filter((x) => x.checked).map((x) => Number(x.dataset.agGoogle));
+      corpo.google_organizador = Number((el.querySelector("#ag-g-org") || {}).value || 0);
+    }
     try {
       await api("/api/gestor/agenda/config", { method: "POST", body: corpo });
       msg(tg("ag_salvo"), true);
     } catch (e) { msg(e.message); }
   });
+  agLigarGoogle(el, () => secaoAgenda(el));
 }
 
 // ------------------------------------------------------------ ficha do candidato
@@ -166,6 +299,7 @@ async function agendaPreencherFicha(candidatoId, el) {
         <div class="titulo">${esc(agQuando(ent.inicio_utc, r.fuso))}</div>
         <div><span class="badge ${AG_COR_STATUS[ent.status] || "tipo"}">${esc(status[ent.status] || ent.status)}</span>
           <span class="hint">${esc(tg("ag_horarios_em", { fuso: r.rotulo_fuso }))}</span></div>
+        ${agLinkSeguro(ent.meet_link) ? `<div style="margin-top:6px"><a href="${esc(ent.meet_link)}" target="_blank" rel="noopener">${icone("link")} ${tg("ag_meet")}</a></div>` : ""}
       </div>
       <div class="linha-acoes no-print">
         <button class="btn secondary small" data-ag-status="realizada">${tg("ag_realizada")}</button>
@@ -247,3 +381,12 @@ async function agendaHoje(el) {
     abrirDetalheCandidato(Number(a.dataset.agendaCand));
   }));
 }
+
+// ------------------------------------------------------------ volta do Google (/gestor#google=ok|negado|invalido|erro)
+(function agRetornoGoogle() {
+  const m = location.hash.match(/^#google=(\w+)$/);
+  if (!m) return;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* sem history */ }
+  const chave = { ok: "ag_g_ret_ok", negado: "ag_g_ret_negado", invalido: "ag_g_ret_invalido" }[m[1]] || "ag_g_ret_erro";
+  window.addEventListener("load", () => setTimeout(() => alert(tg(chave)), 400));
+})();

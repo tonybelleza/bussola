@@ -200,7 +200,7 @@ def resumo_empresa(conn, e):
         "modulos": modulos(e), "plano": e["plano"], "valor": e["valor"], "notas": e["notas"],
         "criada_em": e["criada_em"],
         "logo_url": (srv.mensagens.marca(conn, e["id"]) or {}).get("logo_url", ""),
-        "gestores": n("SELECT COUNT(*) FROM gestores WHERE empresa_id=?"),
+        "gestores": n("SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND COALESCE(suporte,0)=0"),  # sem o suporte (conta.py)
         "candidatos": n("SELECT COUNT(*) FROM candidatos WHERE empresa_id=?"),
         "vagas_abertas": n("SELECT COUNT(*) FROM vagas WHERE empresa_id=? AND status='aberta'"),
         "cargos": n("SELECT COUNT(*) FROM cargos WHERE empresa_id=?"),
@@ -245,7 +245,8 @@ def rotear_dono(h, method, path, conn):
                 {"id": g["id"], "nome": g["nome"], "login": g["login"], "email": g["email"],
                  "local": g["local"], "admin": bool(g["is_admin"]), "aprovado": bool(g["aprovado"]),
                  "criado_em": g["criado_em"]}
-                for g in conn.execute("SELECT * FROM gestores WHERE empresa_id=? ORDER BY nome", (e["id"],)).fetchall()
+                for g in conn.execute("SELECT * FROM gestores WHERE empresa_id=? AND COALESCE(suporte,0)=0 ORDER BY nome",
+                                      (e["id"],)).fetchall()
             ]
             return _resp(h, 200, {"empresa": resumo_empresa(conn, e), "gestores_lista": gestores})
         if method == "POST":

@@ -30,7 +30,7 @@ const VOZ_TEXTOS = {
     entrarFila: "Colocar na fila",     revisadoHa: "fatos revisados há {n} dia(s)", revisarFatos: "revise os fatos (mais de 60 dias)", nuncaRevisado: "fatos ainda não revisados", ultimaRevisao: "Última revisão dos fatos: {d} por {p}.", avisoRevisao: "Salário, horário e regras mudam: revise os fatos da vaga pelo menos a cada 60 dias.", simular: "Simular ligação", simTitulo: "Simular ligação: {cargo}", simDesc: "Converse com a Francisca pelo microfone do computador, como se fosse um candidato. Usa o roteiro salvo (salve antes de simular) e não liga para ninguém. Conta como poucos minutos na ElevenLabs.", simIniciar: "Começar conversa", simEncerrar: "Encerrar", simConectando: "Conectando...", simFalando: "Francisca falando", simOuvindo: "Ouvindo você", simEncerrada: "Conversa encerrada.", simMic: "Permita o uso do microfone no navegador.", simVoce: "Você", simIdioma: "Idioma da simulação",     encerrados: "Encerrados", encerradosDesc: "Número errado, sem interesse, pediram para não ligar ou não qualificados. Saem da lista principal e do pipeline ativo da vaga.", semEncerrados: "Nenhum candidato encerrado.", fora: "Fora da triagem", foraDesc: "Candidatos de vagas com triagem por voz que ainda não entraram na fila (por exemplo, importados). Ligue agora para um ou coloque vários na fila: a fila só liga dentro da janela de horário.", foraVazio: "Todos os candidatos já estão na triagem.", selecionarTodos: "Selecionar todos", filaSelecionados: "Colocar selecionados na fila", colocados: "{n} candidato(s) na fila.", nenhumSelecionado: "Selecione ao menos um candidato.", semTelefone: "Sem telefone válido dos EUA",
     confirmaLigar: "Ligar agora para {nome}? A ligação sai na hora, mesmo fora da janela.",
     ligacaoIniciada: "Ligação iniciada. O resultado aparece em alguns minutos.",
-    recentes: "Últimas ligações", semLigacoes: "Nenhuma ligação ainda.",
+    recentes: "Últimas ligações", semLigacoes: "Nenhuma ligação ainda.", entrada: "Recebida", atendidaEntrada: "Atendida", desconhecido: "Número desconhecido", vozTitulo: "Voz da Francisca", vozDesc: "Escolha a voz usada em cada idioma, nas ligações feitas e recebidas.", vozPadrao: "padrão", ouvir: "Ouvir amostra", parar: "Parar",
     config: "Regras de ligação", local: "Local", padrao: "Padrão (todos os locais)",
     cAtivo: "Triagem por voz ligada", cPausado: "Pausar todas as ligações deste local",
     fuso: "Fuso horário", inicio: "Início", fim: "Fim", dias: "Dias permitidos",
@@ -83,7 +83,7 @@ const VOZ_TEXTOS = {
     entrarFila: "Add to queue",     revisadoHa: "facts reviewed {n} day(s) ago", revisarFatos: "review the facts (over 60 days)", nuncaRevisado: "facts not reviewed yet", ultimaRevisao: "Facts last reviewed: {d} by {p}.", avisoRevisao: "Pay, schedule and rules change: review the job facts at least every 60 days.", simular: "Simulate call", simTitulo: "Simulate call: {cargo}", simDesc: "Talk to Francisca with your computer microphone, as if you were a candidate. It uses the saved script (save before simulating) and calls nobody. It uses a few ElevenLabs minutes.", simIniciar: "Start conversation", simEncerrar: "End", simConectando: "Connecting...", simFalando: "Francisca speaking", simOuvindo: "Listening to you", simEncerrada: "Conversation ended.", simMic: "Allow microphone access in the browser.", simVoce: "You", simIdioma: "Simulation language",     encerrados: "Closed", encerradosDesc: "Wrong number, not interested, asked not to be called or not qualified. They leave the main list and the active job pipeline.", semEncerrados: "No closed candidates.", fora: "Not in screening", foraDesc: "Candidates for positions with phone screening who are not in the queue yet (for example, imported ones). Call one now or add several to the queue: the queue only calls within the calling window.", foraVazio: "All candidates are already in screening.", selecionarTodos: "Select all", filaSelecionados: "Add selected to queue", colocados: "{n} candidate(s) added to the queue.", nenhumSelecionado: "Select at least one candidate.", semTelefone: "No valid US phone number",
     confirmaLigar: "Call {nome} now? The call goes out right away, even outside the window.",
     ligacaoIniciada: "Call started. The result shows up in a few minutes.",
-    recentes: "Latest calls", semLigacoes: "No calls yet.",
+    recentes: "Latest calls", semLigacoes: "No calls yet.", entrada: "Inbound", atendidaEntrada: "Answered", desconhecido: "Unknown number", vozTitulo: "Francisca's voice", vozDesc: "Pick the voice used in each language, on outbound and inbound calls.", vozPadrao: "default", ouvir: "Play sample", parar: "Stop",
     config: "Calling rules", local: "Location", padrao: "Default (all locations)",
     cAtivo: "Voice screening on", cPausado: "Pause all calls for this location",
     fuso: "Time zone", inicio: "Start", fim: "End", dias: "Allowed days",
@@ -136,7 +136,7 @@ const VOZ_TEXTOS = {
     entrarFila: "Agregar a la cola",     revisadoHa: "datos revisados hace {n} día(s)", revisarFatos: "revisa los datos (más de 60 días)", nuncaRevisado: "datos aún no revisados", ultimaRevisao: "Última revisión de los datos: {d} por {p}.", avisoRevisao: "El pago, el horario y las reglas cambian: revisa los datos de la vacante al menos cada 60 días.", simular: "Simular llamada", simTitulo: "Simular llamada: {cargo}", simDesc: "Habla con Francisca con el micrófono de la computadora, como si fueras un candidato. Usa el guion guardado (guarda antes de simular) y no llama a nadie. Usa pocos minutos de ElevenLabs.", simIniciar: "Empezar conversación", simEncerrar: "Terminar", simConectando: "Conectando...", simFalando: "Francisca hablando", simOuvindo: "Escuchándote", simEncerrada: "Conversación terminada.", simMic: "Permite el uso del micrófono en el navegador.", simVoce: "Tú", simIdioma: "Idioma de la simulación",     encerrados: "Cerrados", encerradosDesc: "Número equivocado, sin interés, pidieron no ser llamados o no calificados. Salen de la lista principal y del pipeline activo de la vacante.", semEncerrados: "Ningún candidato cerrado.", fora: "Fuera de la evaluación", foraDesc: "Candidatos de vacantes con evaluación por voz que aún no están en la cola (por ejemplo, importados). Llama a uno ahora o agrega varios a la cola: la cola solo llama dentro del horario permitido.", foraVazio: "Todos los candidatos ya están en la evaluación.", selecionarTodos: "Seleccionar todos", filaSelecionados: "Agregar seleccionados a la cola", colocados: "{n} candidato(s) agregados a la cola.", nenhumSelecionado: "Selecciona al menos un candidato.", semTelefone: "Sin teléfono válido de EE. UU.",
     confirmaLigar: "¿Llamar ahora a {nome}? La llamada sale de inmediato, incluso fuera del horario.",
     ligacaoIniciada: "Llamada iniciada. El resultado aparece en unos minutos.",
-    recentes: "Últimas llamadas", semLigacoes: "Ninguna llamada todavía.",
+    recentes: "Últimas llamadas", semLigacoes: "Ninguna llamada todavía.", entrada: "Entrante", atendidaEntrada: "Atendida", desconhecido: "Número desconocido", vozTitulo: "Voz de Francisca", vozDesc: "Elija la voz usada en cada idioma, en las llamadas hechas y recibidas.", vozPadrao: "predeterminada", ouvir: "Escuchar muestra", parar: "Detener",
     config: "Reglas de llamada", local: "Local", padrao: "Predeterminado (todos los locales)",
     cAtivo: "Evaluación por voz encendida", cPausado: "Pausar todas las llamadas de este local",
     fuso: "Zona horaria", inicio: "Inicio", fim: "Fin", dias: "Días permitidos",
@@ -204,9 +204,9 @@ const VOZ_MOTIVOS = {
 };
 
 const VOZ_ERROS = {
-  pt: { do_not_call: "Candidato marcado como Não ligar.", blocked_outcome: "O candidato pediu para não ligar ou não tem interesse.", invalid_phone: "Telefone inválido: a ligação só sai para números dos EUA.", in_call: "O candidato está em ligação agora.", attempts_exhausted: "Tentativas esgotadas. Zere as tentativas primeiro.", not_configured: "Configure a integração ElevenLabs primeiro.", start_failed: "Não foi possível iniciar a ligação.", status_changed: "O status mudou. Recarregue.", anonymized: "Candidato anonimizado.", forbidden: "Sem permissão.", invalid_time: "Horário inválido (use HH:MM).", invalid_number: "Número fora do permitido.", invalid_days: "Escolha ao menos um dia.", text_too_long: "Texto longo demais.", module_disabled: "Módulo não liberado para esta conta." },
-  en: { do_not_call: "Candidate is marked Do not call.", blocked_outcome: "The candidate asked not to be called or is not interested.", invalid_phone: "Invalid phone: calls only go to US numbers.", in_call: "The candidate is on a call right now.", attempts_exhausted: "No attempts left. Reset attempts first.", not_configured: "Set up the ElevenLabs integration first.", start_failed: "Could not start the call.", status_changed: "The status changed. Reload.", anonymized: "Candidate anonymized.", forbidden: "Not allowed.", invalid_time: "Invalid time (use HH:MM).", invalid_number: "Number out of range.", invalid_days: "Pick at least one day.", text_too_long: "Text is too long.", module_disabled: "Module not enabled for this account." },
-  es: { do_not_call: "Candidato marcado como No llamar.", blocked_outcome: "El candidato pidió no ser llamado o no tiene interés.", invalid_phone: "Teléfono inválido: las llamadas solo salen a números de EE. UU.", in_call: "El candidato está en una llamada ahora.", attempts_exhausted: "Intentos agotados. Reinicie los intentos primero.", not_configured: "Configure primero la integración ElevenLabs.", start_failed: "No se pudo iniciar la llamada.", status_changed: "El estado cambió. Recargue.", anonymized: "Candidato anonimizado.", forbidden: "Sin permiso.", invalid_time: "Hora inválida (use HH:MM).", invalid_number: "Número fuera del rango.", invalid_days: "Elija al menos un día.", text_too_long: "Texto demasiado largo.", module_disabled: "Módulo no habilitado para esta cuenta." },
+  pt: { do_not_call: "Candidato marcado como Não ligar.", blocked_outcome: "O candidato pediu para não ligar ou não tem interesse.", invalid_phone: "Telefone inválido: a ligação só sai para números dos EUA.", in_call: "O candidato está em ligação agora.", attempts_exhausted: "Tentativas esgotadas. Zere as tentativas primeiro.", not_configured: "Configure a integração ElevenLabs primeiro.", start_failed: "Não foi possível iniciar a ligação.", status_changed: "O status mudou. Recarregue.", anonymized: "Candidato anonimizado.", forbidden: "Sem permissão.", invalid_time: "Horário inválido (use HH:MM).", invalid_number: "Número fora do permitido.", invalid_days: "Escolha ao menos um dia.", text_too_long: "Texto longo demais.", module_disabled: "Módulo não liberado para esta conta.", invalid_voice: "Voz inválida." },
+  en: { do_not_call: "Candidate is marked Do not call.", blocked_outcome: "The candidate asked not to be called or is not interested.", invalid_phone: "Invalid phone: calls only go to US numbers.", in_call: "The candidate is on a call right now.", attempts_exhausted: "No attempts left. Reset attempts first.", not_configured: "Set up the ElevenLabs integration first.", start_failed: "Could not start the call.", status_changed: "The status changed. Reload.", anonymized: "Candidate anonymized.", forbidden: "Not allowed.", invalid_time: "Invalid time (use HH:MM).", invalid_number: "Number out of range.", invalid_days: "Pick at least one day.", text_too_long: "Text is too long.", module_disabled: "Module not enabled for this account.", invalid_voice: "Invalid voice." },
+  es: { do_not_call: "Candidato marcado como No llamar.", blocked_outcome: "El candidato pidió no ser llamado o no tiene interés.", invalid_phone: "Teléfono inválido: las llamadas solo salen a números de EE. UU.", in_call: "El candidato está en una llamada ahora.", attempts_exhausted: "Intentos agotados. Reinicie los intentos primero.", not_configured: "Configure primero la integración ElevenLabs.", start_failed: "No se pudo iniciar la llamada.", status_changed: "El estado cambió. Recargue.", anonymized: "Candidato anonimizado.", forbidden: "Sin permiso.", invalid_time: "Hora inválida (use HH:MM).", invalid_number: "Número fuera del rango.", invalid_days: "Elija al menos un día.", text_too_long: "Texto demasiado largo.", module_disabled: "Módulo no habilitado para esta cuenta.", invalid_voice: "Voz inválida." },
 };
 
 const VOZ_CORES_TIER = { STRONG: "ok", GOOD: "info", REVIEW: "warn", LOW: "err" };
@@ -354,9 +354,12 @@ async function abaVoz(el) {
     <div class="card">
       <h3 style="margin-top:0">${vt("recentes")}</h3>
       ${r.recentes.length ? `<div class="tabela-wrap"><table class="tabela"><tbody>${r.recentes.map((c) => `
-        <tr><td>${esc(vozData(c.iniciada_em))}</td><td><a href="#" data-voz-cand="${c.candidato_id}">${esc(c.nome)}</a></td>
+        <tr><td>${esc(vozData(c.iniciada_em))}${c.direcao === "entrada" ? ` <span class="badge info">${vt("entrada")}</span>` : ""}</td>
+          <td>${c.candidato_id ? `<a href="#" data-voz-cand="${c.candidato_id}">${esc(c.nome)}</a>`
+            : `${esc(c.telefone || vt("desconhecido"))}${c.resumo ? `<div class="hint">${esc(c.resumo.slice(0, 200))}</div>` : ""}`}</td>
           <td>${esc((VOZ_TEXTOS[vozIdioma].idiomaLigacao)[c.idioma] || c.idioma)}</td>
           <td>${c.resultado ? esc(VOZ_OUTCOME[vozIdioma][c.resultado.outcome] || c.resultado.outcome) + " " + vozBadgeTier(c.resultado.tier, c.resultado.score)
+            : c.direcao === "entrada" && c.status === "concluida" && !c.erro ? esc(vt("atendidaEntrada"))
             : (c.status === "concluida" || c.status === "falhou" ? esc(VOZ_OUTCOME[vozIdioma].NO_ANSWER) : esc(VOZ_STATUS[vozIdioma].ligando))}</td>
           <td class="num">${c.duracao != null ? Math.floor(c.duracao / 60) + ":" + String(c.duracao % 60).padStart(2, "0") : ""}</td></tr>`).join("")}
       </tbody></table></div>` : `<p class="desc">${vt("semLigacoes")}</p>`}
@@ -588,13 +591,48 @@ function vozHtmlConfig(r, cfg) {
       <label class="field">${vt("simultaneas")}<input type="number" id="vc-sim" min="1" max="5" value="${cfg.simultaneas}"></label>
       <label class="field">${vt("intervalo")}<input type="number" id="vc-int" min="1" max="72" value="${cfg.intervalo_horas}"></label>
     </div>
+    ${vozHtmlVozes(r, cfg)}
     <div class="form-erro" id="vc-erro"></div>
     <button class="btn" id="vc-salvar">${vt("salvar")}</button> <span class="desc" id="vc-ok" style="margin:0"></span>
   </div>`;
 }
 
+/** Voz da Francisca por idioma (lista curada no servidor, voz.VOZES) com amostra. */
+function vozHtmlVozes(r, cfg) {
+  const vozes = r.vozes || {};
+  return `<h4 style="margin:16px 0 2px">${vt("vozTitulo")}</h4>
+    <p class="hint" style="margin-top:0">${vt("vozDesc")}</p>
+    <div class="grid cols-3">${["es", "en", "pt"].map((l) => {
+      const lista = vozes[l] || [];
+      const atual = cfg["voz_" + l] || (lista.find((v) => v.padrao) || {}).id || "";
+      return `<label class="field">${esc(VOZ_TEXTOS[vozIdioma].idiomaLigacao[l])}
+        <select id="vc-voz-${l}">${lista.map((v) => `<option value="${esc(v.id)}" ${v.id === atual ? "selected" : ""}>${esc(v.nome)}${v.padrao ? " (" + vt("vozPadrao") + ")" : ""} · ${esc((v.descricao || {})[vozIdioma] || "")}</option>`).join("")}</select>
+        <button type="button" class="btn ghost small" data-voz-amostra="${l}" style="margin-top:6px;align-self:flex-start">${vt("ouvir")}</button>
+      </label>`;
+    }).join("")}</div>`;
+}
+
+let vozAudioAmostra = null;
+
+function vozLigarVozes(el, r) {
+  el.querySelectorAll("[data-voz-amostra]").forEach((b) => b.addEventListener("click", () => {
+    const l = b.dataset.vozAmostra;
+    const id = el.querySelector("#vc-voz-" + l).value;
+    const voz = ((r.vozes || {})[l] || []).find((v) => v.id === id);
+    const tocando = vozAudioAmostra && !vozAudioAmostra.paused && vozAudioAmostra.dataset.botao === l;
+    if (vozAudioAmostra) vozAudioAmostra.pause();
+    el.querySelectorAll("[data-voz-amostra]").forEach((x) => { x.textContent = vt("ouvir"); });
+    if (tocando || !voz || !voz.preview_url) return;
+    vozAudioAmostra = new Audio(voz.preview_url);
+    vozAudioAmostra.dataset.botao = l;
+    vozAudioAmostra.addEventListener("ended", () => { b.textContent = vt("ouvir"); });
+    vozAudioAmostra.play().then(() => { b.textContent = vt("parar"); }).catch(() => { b.textContent = vt("ouvir"); });
+  }));
+}
+
 function vozLigarConfig(el, r, redesenhar) {
   const q = (s) => el.querySelector(s);
+  vozLigarVozes(el, r);
   q("#vc-dias").querySelectorAll("label").forEach((lab) => lab.addEventListener("click", (ev) => {
     ev.preventDefault();
     const cb = lab.querySelector("input");
@@ -612,6 +650,7 @@ function vozLigarConfig(el, r, redesenhar) {
         intervalo_horas: Number(q("#vc-int").value), idioma_padrao: q("#vc-idioma").value,
         nome_ligacao: q("#vc-nome").value, cidade: q("#vc-cidade").value,
         telefone_retorno: q("#vc-telefone").value, gerente: q("#vc-gerente").value,
+        voz_es: q("#vc-voz-es").value, voz_en: q("#vc-voz-en").value, voz_pt: q("#vc-voz-pt").value,
       } } });
       q("#vc-ok").textContent = vt("salvo");
       setTimeout(redesenhar, 700);
@@ -819,13 +858,15 @@ function vozHtmlCandidaturaFicha(f) {
 
 function vozHtmlChamadaFicha(c) {
   const res = c.resultado;
-  const quem = c.disparada_por === "fila" ? vt("fila_auto") : c.disparada_por;
+  const quem = c.disparada_por === "fila" ? vt("fila_auto") : c.disparada_por === "entrada" ? vt("candidato") : c.disparada_por;
   const desfecho = res ? (VOZ_OUTCOME[vozIdioma][res.outcome] || res.outcome)
+    : c.direcao === "entrada" && c.status === "concluida" && !c.erro ? vt("atendidaEntrada")
     : (c.status === "concluida" || c.status === "falhou" ? VOZ_OUTCOME[vozIdioma].NO_ANSWER : VOZ_STATUS[vozIdioma].ligando);
   const t = (s) => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
   return `<div class="timeline-item" style="margin-top:12px">
     <div class="linha-acoes">
-      <strong>${esc(vozData(c.iniciada_em))}</strong> <span>${esc(desfecho)}</span> ${res ? vozBadgeTier(res.tier, res.score) : ""}
+      <strong>${esc(vozData(c.iniciada_em))}</strong>${c.direcao === "entrada" ? ` <span class="badge info">${vt("entrada")}</span>` : ""}
+      <span>${esc(desfecho)}</span> ${res ? vozBadgeTier(res.tier, res.score) : ""}
       ${c.duracao != null ? `<span class="hint">${t(c.duracao)}</span>` : ""}
       <span class="hint">${esc(VOZ_TEXTOS[vozIdioma].idiomaLigacao[c.idioma] || c.idioma)} · ${esc(vt("por", { q: quem }))}</span>
     </div>
@@ -897,7 +938,8 @@ async function vozSimular(cargoId, nomeCargo) {
       vozSessaoSimulacao = await sdk.Conversation.startSession({
         signedUrl: r.signed_url,
         dynamicVariables: r.dynamic_variables,
-        overrides: { agent: { language: r.language, firstMessage: r.first_message } },
+        overrides: Object.assign({ agent: { language: r.language, firstMessage: r.first_message } },
+          r.voice_id ? { tts: { voiceId: r.voice_id } } : {}),
         onConnect: () => { q("#vs-encerrar").disabled = false; estado(vt("simOuvindo")); },
         onDisconnect: () => { estado(vt("simEncerrada")); q("#vs-iniciar").disabled = false; q("#vs-encerrar").disabled = true; vozSessaoSimulacao = null; },
         onModeChange: (m) => estado(m && m.mode === "speaking" ? vt("simFalando") : vt("simOuvindo")),

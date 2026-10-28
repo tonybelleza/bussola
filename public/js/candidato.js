@@ -24,6 +24,7 @@ let quizQuestoes = null; // questões do teste de conhecimento do cargo de inter
 let vagaEscolhida = Number(new URLSearchParams(location.search).get("vaga")) || null;
 // empresa do link (?e=empresa) ou da vaga escolhida: define quem recebe o cadastro
 let empresaSlug = new URLSearchParams(location.search).get("e") || "";
+const empresaNaUrl = !!empresaSlug; // sem ?e=, o domínio próprio da empresa pode definir (/api/dominio)
 try {
   if (empresaSlug) localStorage.setItem("cand_empresa", empresaSlug);
   else empresaSlug = localStorage.getItem("cand_empresa") || "";
@@ -35,6 +36,8 @@ try {
   else indicacaoRef = localStorage.getItem("cand_ref") || "";
 } catch (e) { /* armazenamento bloqueado */ }
 let vagaInfo = null;
+// nome da empresa do link: entra no texto do consentimento para ligações e mensagens
+let empresaNome = "";
 // função que redesenha a tela atual (usada na troca de idioma)
 let redesenhar = null;
 
@@ -139,6 +142,10 @@ async function mostrarMarcaEmpresa(slug) {
     const r = await fetch("/api/empresa/" + encodeURIComponent(slug) + "/marca");
     if (!r.ok) return;
     const m = await r.json();
+    if (m.nome) {
+      empresaNome = m.nome;
+      document.querySelectorAll(".cad-contato-empresa").forEach((s) => { s.textContent = m.nome; });
+    }
     const brand = document.querySelector(".topbar .brand");
     if (!brand || !m.nome) return;
     const caixa = document.createElement("div");
@@ -153,6 +160,17 @@ async function mostrarMarcaEmpresa(slug) {
 
 // ------------------------------------------------ inicialização
 async function iniciar() {
+  if (!empresaNaUrl) {
+    // domínio próprio (ex.: jobs.empresa.com): a empresa do endereço vale mais que a guardada
+    try {
+      const r = await fetch("/api/dominio");
+      const d = r.ok ? await r.json() : {};
+      if (d && d.slug) {
+        empresaSlug = d.slug;
+        try { localStorage.setItem("cand_empresa", empresaSlug); } catch (e) { /* armazenamento bloqueado */ }
+      }
+    } catch (e) { /* sem domínio próprio: segue com o que já tinha */ }
+  }
   if (vagaEscolhida) {
     try {
       vagaInfo = await api("/api/vaga/" + vagaEscolhida);
@@ -272,6 +290,10 @@ function telaCadastro() {
         <input type="checkbox" id="cad-consentimento" style="width:auto;margin-top:4px">
         <span>${t("cad_consentimento")}</span>
       </label>
+      <label class="field" style="display:flex;align-items:flex-start;gap:10px;font-weight:340">
+        <input type="checkbox" id="cad-contato" style="width:auto;margin-top:4px">
+        <span>${t("cad_contato", { empresa: `<span class="cad-contato-empresa">${esc(empresaNome || (vagaInfo && vagaInfo.empresa && vagaInfo.empresa.nome) || t("cad_contato_empresa"))}</span>` })}</span>
+      </label>
       <div class="form-erro" id="cad-erro"></div>
       <button class="btn block" id="cad-enviar">${t("cad_enviar")}</button>
     </div>
@@ -363,6 +385,8 @@ function telaCadastro() {
           indicacao: indicacaoRef,
           tipo: vagaEscolhida ? "externo" : document.getElementById("cad-tipo").value,
           consentimento: document.getElementById("cad-consentimento").checked,
+          // ligações e mensagens automáticas (TCPA): caixa separada e opcional
+          consentimento_contato: document.getElementById("cad-contato").checked,
           idioma: idiomaCand,
         },
       });
@@ -439,6 +463,7 @@ function telaPainel() {
     );
     document.getElementById("link-copiado").classList.remove("oculto");
   });
+  cartaoContato();
 
   app.querySelectorAll("[data-acao]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -455,6 +480,39 @@ function telaPainel() {
 
 async function recarregarMe() {
   me = await api("/api/candidato/me");
+}
+
+// "Parar ligações e mensagens": revoga o consentimento e marca a triagem por voz como Não ligar (conta.py)
+function cartaoContato() {
+  const contato = me && me.contato;
+  if (!contato) return;
+  const caixa = document.createElement("div");
+  caixa.className = "card";
+  caixa.style.padding = "18px 24px";
+  const dataTxt = (s) => {
+    const d = new Date(String(s || "").replace(" ", "T") + "Z");
+    return isNaN(d) ? "" : d.toLocaleDateString(LANG_HTML[idiomaCand] || "en");
+  };
+  if (contato.estado === "revogado") {
+    caixa.innerHTML = `<p class="desc" style="margin:0"><strong style="color:var(--text)">${t("ct_titulo")}</strong> ${t("ct_revogado")}</p>`;
+  } else {
+    caixa.innerHTML = `
+      <p class="desc" style="margin:0 0 10px"><strong style="color:var(--text)">${t("ct_titulo")}</strong>
+        ${contato.em ? t("ct_consentiu", { data: esc(dataTxt(contato.em)) }) + " " : ""}${t("ct_desc")}</p>
+      <button class="btn secondary small" id="ct-parar">${t("ct_parar")}</button>
+      <div class="form-erro" id="ct-erro" style="margin-bottom:0"></div>`;
+    caixa.querySelector("#ct-parar").addEventListener("click", async () => {
+      if (!confirm(t("ct_confirmar"))) return;
+      try {
+        const r = await api("/api/candidato/contato/revogar", { method: "POST" });
+        me.contato = r.contato;
+        telaPainel();
+      } catch (e) {
+        caixa.querySelector("#ct-erro").textContent = mensagemErro(e);
+      }
+    });
+  }
+  app.appendChild(caixa);
 }
 
 // tela de "teste concluído" com o botão para voltar ao painel

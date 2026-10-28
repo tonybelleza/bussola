@@ -48,6 +48,15 @@ EVENTOS = {
     "Entrevista realizada": {"en": "Interview held", "es": "Entrevista realizada"},
     "Entrevista marcada como falta (não compareceu)": {
         "en": "Interview marked as a no-show", "es": "Entrevista marcada como inasistencia (no se presentó)"},
+    # Google Agenda e Google Meet (agenda.py + google_cal.py)
+    "Google Agenda: evento criado": {"en": "Google Calendar: event created", "es": "Google Calendar: evento creado"},
+    "Google Agenda: evento criado com link do Google Meet": {
+        "en": "Google Calendar: event created with a Google Meet link",
+        "es": "Google Calendar: evento creado con enlace de Google Meet"},
+    "Google Agenda: evento atualizado": {"en": "Google Calendar: event updated", "es": "Google Calendar: evento actualizado"},
+    "Google Agenda: evento removido": {"en": "Google Calendar: event removed", "es": "Google Calendar: evento eliminado"},
+    "Google Agenda: não foi possível sincronizar o evento": {
+        "en": "Google Calendar: could not sync the event", "es": "Google Calendar: no se pudo sincronizar el evento"},
 
     # banco de talentos (talentos.py)
     "Lembrete removido": {"en": "Reminder removed", "es": "Recordatorio eliminado"},
@@ -65,6 +74,10 @@ EVENTOS = {
     "Marcado como Não ligar": {"en": "Marked as Do not call", "es": "Marcado como No llamar"},
     "Tentativas da triagem por voz zeradas": {
         "en": "Voice screening attempts reset", "es": "Intentos de evaluación por voz reiniciados"},
+    "Ligação recebida: o candidato ligou para a Francisca": {
+        "en": "Inbound call: the candidate called Francisca", "es": "Llamada recibida: el candidato llamó a Francisca"},
+    "Cadastro criado pela Francisca (ligação recebida)": {
+        "en": "Profile created by Francisca (inbound call)", "es": "Registro creado por Francisca (llamada recibida)"},
 
     # onboarding (onboarding.py)
     "Onboarding cancelado": {"en": "Onboarding canceled", "es": "Incorporación cancelada"},
@@ -284,6 +297,13 @@ PADROES = [
      {"en": "Test invitation sent ({lang})", "es": "Invitación a las pruebas enviada ({lang})"}),
     (r"^Falha ao enviar convite: (?P<detalhe>.*)$",
      {"en": "Failed to send invitation: {detalhe}", "es": "Error al enviar la invitación: {detalhe}"}),
+    (r"^Ligou para a empresa \(interesse: (?P<interesse>.*)\)$",
+     {"en": "Called the company (interest: {interesse})", "es": "Llamó a la empresa (interés: {interesse})"}),
+    (r"^Link de inscrição enviado a quem ligou \((?P<lang>[^()]*)\)$",
+     {"en": "Application link sent to the caller ({lang})", "es": "Enlace de solicitud enviado a quien llamó ({lang})"}),
+    (r"^Falha ao enviar o link de inscrição: (?P<detalhe>.*)$",
+     {"en": "Failed to send the application link: {detalhe}",
+      "es": "Error al enviar el enlace de solicitud: {detalhe}"}),
 ]
 
 _COMPILADOS = [(re.compile(regex, re.S), modelos) for regex, modelos in PADROES]
@@ -355,3 +375,72 @@ def traduzir_lista(eventos, idioma):
         if "autor" in ev:
             ev["autor"] = traduzir_autor(ev["autor"], idioma)
     return eventos
+
+
+# verificação de antecedentes pela Checkr (integracoes_rh.py)
+_CHECKR_STATUS = {
+    "convite enviado": {"en": "invitation sent", "es": "invitación enviada"},
+    "em andamento": {"en": "in progress", "es": "en curso"},
+    "clear (sem apontamentos)": {"en": "clear", "es": "clear (sin observaciones)"},
+    "consider (revisar)": {"en": "consider (review)", "es": "consider (revisar)"},
+    "suspensa": {"en": "suspended", "es": "suspendida"},
+    "cancelada": {"en": "canceled", "es": "cancelada"},
+    "convite expirado": {"en": "invitation expired", "es": "invitación vencida"},
+}
+
+
+def _checkr_status(g, lang):
+    st = _CHECKR_STATUS.get(g["status"], {}).get(lang, g["status"])
+    return ("Background check (Checkr): %s" if lang == "en" else "Verificación de antecedentes (Checkr): %s") % st
+
+
+_NOVOS_PADROES = [
+    (r"^Verificação de antecedentes solicitada \(Checkr, pacote (?P<pacote>[^()]*)\)$",
+     {"en": "Background check ordered (Checkr, package {pacote})",
+      "es": "Verificación de antecedentes solicitada (Checkr, paquete {pacote})"}),
+    (r"^Verificação de antecedentes \(Checkr\): (?P<status>%s)$" % "|".join(re.escape(k) for k in _CHECKR_STATUS),
+     {"en": _checkr_status, "es": _checkr_status}),
+    (r"^Verificação de antecedentes concluída: aviso a (?P<n>\d+) administrador\(es\)$",
+     {"en": "Background check complete: {n} admin(s) notified",
+      "es": "Verificación de antecedentes completada: aviso a {n} administrador(es)"}),
+]
+PADROES.extend(_NOVOS_PADROES)
+_COMPILADOS.extend((re.compile(regex, re.S), modelos) for regex, modelos in _NOVOS_PADROES)
+
+# consentimento para ligações e mensagens automáticas (conta.py)
+EVENTOS.update({
+    "Autorizou ligações e mensagens automáticas": {
+        "en": "Agreed to automated calls and texts", "es": "Autorizó llamadas y mensajes automáticos"},
+    "Pediu para não receber ligações nem mensagens automáticas": {
+        "en": "Asked to stop automated calls and texts", "es": "Pidió no recibir llamadas ni mensajes automáticos"},
+})
+
+# mensagens de texto (sms.py)
+EVENTOS.update({
+    "SMS enviado: convite para os testes": {
+        "en": "Text sent: assessment invitation", "es": "SMS enviado: invitación a las evaluaciones"},
+    "SMS enviado: lembrete de entrevista": {
+        "en": "Text sent: interview reminder", "es": "SMS enviado: recordatorio de entrevista"},
+    "SMS enviado: lembrete do onboarding": {
+        "en": "Text sent: onboarding reminder", "es": "SMS enviado: recordatorio de incorporación"},
+    "SMS enviado: tentamos ligar": {
+        "en": "Text sent: we tried to call you", "es": "SMS enviado: intentamos llamarte"},
+    "SMS enviado: candidatura recebida": {
+        "en": "Text sent: application received", "es": "SMS enviado: postulación recibida"},
+    "SMS enviado: mensagem do gestor": {
+        "en": "Text sent: message from the hiring team", "es": "SMS enviado: mensaje del equipo de selección"},
+    "SMS agendado para o horário permitido (8h às 21h)": {
+        "en": "Text scheduled for allowed hours (8 AM to 9 PM)",
+        "es": "SMS programado para el horario permitido (8 a. m. a 9 p. m.)"},
+    "SMS recebido": {"en": "Text received", "es": "SMS recibido"},
+    "Pediu para não receber SMS (STOP)": {
+        "en": "Opted out of texts (STOP)", "es": "Pidió no recibir SMS (STOP)"},
+    "Voltou a receber SMS (START)": {
+        "en": "Opted back in to texts (START)", "es": "Volvió a recibir SMS (START)"},
+})
+_SMS_PADROES = [
+    (r"^Falha ao enviar SMS: (?P<detalhe>.*)$",
+     {"en": "Failed to send text: {detalhe}", "es": "No se pudo enviar el SMS: {detalhe}"}),
+]
+PADROES.extend(_SMS_PADROES)
+_COMPILADOS.extend((re.compile(regex, re.S), modelos) for regex, modelos in _SMS_PADROES)

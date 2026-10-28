@@ -109,6 +109,7 @@ async function desenhar() {
     <div class="tabs">
       ${[["empresas", td("aba_empresas")], ["visao", td("aba_visao")], ["contas", td("aba_contas")],
          ["planos", td("aba_planos")], ["integracoes", td("aba_integracoes")], ["config", td("aba_config")]]
+        .concat(typeof abaSistema === "function" ? [["sistema", td("aba_sistema")]] : []) // Sistema (dono-operacao.js)
         .map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
     </div>
     <div id="conteudo"><p class="desc">${td("carregando")}</p></div>`;
@@ -122,6 +123,7 @@ async function desenhar() {
   if (abaAtiva === "planos") await abaPlanos(el); // planos e preços (planos.py)
   if (abaAtiva === "integracoes") await abaIntegracoes(el);
   if (abaAtiva === "config") abaConfig(el);
+  if (abaAtiva === "sistema" && typeof abaSistema === "function") await abaSistema(el); // operacao.py
 }
 
 async function abaVisao(el) {
@@ -197,6 +199,7 @@ async function abaEmpresas(el) {
   const r = await api("/api/dono/empresas");
   const mods = Object.entries(r.modulos_disponiveis || {});
   el.innerHTML = `
+    <div id="dono-exclusoes"></div>
     <div class="card">
       <h2 class="icone-titulo">${icone("camadas")}<span>${td("empresas_titulo")}</span></h2>
       <p class="desc">${td("empresas_desc")}</p>
@@ -228,6 +231,7 @@ async function abaEmpresas(el) {
             <button class="btn small" data-salvar-empresa="${e.id}">${td("salvar")}</button>
             <button class="btn secondary small" data-ver-gestores="${e.id}">${td("gestores_acesso")}</button>
             <button class="btn secondary small" data-ver-numeros="${e.id}">${td("tel_botao")}</button>
+            ${typeof donoSuporteBotao === "function" ? donoSuporteBotao(e) : ""}
             <label class="btn secondary small" style="cursor:pointer">${e.logo_url ? td("trocar_logo") : td("enviar_logo")}<input type="file" data-logo-empresa="${e.id}" accept="image/png,image/jpeg" style="display:none"></label>
             ${e.logo_url ? `<img src="${esc(e.logo_url)}" alt="" style="height:30px;max-width:120px;background:#fff;border-radius:6px;padding:2px 6px">` : ""}
           </div>
@@ -281,6 +285,9 @@ async function abaEmpresas(el) {
     gestoresDaEmpresa(Number(b.dataset.verGestores), el.querySelector("#gestores-empresa-" + b.dataset.verGestores))));
   el.querySelectorAll("[data-ver-numeros]").forEach((b) => b.addEventListener("click", () =>
     numerosDaEmpresa(Number(b.dataset.verNumeros), el.querySelector("#numeros-empresa-" + b.dataset.verNumeros))));
+  // suporte do dono e exclusões pendentes (dono-suporte.js)
+  if (typeof donoSuporteLigar === "function") donoSuporteLigar(el);
+  if (typeof donoExclusoesPendentes === "function") donoExclusoesPendentes(el.querySelector("#dono-exclusoes"));
   el.querySelector("#ne-criar").addEventListener("click", async () => {
     const erro = el.querySelector("#ne-erro");
     erro.textContent = "";
@@ -414,7 +421,9 @@ async function abaIntegracoes(el) {
     </div>
     <div class="card" id="int-voz"><p class="desc">${td("carregando_voz")}</p></div>
     <div class="card" id="int-stripe"></div>
-    <div class="card" id="int-twilio"></div>`;
+    <div class="card" id="int-twilio"></div>
+    <div class="card" id="int-sms"></div>
+    <div class="card" id="int-google"></div>`;
   document.getElementById("int-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("int-erro");
     erro.textContent = "";
@@ -466,6 +475,65 @@ async function abaIntegracoes(el) {
   await secaoVozPlataforma(document.getElementById("int-voz"));
   await secaoStripe(document.getElementById("int-stripe")); // Stripe (planos.py)
   await secaoTwilio(document.getElementById("int-twilio")); // Twilio (telefonia.py)
+  await secaoSmsDono(document.getElementById("int-sms")); // SMS e status A2P (sms.py)
+  await secaoGoogleAgenda(document.getElementById("int-google")); // Google Agenda (google_cal.py)
+}
+
+// Google Agenda e Google Meet: cliente OAuth único da plataforma (google_cal.py)
+async function secaoGoogleAgenda(box) {
+  if (!box) return;
+  let r;
+  try { r = await api("/api/dono/google"); } catch (e) { box.remove(); return; }
+  const passos = ["g_passo1", "g_passo2", "g_passo3", "g_passo4", "g_passo5", "g_passo6"];
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("bloco")}<span>${td("g_titulo")}</span></h2>
+    <p class="desc">${td("g_desc")}
+      ${r.configurado ? `<span class="badge ok">${td("configurado")}</span>` : `<span class="badge warn">${td("nao_configurado")}</span>`}
+      ${r.configurado ? `<span class="hint">${td("g_contas", { n: fmtNumDono(r.contas_conectadas) })}</span>` : ""}</p>
+    <details ${r.configurado ? "" : "open"} style="margin:6px 0 14px">
+      <summary><strong>${td("g_passos_titulo")}</strong></summary>
+      <ol style="margin:8px 0 0 18px;padding:0;line-height:1.6">${passos.map((k) => `<li>${td(k)}</li>`).join("")}</ol>
+      <p class="desc" style="margin-top:8px">${td("g_escopos")} ${(r.escopos || []).map((x) => `<code>${esc(x)}</code>`).join(" ")}</p>
+    </details>
+    <label class="field">${td("g_redirect")} <span class="hint">${td("g_redirect_dica")}</span>
+      <input type="text" id="gg-redirect" value="${esc(r.redirect_uri)}" readonly></label>
+    <div class="grid cols-2">
+      <label class="field">${td("g_client_id")} <input type="text" id="gg-id" value="${esc(r.client_id)}" placeholder="123...apps.googleusercontent.com" autocomplete="off"></label>
+      <label class="field">${td("g_client_secret")} ${r.segredo_configurado ? `<span class="hint">${td("g_segredo_salvo", { final: esc(r.segredo_final || "") })}</span>` : ""}
+        <input type="password" id="gg-secret" autocomplete="off" placeholder="${r.segredo_configurado ? td("ph_trocar") : "GOCSPX-..."}"></label>
+    </div>
+    <div class="form-erro" id="gg-erro"></div>
+    <div class="linha-acoes">
+      <button class="btn" id="gg-salvar">${td("g_salvar")}</button>
+      <button class="btn ghost" id="gg-copiar">${td("g_copiar")}</button>
+      ${r.configurado ? `<button class="btn ghost" id="gg-remover">${td("g_remover")}</button>` : ""}
+    </div>`;
+  const aviso = (texto, ok) => {
+    const e = box.querySelector("#gg-erro");
+    e.style.color = ok ? "var(--ok)" : "var(--err)";
+    e.textContent = texto;
+  };
+  box.querySelector("#gg-copiar").addEventListener("click", () => {
+    navigator.clipboard.writeText(r.redirect_uri).then(() => aviso(td("g_copiado"), true)).catch(() => {});
+  });
+  box.querySelector("#gg-salvar").addEventListener("click", async () => {
+    const corpo = { client_id: box.querySelector("#gg-id").value.trim() };
+    const segredo = box.querySelector("#gg-secret").value.trim();
+    if (segredo) corpo.client_secret = segredo;
+    try {
+      await api("/api/dono/google", { method: "POST", body: corpo });
+      await secaoGoogleAgenda(box);
+      aviso(td("g_salvo"), true);
+    } catch (e) { aviso(e.message); }
+  });
+  const remover = box.querySelector("#gg-remover");
+  if (remover) remover.addEventListener("click", async () => {
+    if (!confirm(td("g_confirma_remover"))) return;
+    try {
+      await api("/api/dono/google", { method: "POST", body: { remover: true } });
+      await secaoGoogleAgenda(box);
+    } catch (e) { aviso(e.message); }
+  });
 }
 
 
@@ -481,8 +549,11 @@ async function secaoVozPlataforma(box) {
       <label class="field">${td("voz_segredo")} <input type="password" id="vi-secret" autocomplete="off" placeholder="${r.webhook_configurado ? "••••••" : "wsec_..."}"></label>
       <label class="field">${td("voz_agente")} <input type="text" id="vi-agent" value="${esc(r.agent_id)}"></label>
       <label class="field">${td("voz_telefone")} <input type="text" id="vi-phone" value="${esc(r.phone_number_id)}"></label>
+      <label class="field">${td("voz_entrada_segredo")} <input type="password" id="vi-entrada" autocomplete="off" placeholder="${r.entrada_configurada ? "••••••" : ""}"></label>
+      <label class="field">${td("voz_entrada_empresa")} <input type="text" id="vi-entrada-empresa" value="${esc(r.empresa_entrada || "")}" placeholder="ID"></label>
     </div>
     <p class="desc">${td("voz_webhook")} <code>${esc(r.webhook_url)}</code></p>
+    ${r.entrada_url ? `<p class="desc">${td("voz_entrada_url")} <code>${esc(r.entrada_url)}</code> (${esc(r.entrada_cabecalho || "")})</p>` : ""}
     <div class="form-erro" id="vi-erro"></div>
     <button class="btn" id="vi-salvar">${td("voz_salvar")}</button>`;
   box.querySelector("#vi-salvar").addEventListener("click", async () => {
@@ -491,6 +562,9 @@ async function secaoVozPlataforma(box) {
     const sgr = box.querySelector("#vi-secret").value.trim();
     if (k) corpo.api_key = k;
     if (sgr) corpo.webhook_secret = sgr;
+    const ent = box.querySelector("#vi-entrada").value.trim();
+    if (ent) corpo.inbound_secret = ent;
+    corpo.empresa_entrada = box.querySelector("#vi-entrada-empresa").value.trim();
     const erro = box.querySelector("#vi-erro");
     try {
       await api("/api/dono/voz/integracao", { method: "POST", body: corpo });
@@ -1059,6 +1133,87 @@ async function numerosDaEmpresa(id, box) {
   box.querySelectorAll("[data-tel-desanexar]").forEach((b) => b.addEventListener("click", () => liberarNumero(b.dataset.telDesanexar, b.dataset.num, true)));
 }
 // ================================================================ fim números por empresa
+
+// ================================================================ SMS (sms.py)
+async function secaoSmsDono(box) {
+  if (!box) return;
+  let r;
+  try { r = await api("/api/dono/sms"); } catch (e) { box.innerHTML = ""; return; }
+  smsDonoDesenhar(box, r);
+}
+
+function smsDonoDesenhar(box, r, aviso) {
+  const a = r.a2p;
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("aspas")}<span>${td("sms_titulo")}</span></h2>
+    <p class="desc">${td("sms_desc")}
+      ${r.habilitado ? `<span class="badge ok">${td("sms_ligado")}</span>` : `<span class="badge warn">${td("sms_desligado")}</span>`}</p>
+    ${r.twilio_configurado ? "" : `<p class="hint" style="color:var(--warn)">${td("sms_sem_twilio")}</p>`}
+    <label style="display:block;margin:8px 0"><input type="checkbox" id="smsd-hab" ${r.habilitado ? "checked" : ""}> ${td("sms_habilitar")}</label>
+    <p class="hint">${td("sms_habilitar_dica")}</p>
+    <h3>${td("sms_a2p_titulo")}</h3>
+    <div class="grid cols-2">
+      <label class="field">${td("sms_a2p_status")}
+        <select id="smsd-st">${r.a2p_status_opcoes.map((s) => `<option value="${s}" ${s === a.status ? "selected" : ""}>${esc(td("sms_a2p_st_" + s))}</option>`).join("")}</select></label>
+      <label class="field">${td("sms_a2p_brand")} <input type="text" id="smsd-brand" maxlength="64" value="${esc(a.brand_id)}" placeholder="BNxxxxxxxx"></label>
+      <label class="field">${td("sms_a2p_campanha")} <input type="text" id="smsd-camp" maxlength="64" value="${esc(a.campaign_id)}" placeholder="CMxxxxxxxx"></label>
+      <label class="field">${td("sms_a2p_servico")} <input type="text" id="smsd-ms" maxlength="64" value="${esc(a.messaging_service_sid)}" placeholder="MGxxxxxxxx"></label>
+    </div>
+    <label class="field">${td("sms_a2p_notas")} <textarea id="smsd-notas" rows="3" maxlength="2000">${esc(a.notas)}</textarea></label>
+    ${a.atualizado_em ? `<p class="hint">${td("sms_a2p_atualizado", { data: esc(fmtDataDono(a.atualizado_em, true)) })}</p>` : ""}
+    <div class="grid cols-2">
+      <label class="field">${td("sms_numero")} <span class="hint">${td("sms_numero_dica")}</span>
+        <input type="text" id="smsd-num" value="${esc(r.numero_plataforma)}" placeholder="+1XXXXXXXXXX"></label>
+      <label style="display:block;margin:28px 0 8px"><input type="checkbox" id="smsd-resp" ${r.responder_palavras_chave ? "checked" : ""}> ${td("sms_responder")}</label>
+    </div>
+    <p class="desc">${td("sms_webhook_entrada")} <code>${esc(r.webhook_entrada)}</code><br>${td("sms_webhook_status")} <code>${esc(r.webhook_status)}</code></p>
+    <div class="form-erro" id="smsd-msg"></div>
+    <div class="linha-acoes">
+      <button class="btn" id="smsd-salvar">${td("sms_salvar")}</button>
+      <button class="btn secondary" id="smsd-webhooks" ${r.twilio_configurado ? "" : "disabled"}>${td("sms_webhooks")}</button>
+    </div>
+    <h3>${td("sms_empresas", { mes: esc(r.mes) })}</h3>
+    <div class="tabela-wrap"><table class="tabela">
+      <thead><tr><th>${td("col_empresa")}</th><th>${td("sms_col_numero")}</th><th>${td("sms_col_ativo")}</th>
+        <th class="num">${td("sms_col_uso")}</th><th class="num">${td("sms_col_msgs")}</th></tr></thead>
+      <tbody>${r.empresas.map((e) => `<tr>
+        <td><strong>${esc(e.nome)}</strong></td>
+        <td>${e.numero ? esc(e.numero) + (e.numero_proprio ? "" : ` <span class="hint">${td("sms_plataforma")}</span>`) : `<span style="color:var(--muted)">${td("sms_sem_numero")}</span>`}</td>
+        <td><label><input type="checkbox" data-sms-empresa="${e.id}" ${e.ativo ? "checked" : ""}> ${td("sms_empresa_ativo")}</label></td>
+        <td class="num">${e.uso.ilimitado ? td("sms_uso_ilimitado", { n: fmtNumDono(e.uso.segmentos) })
+          : td("sms_uso_limite", { n: fmtNumDono(e.uso.segmentos), limite: fmtNumDono(e.uso.limite) })}${e.uso.excedente ? ` <span class="badge warn">+${fmtNumDono(e.uso.excedente)}</span>` : ""}</td>
+        <td class="num">${fmtNumDono(e.uso.mensagens)} / ${fmtNumDono(e.uso.recebidas)}</td>
+      </tr>`).join("") || `<tr><td colspan="5" style="color:var(--muted)">${td("nenhuma_empresa")}</td></tr>`}</tbody>
+    </table></div>
+    <p class="hint">${td("sms_col_msgs_dica")}</p>`;
+  const msg = (t, bom) => { const m = box.querySelector("#smsd-msg"); m.style.color = bom ? "var(--ok)" : "var(--err)"; m.textContent = t; };
+  if (aviso) msg(aviso, true);
+  box.querySelector("#smsd-salvar").addEventListener("click", async () => {
+    try {
+      const novo = await api("/api/dono/sms", { method: "POST", body: {
+        a2p: { status: box.querySelector("#smsd-st").value, brand_id: box.querySelector("#smsd-brand").value.trim(),
+               campaign_id: box.querySelector("#smsd-camp").value.trim(), messaging_service_sid: box.querySelector("#smsd-ms").value.trim(),
+               notas: box.querySelector("#smsd-notas").value },
+        numero_plataforma: box.querySelector("#smsd-num").value.trim(),
+        responder_palavras_chave: box.querySelector("#smsd-resp").checked,
+        habilitado: box.querySelector("#smsd-hab").checked } });
+      smsDonoDesenhar(box, novo, td("sms_salvo"));
+    } catch (e) { msg(e.message); }
+  });
+  box.querySelector("#smsd-webhooks").addEventListener("click", async () => {
+    try {
+      const w = await api("/api/dono/sms/webhooks", { method: "POST", body: {} });
+      msg(td("sms_webhooks_ok", { n: fmtNumDono(w.configurados) }) + (w.falhas.length ? " " + td("sms_webhooks_falha", { lista: w.falhas.join(", ") }) : ""), !w.falhas.length);
+    } catch (e) { msg(e.message); }
+  });
+  box.querySelectorAll("[data-sms-empresa]").forEach((c) => c.addEventListener("change", async () => {
+    try {
+      const novo = await api("/api/dono/sms/empresa/" + c.dataset.smsEmpresa, { method: "POST", body: { ativo: c.checked } });
+      smsDonoDesenhar(box, novo, td("sms_salvo"));
+    } catch (e) { msg(e.message); c.checked = !c.checked; }
+  }));
+}
+// ================================================================ fim SMS
 
 // ------------------------------------------------ boot
 async function iniciar() {

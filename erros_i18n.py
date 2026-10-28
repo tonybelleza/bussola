@@ -567,3 +567,174 @@ for _regex, _modelos in PADROES[-3:]:
 ERROS["A vaga precisa estar aberta para avisar o banco de talentos"] = {"en": "The job must be open to notify the talent pool", "es": "La vacante debe estar abierta para avisar al banco de talentos"}
 ERROS["Configure o envio de e-mails (SMTP) antes de avisar o banco de talentos"] = {"en": "Set up email sending (SMTP) before notifying the talent pool", "es": "Configura el envío de correos (SMTP) antes de avisar al banco de talentos"}
 ERROS["Nenhum candidato para avisar com esses filtros"] = {"en": "No candidates to notify with these filters", "es": "No hay candidatos para avisar con estos filtros"}
+
+# operação: backup externo, saúde e alertas (operacao.py)
+ERROS.update({
+    "Instale python3-cryptography no servidor para usar o backup externo": {
+        "en": "Install python3-cryptography on the server to use offsite backups",
+        "es": "Instala python3-cryptography en el servidor para usar el respaldo externo"},
+    "Arquivo de backup inválido": {"en": "Invalid backup file", "es": "Archivo de respaldo inválido"},
+    "Arquivo de backup incompleto": {"en": "Incomplete backup file", "es": "Archivo de respaldo incompleto"},
+    "Frase de backup incorreta ou arquivo corrompido": {
+        "en": "Wrong backup passphrase or corrupted file",
+        "es": "Frase de respaldo incorrecta o archivo dañado"},
+    "A chave da máquina (backups.key) não foi encontrada. Informe de novo o segredo e a frase de backup.": {
+        "en": "The machine key (backups.key) was not found. Enter the secret and the backup passphrase again.",
+        "es": "No se encontró la llave de la máquina (backups.key). Ingresa de nuevo el secreto y la frase de respaldo."},
+    "A chave da máquina (backups.key) não confere. Informe de novo o segredo e a frase de backup.": {
+        "en": "The machine key (backups.key) does not match. Enter the secret and the backup passphrase again.",
+        "es": "La llave de la máquina (backups.key) no coincide. Ingresa de nuevo el secreto y la frase de respaldo."},
+    "Sem conexão com o armazenamento. Confira o endpoint.": {
+        "en": "Could not reach the storage. Check the endpoint.",
+        "es": "No se pudo conectar con el almacenamiento. Revisa el endpoint."},
+    "Endpoint inválido (use https://...)": {"en": "Invalid endpoint (use https://...)", "es": "Endpoint inválido (usa https://...)"},
+    "Região inválida": {"en": "Invalid region", "es": "Región inválida"},
+    "Nome do bucket inválido": {"en": "Invalid bucket name", "es": "Nombre de bucket inválido"},
+    "Prefixo inválido": {"en": "Invalid prefix", "es": "Prefijo inválido"},
+    "Chave de acesso inválida": {"en": "Invalid access key", "es": "Clave de acceso inválida"},
+    "Segredo inválido": {"en": "Invalid secret", "es": "Secreto inválido"},
+    "Informe o segredo da chave de acesso": {"en": "Enter the access key secret", "es": "Ingresa el secreto de la clave de acceso"},
+    "A frase de backup deve ter ao menos 12 caracteres": {
+        "en": "The backup passphrase must have at least 12 characters",
+        "es": "La frase de respaldo debe tener al menos 12 caracteres"},
+    "Frase de backup atual incorreta": {"en": "Current backup passphrase is incorrect", "es": "La frase de respaldo actual es incorrecta"},
+    "Configure o armazenamento externo primeiro": {"en": "Set up the offsite storage first", "es": "Configura primero el almacenamiento externo"},
+    "Defina a frase de backup primeiro": {"en": "Set the backup passphrase first", "es": "Define primero la frase de respaldo"},
+    "O teste de conexão falhou: o arquivo de teste não voltou igual": {
+        "en": "The connection test failed: the test file did not come back the same",
+        "es": "La prueba de conexión falló: el archivo de prueba no volvió igual"},
+    "Nenhum backup local encontrado": {"en": "No local backup found", "es": "No se encontró ningún respaldo local"},
+    "Já existe um backup em andamento": {"en": "A backup is already running", "es": "Ya hay un respaldo en curso"},
+})
+PADROES.append((r"^Erro no armazenamento: (?P<detalhe>.*)$",
+                {"en": "Storage error: {detalhe}", "es": "Error del almacenamiento: {detalhe}"}))
+PADROES.append((r"^O backup externo falhou: (?P<detalhe>.*)$",
+                {"en": "The offsite backup failed: {detalhe}", "es": "El respaldo externo falló: {detalhe}"}))
+for _regex, _modelos in PADROES[-2:]:
+    _COMPILADOS.append((re.compile(_regex, re.S), _modelos))
+
+# exportação para a folha e verificação de antecedentes pela Checkr (integracoes_rh.py)
+ERROS.update({
+    "Apenas o administrador da empresa configura as integrações": {
+        "en": "Only the company admin can set up integrations",
+        "es": "Solo el administrador de la empresa configura las integraciones"},
+    "Apenas o administrador da empresa pede a verificação de antecedentes": {
+        "en": "Only the company admin can order a background check",
+        "es": "Solo el administrador de la empresa solicita la verificación de antecedentes"},
+    "Apenas o administrador da empresa exporta para a folha": {
+        "en": "Only the company admin can export to payroll",
+        "es": "Solo el administrador de la empresa exporta a la nómina"},
+    "Chave da API da Checkr inválida": {"en": "Invalid Checkr API key", "es": "Clave de API de Checkr inválida"},
+    "Pacote da Checkr inválido": {"en": "Invalid Checkr package", "es": "Paquete de Checkr inválido"},
+    "Estado inválido: use a sigla de 2 letras": {
+        "en": "Invalid state: use the 2-letter code", "es": "Estado inválido: usa el código de 2 letras"},
+    "Sistema de folha inválido": {"en": "Invalid payroll provider", "es": "Sistema de nómina inválido"},
+    "Nenhuma contratação para exportar com esses filtros": {
+        "en": "No hires to export with these filters", "es": "No hay contrataciones para exportar con estos filtros"},
+    "Configure a Checkr em Configurações antes de pedir a verificação": {
+        "en": "Set up Checkr in Settings before ordering a background check",
+        "es": "Configura Checkr en Configuración antes de solicitar la verificación"},
+    "Envie a proposta antes de pedir a verificação de antecedentes": {
+        "en": "Send the offer before ordering a background check",
+        "es": "Envía la oferta antes de solicitar la verificación de antecedentes"},
+    "Já existe uma verificação de antecedentes em andamento para este candidato": {
+        "en": "A background check is already in progress for this candidate",
+        "es": "Ya hay una verificación de antecedentes en curso para este candidato"},
+    "A Checkr recusou a chave da API. Confira em Configurações.": {
+        "en": "Checkr rejected the API key. Check it in Settings.",
+        "es": "Checkr rechazó la clave de API. Revísala en Configuración."},
+    "Sem conexão com a Checkr. Tente de novo.": {
+        "en": "Could not reach Checkr. Try again.", "es": "No se pudo conectar con Checkr. Inténtalo de nuevo."},
+    "Método não permitido": {"en": "Method not allowed", "es": "Método no permitido"},
+    "Evento inválido": {"en": "Invalid event", "es": "Evento no válido"},
+    "Verificação não encontrada": {"en": "Background check not found", "es": "Verificación no encontrada"},
+})
+PADROES.append((r"^Erro na Checkr: (?P<detalhe>.*)$",
+                {"en": "Checkr error: {detalhe}", "es": "Error de Checkr: {detalhe}"}))
+_COMPILADOS.append((re.compile(PADROES[-1][0], re.S), PADROES[-1][1]))
+
+# dados e conta, consentimento e suporte do dono (conta.py)
+ERROS.update({
+    "Código de suporte inválido ou expirado": {
+        "en": "Support code is invalid or expired", "es": "El código de soporte no es válido o venció"},
+    "Esta sessão não é de suporte": {"en": "This is not a support session", "es": "Esta sesión no es de soporte"},
+    "Apenas o administrador da empresa acessa os dados e a conta": {
+        "en": "Only the company admin can access data and account settings",
+        "es": "Solo el administrador de la empresa accede a los datos y la cuenta"},
+    "Indisponível no modo suporte": {"en": "Not available in support mode", "es": "No disponible en modo soporte"},
+    "Já existe uma exportação sendo preparada. Aguarde alguns minutos.": {
+        "en": "An export is already being prepared. Wait a few minutes.",
+        "es": "Ya se está preparando una exportación. Espera unos minutos."},
+    "Exportação não encontrada": {"en": "Export not found", "es": "Exportación no encontrada"},
+    "O link expirou. Gere uma nova exportação.": {
+        "en": "The link expired. Create a new export.", "es": "El enlace venció. Genera una nueva exportación."},
+    "A exportação ainda está sendo preparada": {
+        "en": "The export is still being prepared", "es": "La exportación todavía se está preparando"},
+    "Digite o nome da empresa exatamente como aparece para confirmar": {
+        "en": "Type the company name exactly as shown to confirm",
+        "es": "Escribe el nombre de la empresa exactamente como aparece para confirmar"},
+})
+
+# domínio próprio das páginas de vagas (dominios.py)
+ERROS.update({
+    "Domínio inválido": {"en": "Invalid domain", "es": "Dominio no válido"},
+    "Este domínio pertence à plataforma": {
+        "en": "This domain belongs to the platform", "es": "Este dominio pertenece a la plataforma"},
+    "Este domínio já foi cadastrado": {
+        "en": "This domain has already been added", "es": "Este dominio ya fue registrado"},
+    "Este domínio já está em uso por outra empresa": {
+        "en": "This domain is already in use by another company",
+        "es": "Este dominio ya está en uso por otra empresa"},
+    "Domínio não encontrado": {"en": "Domain not found", "es": "Dominio no encontrado"},
+    "Apenas o administrador da empresa gerencia o domínio próprio": {
+        "en": "Only the company admin can manage the custom domain",
+        "es": "Solo el administrador de la empresa gestiona el dominio propio"},
+    "Muitas verificações. Aguarde alguns minutos.": {
+        "en": "Too many checks. Wait a few minutes.", "es": "Demasiadas verificaciones. Espera unos minutos."},
+})
+PADROES.append((r"^Seu plano permite até (?P<n>\d+) domínio\(s\) próprio\(s\)$",
+                {"en": "Your plan allows up to {n} custom domain(s)",
+                 "es": "Tu plan permite hasta {n} dominio(s) propio(s)"}))
+_COMPILADOS.append((re.compile(PADROES[-1][0], re.S), PADROES[-1][1]))
+
+# Google Agenda e Google Meet (google_cal.py e agenda.py)
+ERROS.update({
+    "O Google Agenda não está configurado na plataforma": {
+        "en": "Google Calendar is not set up on the platform",
+        "es": "Google Calendar no está configurado en la plataforma"},
+    "Não foi possível conectar ao Google Agenda. Tente de novo.": {
+        "en": "Could not connect to Google Calendar. Try again.",
+        "es": "No se pudo conectar con Google Calendar. Inténtalo de nuevo."},
+    "O Google não liberou o acesso contínuo. Remova o acesso da Bússola na sua Conta Google e conecte de novo.": {
+        "en": "Google did not grant ongoing access. Remove Bússola's access in your Google Account and connect again.",
+        "es": "Google no concedió el acceso continuo. Quita el acceso de Bússola en tu Cuenta de Google y conecta de nuevo."},
+    "ID do cliente OAuth inválido (termina em .apps.googleusercontent.com)": {
+        "en": "Invalid OAuth client ID (it ends in .apps.googleusercontent.com)",
+        "es": "ID de cliente OAuth inválido (termina en .apps.googleusercontent.com)"},
+    "Entrevistador inválido": {"en": "Invalid interviewer", "es": "Entrevistador inválido"},
+})
+
+# mensagens de texto (sms.py)
+ERROS.update({
+    "Apenas o administrador da empresa configura o SMS": {
+        "en": "Only the company admin can set up text messages",
+        "es": "Solo el administrador de la empresa configura los SMS"},
+    "Escreva a mensagem": {"en": "Type the message", "es": "Escribe el mensaje"},
+    "Mensagem longa demais (máximo de 640 caracteres)": {
+        "en": "Message is too long (640 characters max)", "es": "El mensaje es demasiado largo (máximo 640 caracteres)"},
+    "Modelo de SMS inválido": {"en": "Invalid text message template", "es": "Plantilla de SMS no válida"},
+    "Modelo de SMS longo demais (máximo de 480 caracteres)": {
+        "en": "Text message template is too long (480 characters max)",
+        "es": "La plantilla de SMS es demasiado larga (máximo 480 caracteres)"},
+    "Contato de ajuda longo demais (máximo de 80 caracteres)": {
+        "en": "Help contact is too long (80 characters max)",
+        "es": "El contacto de ayuda es demasiado largo (máximo 80 caracteres)"},
+    "Número de envio inválido: use o formato +1XXXXXXXXXX": {
+        "en": "Invalid sending number: use the format +1XXXXXXXXXX",
+        "es": "Número de envío no válido: usa el formato +1XXXXXXXXXX"},
+    "Marque a campanha A2P como aprovada antes de ligar o SMS": {
+        "en": "Mark the A2P campaign as approved before turning on text messages",
+        "es": "Marca la campaña A2P como aprobada antes de activar los SMS"},
+    "Status A2P inválido": {"en": "Invalid A2P status", "es": "Estado A2P no válido"},
+    "Texto longo demais": {"en": "Text is too long", "es": "El texto es demasiado largo"},
+})
