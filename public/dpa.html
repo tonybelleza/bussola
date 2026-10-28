@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Processing Addendum · Bússola</title>
+  <meta name="description" content="Data Processing Addendum for Bússola, the AI recruiting and onboarding platform by Tony Belleza.">
+  <meta name="theme-color" content="#070B14">
+  <meta name="robots" content="noindex"><!-- manter noindex até o Tony publicar -->
+  <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script src="js/tema.js"></script>
+  <style>
+    /* páginas legais (mesmo bloco em termos.html, privacidade.html e dpa.html) */
+    .lg-main { padding-top: 40px; padding-bottom: 72px; max-width: 880px; }
+    .lg-main:focus { outline: none; }
+    .lg-updated { font-size: .82rem; color: var(--text-2); margin: 0 0 4px; }
+    .lg-head h1 { font-size: clamp(1.8rem, 4.4vw, 2.6rem); line-height: 1.12; letter-spacing: -.015em; margin: 16px 0 10px; }
+    .lg-meta { color: var(--text-2); font-size: .9rem; margin-bottom: 14px; }
+    .lg-head .lp-sub { margin-bottom: 8px; }
+    .lg-toc { padding: 22px 24px; margin: 28px 0 8px; }
+    .lg-toc h2 { font: 500 .76rem/1.2 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 14px; }
+    .lg-toc ol { columns: 2; column-gap: 28px; padding-left: 1.3em; font-size: .92rem; }
+    .lg-toc li { margin-bottom: 7px; break-inside: avoid; }
+    .lg-toc a { text-decoration: none; }
+    .lg-toc a:hover { text-decoration: underline; }
+    .lg-doc section { padding-top: 30px; }
+    .lg-doc h2 { font-size: clamp(1.2rem, 2.6vw, 1.45rem); line-height: 1.25; margin-bottom: 12px; scroll-margin-top: 90px; }
+    .lg-doc h3 { font-size: 1.02rem; margin: 18px 0 8px; }
+    .lg-doc p, .lg-doc li { color: var(--text-2); font-size: .98rem; line-height: 1.65; }
+    .lg-doc p { margin-bottom: 12px; }
+    .lg-doc section ul, .lg-doc section ol { padding-left: 1.3em; margin-bottom: 12px; }
+    .lg-doc section li { margin-bottom: 6px; }
+    .lg-doc strong { color: var(--text); font-weight: 560; }
+    .lg-doc a { overflow-wrap: anywhere; }
+    .lg-tabela { overflow-x: auto; margin: 6px 0 14px; border: 1px solid var(--line); border-radius: 14px; }
+    .lg-tabela table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+    .lg-tabela th, .lg-tabela td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--text-2); }
+    .lg-tabela th { color: var(--text); font-weight: 520; background: var(--surface-2); }
+    .lg-tabela tr:last-child td { border-bottom: 0; }
+    .lg-topo { margin-top: 32px; font-size: .9rem; }
+    @media (max-width: 680px) {
+      .lg-top .actions .lp-lang { display: inline-flex; }
+      .lg-toc ol { columns: 1; }
+      .lg-main { padding-top: 24px; }
+    }
+    @media (max-width: 420px) {
+      .lg-top .lp-brand .sep, .lg-top .lp-brand b, .lg-top .lp-entrar { display: none; }
+    }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#conteudo" data-t="pular">Skip to content</a>
+
+  <header class="topbar lp-top lg-top">
+    <div class="inner">
+      <a class="brand lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+        <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+        <span class="sep" aria-hidden="true"></span>
+        <b>Bússola</b>
+      </a>
+      <div class="actions">
+        <div class="lp-lang" role="group" aria-label="Language"></div>
+        <a class="lp-entrar" href="/gestor" data-t="entrar">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="lp-bg" aria-hidden="true"></div>
+
+  <main id="conteudo" class="lp-wrap lg-main" tabindex="-1">
+
+    <!-- ============================================================ ENGLISH -->
+    <article class="lg-doc" data-doc-lang="en" lang="en" aria-labelledby="en-titulo"
+      data-title="Data Processing Addendum · Bússola"
+      data-desc="Data Processing Addendum for Bússola, the AI recruiting and onboarding platform by Tony Belleza.">
+      <p class="lg-updated">Last updated: October 28, 2026</p>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="en-titulo">Data Processing Addendum</h1>
+        <p class="lg-meta">Effective date: October 28, 2026</p>
+        <p class="lp-sub">This Addendum explains how Bússola processes personal information on behalf of the companies that subscribe to it, and the commitments we make to protect that information.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="en-toc">
+        <h2 id="en-toc">Contents</h2>
+        <ol>
+          <li><a href="#en-1">Scope and parties</a></li>
+          <li><a href="#en-2">Definitions</a></li>
+          <li><a href="#en-3">Roles of the parties</a></li>
+          <li><a href="#en-4">Details of the processing</a></li>
+          <li><a href="#en-5">Customer instructions</a></li>
+          <li><a href="#en-6">Confidentiality of personnel</a></li>
+          <li><a href="#en-7">Subprocessors</a></li>
+          <li><a href="#en-8">Security measures</a></li>
+          <li><a href="#en-9">Personal data breaches</a></li>
+          <li><a href="#en-10">Assistance with requests and compliance</a></li>
+          <li><a href="#en-11">Deletion and return of data</a></li>
+          <li><a href="#en-12">Audits</a></li>
+          <li><a href="#en-13">International transfers</a></li>
+          <li><a href="#en-14">Liability and order of precedence</a></li>
+          <li><a href="#en-15">Term, changes and contact</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="en-1">
+        <h2 id="en-1">1. Scope and parties</h2>
+        <p>This Data Processing Addendum ("Addendum") is part of the <a href="/termos.html">Terms of Service</a> between Tony Belleza Consulting, which operates Bússola ("Bússola", "we", "us"), and the company that subscribes to the Service ("Customer", "you"). It applies automatically whenever we process Customer Personal Data in providing the Service, with no separate signature needed. Capitalized terms not defined here have the meaning given in the Terms.</p>
+      </section>
+
+      <section aria-labelledby="en-2">
+        <h2 id="en-2">2. Definitions</h2>
+        <ul>
+          <li><strong>Customer Personal Data</strong>: personal information within Customer Data that we process on the Customer's behalf, such as information about Candidates, new hires and Users.</li>
+          <li><strong>Data Protection Laws</strong>: the privacy and data protection laws that apply to the processing, which may include US state privacy laws such as the California Consumer Privacy Act as amended by the CPRA, and Brazil's Lei Geral de Proteção de Dados (LGPD).</li>
+          <li><strong>Data Subject</strong>: the person the personal information is about.</li>
+          <li><strong>Personal Data Breach</strong>: a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, Customer Personal Data.</li>
+          <li><strong>Subprocessor</strong>: a third party we engage to process Customer Personal Data.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-3">
+        <h2 id="en-3">3. Roles of the parties</h2>
+        <p>The Customer is the controller (a "business" under California law and a "controlador" under the LGPD) of Customer Personal Data. Bússola is the processor (a "service provider" under California law and an "operador" under the LGPD) and processes Customer Personal Data only on the Customer's behalf. Each party will comply with the Data Protection Laws that apply to it. The Customer is responsible for having a lawful basis and any notices and consents required to collect Customer Personal Data and to have us process it, including for recorded AI screening calls and text messages.</p>
+        <p>As a service provider, we will not sell or share Customer Personal Data, will not retain, use or disclose it for any purpose other than providing the Service, and will not combine it with personal information we receive from other sources, except as permitted by Data Protection Laws.</p>
+      </section>
+
+      <section aria-labelledby="en-4">
+        <h2 id="en-4">4. Details of the processing</h2>
+        <div class="lg-tabela" role="region" aria-label="Details of the processing" tabindex="0">
+          <table>
+            <tbody>
+              <tr><th scope="row">Subject matter</th><td>Providing the Bússola recruiting and onboarding platform to the Customer.</td></tr>
+              <tr><th scope="row">Duration</th><td>The term of the Customer's subscription, plus the export and deletion periods in section 11.</td></tr>
+              <tr><th scope="row">Nature</th><td>Collection, storage, organization, analysis with AI tools, transmission (calls, text messages and email), display, export, anonymization and deletion.</td></tr>
+              <tr><th scope="row">Purpose</th><td>Receiving and reviewing job applications, running assessments and AI phone screening, scheduling interviews, sending messages, onboarding new hires and supporting the Customer's account.</td></tr>
+              <tr><th scope="row">Categories of personal data</th><td>Contact details; application, work history and availability; resumes; assessment answers and results; call recordings, transcripts, extracted facts, summaries and scores; scheduling and messages; onboarding details, tax and employment eligibility forms, identity documents, bank details for wages and electronic signatures; User account details; access logs.</td></tr>
+              <tr><th scope="row">Sensitive data</th><td>Social Security or taxpayer numbers, immigration and identity document numbers, dates of birth and bank details collected during onboarding. The Customer should not use the Service to collect other sensitive data, such as health information, unless the law requires it for the job.</td></tr>
+              <tr><th scope="row">Categories of data subjects</th><td>Job applicants (Candidates), new hires and employees in onboarding, and the Customer's Users (managers and administrators).</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="en-5">
+        <h2 id="en-5">5. Customer instructions</h2>
+        <p>We process Customer Personal Data only on the Customer's documented instructions. The Terms, this Addendum and the Customer's configuration and use of the Service are the Customer's complete instructions. We will tell the Customer if we believe an instruction violates Data Protection Laws, and we may suspend that processing until the instruction is changed. If the law requires us to process data in another way, we will tell the Customer first unless the law prohibits it.</p>
+      </section>
+
+      <section aria-labelledby="en-6">
+        <h2 id="en-6">6. Confidentiality of personnel</h2>
+        <p>We allow access to Customer Personal Data only to personnel and contractors who need it to provide or support the Service and who are bound by confidentiality obligations.</p>
+      </section>
+
+      <section aria-labelledby="en-7">
+        <h2 id="en-7">7. Subprocessors</h2>
+        <p>The Customer gives general authorization for us to use Subprocessors. We impose on each Subprocessor data protection obligations that protect Customer Personal Data at least as much as this Addendum, and we remain responsible for their performance. Our current Subprocessors are:</p>
+        <div class="lg-tabela" role="region" aria-label="Subprocessors" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Subprocessor</th><th scope="col">Purpose</th><th scope="col">Location</th></tr></thead>
+            <tbody>
+              <tr><td>Oracle Cloud Infrastructure</td><td>Hosting, storage and backups</td><td>United States</td></tr>
+              <tr><td>ElevenLabs</td><td>Voice AI for screening calls and call recordings</td><td>United States</td></tr>
+              <tr><td>Twilio</td><td>Telephony and SMS</td><td>United States</td></tr>
+              <tr><td>Google Workspace (Gmail SMTP)</td><td>Transactional email</td><td>United States</td></tr>
+              <tr><td>Anthropic</td><td>Resume analysis, only when the Customer enables it</td><td>United States</td></tr>
+              <tr><td>Stripe</td><td>Payments, when enabled</td><td>United States</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>We will notify the Customer by email and in the app at least 30 days before adding or replacing a Subprocessor. The Customer may object on reasonable data protection grounds within that period. If we cannot address the objection, the Customer may end the affected subscription and receive a refund of prepaid fees for the unused period.</p>
+      </section>
+
+      <section aria-labelledby="en-8">
+        <h2 id="en-8">8. Security measures</h2>
+        <p>We maintain technical and organizational measures appropriate to the risk, including:</p>
+        <ul>
+          <li><strong>Encryption at rest</strong> for sensitive onboarding fields (such as Social Security and document numbers, dates of birth and bank details) and onboarding files.</li>
+          <li><strong>Encryption in transit</strong> using TLS (HTTPS) for all connections to the Service.</li>
+          <li><strong>Access controls per company:</strong> each company's data is logically separated, access is role based, and passwords are stored only as secure hashes.</li>
+          <li><strong>Audit log:</strong> an access history records which User viewed or changed which record, when, and from which IP address.</li>
+          <li><strong>Backups:</strong> 14 daily backups are kept and then expire automatically.</li>
+          <li><strong>Limited staff access:</strong> our own access is limited to what is needed to run, secure and support the Service.</li>
+        </ul>
+        <p>We may update these measures over time, provided the overall level of protection does not decrease.</p>
+      </section>
+
+      <section aria-labelledby="en-9">
+        <h2 id="en-9">9. Personal data breaches</h2>
+        <p>We will notify the Customer without undue delay, and in any case within 72 hours after becoming aware of a Personal Data Breach affecting its Customer Personal Data. The notice will describe, as far as we know at the time, the nature of the breach, the data and people affected, the likely consequences and the measures taken or proposed, and we will send updates as we learn more. We will take reasonable steps to contain and remedy the breach and will help the Customer meet its own obligations to notify authorities and individuals. Our notice is not an admission of fault.</p>
+      </section>
+
+      <section aria-labelledby="en-10">
+        <h2 id="en-10">10. Assistance with requests and compliance</h2>
+        <ul>
+          <li>The Service lets the Customer access, correct, export, anonymize and delete Candidate and employee data, and mark people as "do not call".</li>
+          <li>If we receive a request directly from a Data Subject about Customer Personal Data, we will forward it to the Customer promptly and will not respond ourselves except to confirm that the request was forwarded, unless the Customer authorizes us or the law requires it.</li>
+          <li>Taking into account the nature of the processing, we will provide reasonable help to the Customer in responding to Data Subject requests, carrying out data protection impact assessments and consulting regulators, where the Customer cannot do so through the Service.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-11">
+        <h2 id="en-11">11. Deletion and return of data</h2>
+        <p>During the subscription, the Customer can export and delete its data through the Service. After cancellation, the Customer may export its data for 30 days. We then delete or anonymize Customer Personal Data within 60 days after the account is closed, including asking ElevenLabs to delete call recordings. Backups expire automatically within 14 days after that. We may keep data only where the law requires, and it remains protected by this Addendum while we keep it. If a trial ends without a subscription, the data is kept for 30 days and then deleted or anonymized on the same basis.</p>
+      </section>
+
+      <section aria-labelledby="en-12">
+        <h2 id="en-12">12. Audits</h2>
+        <p>We will make available to the Customer the information reasonably necessary to show compliance with this Addendum, such as written answers to security questionnaires. If that information is not enough, the Customer may audit our compliance once a year, on at least 30 days written notice, during business hours, in a way that does not disrupt the Service or expose other customers' data, and under confidentiality obligations. The Customer bears its own audit costs. Additional audits are allowed when required by a regulator or after a Personal Data Breach.</p>
+      </section>
+
+      <section aria-labelledby="en-13">
+        <h2 id="en-13">13. International transfers</h2>
+        <p>Customer Personal Data is stored in the United States, and our Subprocessors process it in the United States. When Customer Personal Data is transferred from another country, including Brazil, we protect the transfer with contractual safeguards with our providers, including data protection terms and standard contractual clauses where the provider offers them, and with the measures in this Addendum. The Customer is responsible for any notices to Data Subjects that the law requires about these transfers.</p>
+      </section>
+
+      <section aria-labelledby="en-14">
+        <h2 id="en-14">14. Liability and order of precedence</h2>
+        <p>Each party's liability under this Addendum is subject to the limitations and exclusions of liability in the Terms. If this Addendum conflicts with the Terms on the processing of Customer Personal Data, this Addendum prevails. Translations are provided for convenience; if there is a conflict, the English version prevails.</p>
+      </section>
+
+      <section aria-labelledby="en-15">
+        <h2 id="en-15">15. Term, changes and contact</h2>
+        <p>This Addendum stays in effect for as long as we process Customer Personal Data. We may update it to reflect changes in law or in the Service, with at least 30 days notice by email and in the app for material changes, and no update will reduce the overall protection of Customer Personal Data.</p>
+        <p>Privacy contact and LGPD encarregado: Tony Belleza, <a href="mailto:privacy@tonybelleza.com">privacy@tonybelleza.com</a><br>
+        Website: <a href="https://rh.tonybelleza.com">https://rh.tonybelleza.com</a><br>
+        Mailing address available on request at privacy@tonybelleza.com.</p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Back to top</a></p>
+    </article>
+
+    <!-- ============================================================ PORTUGUÊS -->
+    <article class="lg-doc" data-doc-lang="pt" lang="pt-BR" aria-labelledby="pt-titulo" hidden
+      data-title="Aditivo de Tratamento de Dados · Bússola"
+      data-desc="Aditivo de Tratamento de Dados da Bússola, plataforma de recrutamento e onboarding com IA de Tony Belleza.">
+      <p class="lg-updated">Última atualização: 28 de outubro de 2026</p>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="pt-titulo">Aditivo de Tratamento de Dados</h1>
+        <p class="lg-meta">Data de vigência: 28 de outubro de 2026</p>
+        <p class="lp-sub">Este Aditivo explica como a Bússola trata dados pessoais em nome das empresas que a assinam e os compromissos que assumimos para proteger esses dados.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="pt-toc">
+        <h2 id="pt-toc">Sumário</h2>
+        <ol>
+          <li><a href="#pt-1">Abrangência e partes</a></li>
+          <li><a href="#pt-2">Definições</a></li>
+          <li><a href="#pt-3">Papéis das partes</a></li>
+          <li><a href="#pt-4">Detalhes do tratamento</a></li>
+          <li><a href="#pt-5">Instruções do Cliente</a></li>
+          <li><a href="#pt-6">Confidencialidade da equipe</a></li>
+          <li><a href="#pt-7">Suboperadores</a></li>
+          <li><a href="#pt-8">Medidas de segurança</a></li>
+          <li><a href="#pt-9">Incidentes com dados pessoais</a></li>
+          <li><a href="#pt-10">Apoio em pedidos e conformidade</a></li>
+          <li><a href="#pt-11">Exclusão e devolução dos dados</a></li>
+          <li><a href="#pt-12">Auditorias</a></li>
+          <li><a href="#pt-13">Transferências internacionais</a></li>
+          <li><a href="#pt-14">Responsabilidade e prevalência</a></li>
+          <li><a href="#pt-15">Vigência, mudanças e contato</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="pt-1">
+        <h2 id="pt-1">1. Abrangência e partes</h2>
+        <p>Este Aditivo de Tratamento de Dados ("Aditivo") faz parte dos <a href="/termos.html">Termos de Uso</a> entre a Tony Belleza Consulting, que opera a Bússola ("Bússola", "nós"), e a empresa que assina o Serviço ("Cliente", "você"). Ele se aplica automaticamente sempre que tratamos Dados Pessoais do Cliente para prestar o Serviço, sem necessidade de assinatura separada. Termos com inicial maiúscula não definidos aqui têm o significado dado nos Termos.</p>
+      </section>
+
+      <section aria-labelledby="pt-2">
+        <h2 id="pt-2">2. Definições</h2>
+        <ul>
+          <li><strong>Dados Pessoais do Cliente</strong>: dados pessoais contidos nos Dados do Cliente que tratamos em nome do Cliente, como dados de Candidatos, novos contratados e Usuários.</li>
+          <li><strong>Leis de Proteção de Dados</strong>: as leis de privacidade e proteção de dados aplicáveis ao tratamento, que podem incluir leis estaduais de privacidade dos EUA, como a California Consumer Privacy Act alterada pela CPRA, e a Lei Geral de Proteção de Dados (LGPD) do Brasil.</li>
+          <li><strong>Titular</strong>: a pessoa a quem os dados pessoais se referem.</li>
+          <li><strong>Incidente com Dados Pessoais</strong>: uma falha de segurança que cause a destruição, perda, alteração, divulgação ou acesso não autorizado, acidental ou ilícito, a Dados Pessoais do Cliente.</li>
+          <li><strong>Suboperador</strong>: um terceiro que contratamos para tratar Dados Pessoais do Cliente.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-3">
+        <h2 id="pt-3">3. Papéis das partes</h2>
+        <p>O Cliente é o controlador (um "business" pela lei da Califórnia) dos Dados Pessoais do Cliente. A Bússola é a operadora (um "service provider" pela lei da Califórnia) e trata os Dados Pessoais do Cliente apenas em nome do Cliente. Cada parte cumprirá as Leis de Proteção de Dados que se aplicam a ela. O Cliente é responsável por ter base legal e os avisos e consentimentos exigidos para coletar os Dados Pessoais do Cliente e para que nós os tratemos, inclusive para as ligações de triagem gravadas feitas por IA e para os SMS.</p>
+        <p>Como prestadora de serviço, não venderemos nem compartilharemos os Dados Pessoais do Cliente, não vamos guardá-los, usá-los ou divulgá-los para nenhuma finalidade além de prestar o Serviço e não vamos combiná-los com dados pessoais que recebemos de outras fontes, salvo quando as Leis de Proteção de Dados permitirem.</p>
+      </section>
+
+      <section aria-labelledby="pt-4">
+        <h2 id="pt-4">4. Detalhes do tratamento</h2>
+        <div class="lg-tabela" role="region" aria-label="Detalhes do tratamento" tabindex="0">
+          <table>
+            <tbody>
+              <tr><th scope="row">Objeto</th><td>Fornecer ao Cliente a plataforma de recrutamento e onboarding Bússola.</td></tr>
+              <tr><th scope="row">Duração</th><td>O período da assinatura do Cliente, mais os prazos de exportação e exclusão da seção 11.</td></tr>
+              <tr><th scope="row">Natureza</th><td>Coleta, armazenamento, organização, análise com ferramentas de IA, transmissão (ligações, SMS e e-mail), exibição, exportação, anonimização e exclusão.</td></tr>
+              <tr><th scope="row">Finalidade</th><td>Receber e avaliar candidaturas, aplicar testes e a triagem por telefone com IA, agendar entrevistas, enviar mensagens, fazer o onboarding de novos contratados e dar suporte à conta do Cliente.</td></tr>
+              <tr><th scope="row">Categorias de dados pessoais</th><td>Dados de contato; candidatura, histórico profissional e disponibilidade; currículos; respostas e resultados dos testes; gravações, transcrições, fatos extraídos, resumos e pontuações das ligações; agendamentos e mensagens; dados de onboarding, formulários fiscais e de elegibilidade para trabalho, documentos de identidade, dados bancários para salário e assinaturas eletrônicas; dados das contas de Usuário; registros de acesso.</td></tr>
+              <tr><th scope="row">Dados sensíveis</th><td>Números de Social Security ou de contribuinte, números de documentos de imigração e identidade, datas de nascimento e dados bancários coletados no onboarding. O Cliente não deve usar o Serviço para coletar outros dados sensíveis, como dados de saúde, salvo quando a lei exigir para a vaga.</td></tr>
+              <tr><th scope="row">Categorias de titulares</th><td>Candidatos a vagas, novos contratados e funcionários em onboarding, e os Usuários do Cliente (gestores e administradores).</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="pt-5">
+        <h2 id="pt-5">5. Instruções do Cliente</h2>
+        <p>Tratamos os Dados Pessoais do Cliente apenas conforme as instruções documentadas do Cliente. Os Termos, este Aditivo e a configuração e o uso do Serviço pelo Cliente formam as instruções completas do Cliente. Avisaremos o Cliente se acreditarmos que uma instrução viola as Leis de Proteção de Dados e poderemos suspender esse tratamento até que a instrução seja alterada. Se a lei nos obrigar a tratar os dados de outra forma, avisaremos o Cliente antes, salvo se a lei proibir.</p>
+      </section>
+
+      <section aria-labelledby="pt-6">
+        <h2 id="pt-6">6. Confidencialidade da equipe</h2>
+        <p>Só permitimos o acesso aos Dados Pessoais do Cliente a pessoas da equipe e prestadores que precisem dele para fornecer ou dar suporte ao Serviço e que tenham obrigação de confidencialidade.</p>
+      </section>
+
+      <section aria-labelledby="pt-7">
+        <h2 id="pt-7">7. Suboperadores</h2>
+        <p>O Cliente nos dá autorização geral para usar Suboperadores. Impomos a cada Suboperador obrigações de proteção de dados que protegem os Dados Pessoais do Cliente pelo menos tanto quanto este Aditivo, e continuamos responsáveis pelo trabalho deles. Nossos Suboperadores atuais são:</p>
+        <div class="lg-tabela" role="region" aria-label="Suboperadores" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Suboperador</th><th scope="col">Finalidade</th><th scope="col">Local</th></tr></thead>
+            <tbody>
+              <tr><td>Oracle Cloud Infrastructure</td><td>Hospedagem, armazenamento e cópias de segurança</td><td>Estados Unidos</td></tr>
+              <tr><td>ElevenLabs</td><td>Voz com IA para as ligações de triagem e gravações das ligações</td><td>Estados Unidos</td></tr>
+              <tr><td>Twilio</td><td>Telefonia e SMS</td><td>Estados Unidos</td></tr>
+              <tr><td>Google Workspace (Gmail SMTP)</td><td>E-mails transacionais</td><td>Estados Unidos</td></tr>
+              <tr><td>Anthropic</td><td>Análise de currículos, só quando o Cliente ativa</td><td>Estados Unidos</td></tr>
+              <tr><td>Stripe</td><td>Pagamentos, quando ativados</td><td>Estados Unidos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Avisaremos o Cliente por e-mail e no aplicativo com pelo menos 30 dias de antecedência antes de incluir ou substituir um Suboperador. O Cliente pode se opor por motivos razoáveis de proteção de dados dentro desse prazo. Se não conseguirmos resolver a objeção, o Cliente pode encerrar a assinatura afetada e receber o reembolso dos valores pagos antecipadamente pelo período não usado.</p>
+      </section>
+
+      <section aria-labelledby="pt-8">
+        <h2 id="pt-8">8. Medidas de segurança</h2>
+        <p>Mantemos medidas técnicas e organizacionais adequadas ao risco, incluindo:</p>
+        <ul>
+          <li><strong>Criptografia em repouso</strong> para campos sensíveis do onboarding (como números de Social Security e de documentos, datas de nascimento e dados bancários) e para os arquivos do onboarding.</li>
+          <li><strong>Criptografia em trânsito</strong> com TLS (HTTPS) em todas as conexões com o Serviço.</li>
+          <li><strong>Controle de acesso por empresa:</strong> os dados de cada empresa ficam separados logicamente, o acesso depende do perfil do usuário e as senhas são guardadas apenas como hashes seguros.</li>
+          <li><strong>Histórico de acessos:</strong> um registro de auditoria mostra qual Usuário viu ou alterou qual registro, quando e de qual endereço IP.</li>
+          <li><strong>Cópias de segurança:</strong> mantemos 14 cópias diárias, que depois expiram automaticamente.</li>
+          <li><strong>Acesso limitado da equipe:</strong> o nosso próprio acesso se limita ao necessário para operar, proteger e dar suporte ao Serviço.</li>
+        </ul>
+        <p>Podemos atualizar essas medidas com o tempo, desde que o nível geral de proteção não diminua.</p>
+      </section>
+
+      <section aria-labelledby="pt-9">
+        <h2 id="pt-9">9. Incidentes com dados pessoais</h2>
+        <p>Avisaremos o Cliente sem demora injustificada e, em qualquer caso, em até 72 horas depois de tomarmos conhecimento de um Incidente com Dados Pessoais que afete os seus Dados Pessoais do Cliente. O aviso descreverá, na medida do que soubermos no momento, a natureza do incidente, os dados e as pessoas afetados, as consequências prováveis e as medidas tomadas ou propostas, e enviaremos atualizações conforme soubermos mais. Tomaremos medidas razoáveis para conter e corrigir o incidente e ajudaremos o Cliente a cumprir suas próprias obrigações de comunicar autoridades, como a ANPD, e os titulares. O nosso aviso não é admissão de culpa.</p>
+      </section>
+
+      <section aria-labelledby="pt-10">
+        <h2 id="pt-10">10. Apoio em pedidos e conformidade</h2>
+        <ul>
+          <li>O Serviço permite que o Cliente acesse, corrija, exporte, anonimize e exclua dados de Candidatos e funcionários, e marque pessoas como "não ligar".</li>
+          <li>Se recebermos diretamente de um Titular um pedido sobre Dados Pessoais do Cliente, vamos encaminhá-lo ao Cliente prontamente e não responderemos nós mesmos, exceto para confirmar que o pedido foi encaminhado, salvo se o Cliente autorizar ou a lei exigir.</li>
+          <li>Considerando a natureza do tratamento, daremos ajuda razoável ao Cliente para responder a pedidos de Titulares, fazer relatórios de impacto à proteção de dados e consultar autoridades, quando o Cliente não puder fazer isso pelo próprio Serviço.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-11">
+        <h2 id="pt-11">11. Exclusão e devolução dos dados</h2>
+        <p>Durante a assinatura, o Cliente pode exportar e excluir seus dados pelo Serviço. Depois do cancelamento, o Cliente pode exportar seus dados durante 30 dias. Depois, excluímos ou anonimizamos os Dados Pessoais do Cliente em até 60 dias após o encerramento da conta, incluindo o pedido à ElevenLabs para apagar as gravações das ligações. As cópias de segurança expiram automaticamente em até 14 dias depois disso. Só podemos manter dados quando a lei exigir, e eles continuam protegidos por este Aditivo enquanto os mantivermos. Se um teste termina sem assinatura, os dados ficam guardados por 30 dias e depois são excluídos ou anonimizados da mesma forma.</p>
+      </section>
+
+      <section aria-labelledby="pt-12">
+        <h2 id="pt-12">12. Auditorias</h2>
+        <p>Disponibilizaremos ao Cliente as informações razoavelmente necessárias para demonstrar o cumprimento deste Aditivo, como respostas por escrito a questionários de segurança. Se essas informações não bastarem, o Cliente pode auditar o nosso cumprimento uma vez por ano, com pelo menos 30 dias de aviso por escrito, em horário comercial, de forma que não atrapalhe o Serviço nem exponha dados de outros clientes, e com obrigação de confidencialidade. O Cliente arca com os custos da própria auditoria. Auditorias adicionais são permitidas quando exigidas por uma autoridade ou depois de um Incidente com Dados Pessoais.</p>
+      </section>
+
+      <section aria-labelledby="pt-13">
+        <h2 id="pt-13">13. Transferências internacionais</h2>
+        <p>Os Dados Pessoais do Cliente são guardados nos Estados Unidos, e os nossos Suboperadores os tratam nos Estados Unidos. Quando Dados Pessoais do Cliente são transferidos de outro país, inclusive do Brasil, protegemos a transferência com salvaguardas contratuais com nossos fornecedores, incluindo termos de proteção de dados e cláusulas contratuais padrão quando o fornecedor as oferece, e com as medidas deste Aditivo. O Cliente é responsável pelos avisos aos Titulares que a lei exigir sobre essas transferências.</p>
+      </section>
+
+      <section aria-labelledby="pt-14">
+        <h2 id="pt-14">14. Responsabilidade e prevalência</h2>
+        <p>A responsabilidade de cada parte com base neste Aditivo está sujeita às limitações e exclusões de responsabilidade dos Termos. Se este Aditivo conflitar com os Termos quanto ao tratamento de Dados Pessoais do Cliente, prevalece este Aditivo. As traduções são fornecidas por conveniência; em caso de conflito, prevalece a versão em inglês.</p>
+      </section>
+
+      <section aria-labelledby="pt-15">
+        <h2 id="pt-15">15. Vigência, mudanças e contato</h2>
+        <p>Este Aditivo vale enquanto tratarmos Dados Pessoais do Cliente. Podemos atualizá-lo para refletir mudanças na lei ou no Serviço, com pelo menos 30 dias de aviso por e-mail e no aplicativo em mudanças relevantes, e nenhuma atualização vai reduzir a proteção geral dos Dados Pessoais do Cliente.</p>
+        <p>Contato de privacidade e encarregado pela LGPD: Tony Belleza, <a href="mailto:privacy@tonybelleza.com">privacy@tonybelleza.com</a><br>
+        Site: <a href="https://rh.tonybelleza.com">https://rh.tonybelleza.com</a><br>
+        Endereço postal disponível mediante pedido em privacy@tonybelleza.com.</p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Voltar ao topo</a></p>
+    </article>
+
+    <!-- ============================================================ ESPAÑOL -->
+    <article class="lg-doc" data-doc-lang="es" lang="es" aria-labelledby="es-titulo" hidden
+      data-title="Anexo de Tratamiento de Datos · Bússola"
+      data-desc="Anexo de Tratamiento de Datos de Bússola, la plataforma de reclutamiento y onboarding con IA de Tony Belleza.">
+      <p class="lg-updated">Última actualización: 28 de octubre de 2026</p>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="es-titulo">Anexo de Tratamiento de Datos</h1>
+        <p class="lg-meta">Fecha de vigencia: 28 de octubre de 2026</p>
+        <p class="lp-sub">Este Anexo explica cómo Bússola trata datos personales en nombre de las empresas que la contratan y los compromisos que asumimos para proteger esos datos.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="es-toc">
+        <h2 id="es-toc">Contenido</h2>
+        <ol>
+          <li><a href="#es-1">Alcance y partes</a></li>
+          <li><a href="#es-2">Definiciones</a></li>
+          <li><a href="#es-3">Funciones de las partes</a></li>
+          <li><a href="#es-4">Detalles del tratamiento</a></li>
+          <li><a href="#es-5">Instrucciones del Cliente</a></li>
+          <li><a href="#es-6">Confidencialidad del personal</a></li>
+          <li><a href="#es-7">Subencargados</a></li>
+          <li><a href="#es-8">Medidas de seguridad</a></li>
+          <li><a href="#es-9">Brechas de datos personales</a></li>
+          <li><a href="#es-10">Asistencia con solicitudes y cumplimiento</a></li>
+          <li><a href="#es-11">Eliminación y devolución de los datos</a></li>
+          <li><a href="#es-12">Auditorías</a></li>
+          <li><a href="#es-13">Transferencias internacionales</a></li>
+          <li><a href="#es-14">Responsabilidad y prelación</a></li>
+          <li><a href="#es-15">Vigencia, cambios y contacto</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="es-1">
+        <h2 id="es-1">1. Alcance y partes</h2>
+        <p>Este Anexo de Tratamiento de Datos ("Anexo") forma parte de los <a href="/termos.html">Términos de Uso</a> entre Tony Belleza Consulting, que opera Bússola ("Bússola", "nosotros"), y la empresa que contrata el Servicio ("Cliente", "usted"). Se aplica automáticamente siempre que tratamos Datos Personales del Cliente para prestar el Servicio, sin necesidad de una firma aparte. Los términos con mayúscula inicial no definidos aquí tienen el significado que les dan los Términos.</p>
+      </section>
+
+      <section aria-labelledby="es-2">
+        <h2 id="es-2">2. Definiciones</h2>
+        <ul>
+          <li><strong>Datos Personales del Cliente</strong>: datos personales incluidos en los Datos del Cliente que tratamos en nombre del Cliente, como datos de Candidatos, nuevas contrataciones y Usuarios.</li>
+          <li><strong>Leyes de Protección de Datos</strong>: las leyes de privacidad y protección de datos aplicables al tratamiento, que pueden incluir leyes estatales de privacidad de EE. UU., como la California Consumer Privacy Act modificada por la CPRA, y la Lei Geral de Proteção de Dados (LGPD) de Brasil.</li>
+          <li><strong>Titular</strong>: la persona a quien se refieren los datos personales.</li>
+          <li><strong>Brecha de Datos Personales</strong>: una falla de seguridad que cause la destrucción, pérdida, alteración, divulgación o acceso no autorizado, accidental o ilícito, a Datos Personales del Cliente.</li>
+          <li><strong>Subencargado</strong>: un tercero que contratamos para tratar Datos Personales del Cliente.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-3">
+        <h2 id="es-3">3. Funciones de las partes</h2>
+        <p>El Cliente es el responsable (un "business" según la ley de California y un "controlador" según la LGPD) de los Datos Personales del Cliente. Bússola es el encargado (un "service provider" según la ley de California y un "operador" según la LGPD) y trata los Datos Personales del Cliente solo en nombre del Cliente. Cada parte cumplirá las Leyes de Protección de Datos que le apliquen. El Cliente es responsable de contar con una base legal y con los avisos y consentimientos exigidos para recopilar los Datos Personales del Cliente y para que nosotros los tratemos, incluidas las llamadas de entrevista grabadas hechas por IA y los SMS.</p>
+        <p>Como proveedor de servicios, no venderemos ni compartiremos los Datos Personales del Cliente, no los conservaremos, usaremos ni divulgaremos para ninguna finalidad distinta de prestar el Servicio y no los combinaremos con datos personales que recibimos de otras fuentes, salvo cuando las Leyes de Protección de Datos lo permitan.</p>
+      </section>
+
+      <section aria-labelledby="es-4">
+        <h2 id="es-4">4. Detalles del tratamiento</h2>
+        <div class="lg-tabela" role="region" aria-label="Detalles del tratamiento" tabindex="0">
+          <table>
+            <tbody>
+              <tr><th scope="row">Objeto</th><td>Proporcionar al Cliente la plataforma de reclutamiento y onboarding Bússola.</td></tr>
+              <tr><th scope="row">Duración</th><td>El período de la suscripción del Cliente, más los plazos de exportación y eliminación de la sección 11.</td></tr>
+              <tr><th scope="row">Naturaleza</th><td>Recopilación, almacenamiento, organización, análisis con herramientas de IA, transmisión (llamadas, SMS y correo), visualización, exportación, anonimización y eliminación.</td></tr>
+              <tr><th scope="row">Finalidad</th><td>Recibir y evaluar postulaciones, aplicar tests y entrevistas telefónicas con IA, agendar entrevistas, enviar mensajes, hacer el onboarding de nuevas contrataciones y dar soporte a la cuenta del Cliente.</td></tr>
+              <tr><th scope="row">Categorías de datos personales</th><td>Datos de contacto; postulación, historial laboral y disponibilidad; currículums; respuestas y resultados de los tests; grabaciones, transcripciones, datos extraídos, resúmenes y puntuaciones de las llamadas; agendamientos y mensajes; datos de onboarding, formularios fiscales y de elegibilidad para trabajar, documentos de identidad, datos bancarios para el pago de salarios y firmas electrónicas; datos de las cuentas de Usuario; registros de acceso.</td></tr>
+              <tr><th scope="row">Datos sensibles</th><td>Números de Social Security o de contribuyente, números de documentos migratorios y de identidad, fechas de nacimiento y datos bancarios recopilados en el onboarding. El Cliente no debe usar el Servicio para recopilar otros datos sensibles, como datos de salud, salvo que la ley lo exija para el puesto.</td></tr>
+              <tr><th scope="row">Categorías de titulares</th><td>Candidatos a vacantes, nuevas contrataciones y empleados en onboarding, y los Usuarios del Cliente (gestores y administradores).</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="es-5">
+        <h2 id="es-5">5. Instrucciones del Cliente</h2>
+        <p>Tratamos los Datos Personales del Cliente solo según las instrucciones documentadas del Cliente. Los Términos, este Anexo y la configuración y el uso del Servicio por parte del Cliente son las instrucciones completas del Cliente. Avisaremos al Cliente si creemos que una instrucción infringe las Leyes de Protección de Datos y podremos suspender ese tratamiento hasta que la instrucción cambie. Si la ley nos obliga a tratar los datos de otra forma, avisaremos antes al Cliente, salvo que la ley lo prohíba.</p>
+      </section>
+
+      <section aria-labelledby="es-6">
+        <h2 id="es-6">6. Confidencialidad del personal</h2>
+        <p>Solo permitimos el acceso a los Datos Personales del Cliente al personal y a los contratistas que lo necesiten para prestar o dar soporte al Servicio y que tengan obligaciones de confidencialidad.</p>
+      </section>
+
+      <section aria-labelledby="es-7">
+        <h2 id="es-7">7. Subencargados</h2>
+        <p>El Cliente nos da una autorización general para usar Subencargados. Imponemos a cada Subencargado obligaciones de protección de datos que protegen los Datos Personales del Cliente al menos tanto como este Anexo, y seguimos siendo responsables de su desempeño. Nuestros Subencargados actuales son:</p>
+        <div class="lg-tabela" role="region" aria-label="Subencargados" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Subencargado</th><th scope="col">Finalidad</th><th scope="col">Ubicación</th></tr></thead>
+            <tbody>
+              <tr><td>Oracle Cloud Infrastructure</td><td>Alojamiento, almacenamiento y copias de seguridad</td><td>Estados Unidos</td></tr>
+              <tr><td>ElevenLabs</td><td>Voz con IA para las llamadas de entrevista y grabaciones de las llamadas</td><td>Estados Unidos</td></tr>
+              <tr><td>Twilio</td><td>Telefonía y SMS</td><td>Estados Unidos</td></tr>
+              <tr><td>Google Workspace (Gmail SMTP)</td><td>Correos transaccionales</td><td>Estados Unidos</td></tr>
+              <tr><td>Anthropic</td><td>Análisis de currículums, solo cuando el Cliente lo activa</td><td>Estados Unidos</td></tr>
+              <tr><td>Stripe</td><td>Pagos, cuando están activados</td><td>Estados Unidos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Avisaremos al Cliente por correo y en la aplicación con al menos 30 días de anticipación antes de agregar o reemplazar un Subencargado. El Cliente puede oponerse por motivos razonables de protección de datos dentro de ese plazo. Si no podemos resolver la objeción, el Cliente puede terminar la suscripción afectada y recibir el reembolso de lo pagado por adelantado por el período no usado.</p>
+      </section>
+
+      <section aria-labelledby="es-8">
+        <h2 id="es-8">8. Medidas de seguridad</h2>
+        <p>Mantenemos medidas técnicas y organizativas adecuadas al riesgo, entre ellas:</p>
+        <ul>
+          <li><strong>Cifrado en reposo</strong> para los campos sensibles del onboarding (como números de Social Security y de documentos, fechas de nacimiento y datos bancarios) y para los archivos del onboarding.</li>
+          <li><strong>Cifrado en tránsito</strong> con TLS (HTTPS) en todas las conexiones con el Servicio.</li>
+          <li><strong>Control de acceso por empresa:</strong> los datos de cada empresa están separados lógicamente, el acceso depende del rol y las contraseñas se guardan solo como hashes seguros.</li>
+          <li><strong>Registro de auditoría:</strong> un historial de accesos muestra qué Usuario vio o cambió qué registro, cuándo y desde qué dirección IP.</li>
+          <li><strong>Copias de seguridad:</strong> se mantienen 14 copias diarias, que luego vencen automáticamente.</li>
+          <li><strong>Acceso limitado del personal:</strong> nuestro propio acceso se limita a lo necesario para operar, proteger y dar soporte al Servicio.</li>
+        </ul>
+        <p>Podemos actualizar estas medidas con el tiempo, siempre que el nivel general de protección no disminuya.</p>
+      </section>
+
+      <section aria-labelledby="es-9">
+        <h2 id="es-9">9. Brechas de datos personales</h2>
+        <p>Avisaremos al Cliente sin demora indebida y, en cualquier caso, dentro de las 72 horas posteriores a tener conocimiento de una Brecha de Datos Personales que afecte sus Datos Personales del Cliente. El aviso describirá, en la medida de lo que sepamos en ese momento, la naturaleza de la brecha, los datos y las personas afectados, las consecuencias probables y las medidas tomadas o propuestas, y enviaremos actualizaciones a medida que sepamos más. Tomaremos medidas razonables para contener y corregir la brecha y ayudaremos al Cliente a cumplir sus propias obligaciones de notificar a las autoridades y a las personas. Nuestro aviso no es una admisión de culpa.</p>
+      </section>
+
+      <section aria-labelledby="es-10">
+        <h2 id="es-10">10. Asistencia con solicitudes y cumplimiento</h2>
+        <ul>
+          <li>El Servicio permite al Cliente acceder, corregir, exportar, anonimizar y eliminar datos de Candidatos y empleados, y marcar personas como "no llamar".</li>
+          <li>Si recibimos directamente de un Titular una solicitud sobre Datos Personales del Cliente, la enviaremos al Cliente de inmediato y no responderemos nosotros, salvo para confirmar que la solicitud fue enviada, a menos que el Cliente nos autorice o la ley lo exija.</li>
+          <li>Teniendo en cuenta la naturaleza del tratamiento, daremos una ayuda razonable al Cliente para responder solicitudes de Titulares, hacer evaluaciones de impacto en la protección de datos y consultar a las autoridades, cuando el Cliente no pueda hacerlo desde el propio Servicio.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-11">
+        <h2 id="es-11">11. Eliminación y devolución de los datos</h2>
+        <p>Durante la suscripción, el Cliente puede exportar y eliminar sus datos desde el Servicio. Después de la cancelación, el Cliente puede exportar sus datos durante 30 días. Luego, eliminamos o anonimizamos los Datos Personales del Cliente dentro de los 60 días posteriores al cierre de la cuenta, incluida la solicitud a ElevenLabs para eliminar las grabaciones de las llamadas. Las copias de seguridad vencen automáticamente dentro de los 14 días siguientes. Solo podemos conservar datos cuando la ley lo exija, y siguen protegidos por este Anexo mientras los conservemos. Si una prueba termina sin suscripción, los datos se conservan durante 30 días y luego se eliminan o anonimizan de la misma forma.</p>
+      </section>
+
+      <section aria-labelledby="es-12">
+        <h2 id="es-12">12. Auditorías</h2>
+        <p>Pondremos a disposición del Cliente la información razonablemente necesaria para demostrar el cumplimiento de este Anexo, como respuestas por escrito a cuestionarios de seguridad. Si esa información no es suficiente, el Cliente puede auditar nuestro cumplimiento una vez al año, con al menos 30 días de aviso por escrito, en horario laboral, de una forma que no afecte el Servicio ni exponga datos de otros clientes, y bajo obligaciones de confidencialidad. El Cliente asume los costos de su propia auditoría. Se permiten auditorías adicionales cuando las exija una autoridad o después de una Brecha de Datos Personales.</p>
+      </section>
+
+      <section aria-labelledby="es-13">
+        <h2 id="es-13">13. Transferencias internacionales</h2>
+        <p>Los Datos Personales del Cliente se guardan en Estados Unidos, y nuestros Subencargados los tratan en Estados Unidos. Cuando se transfieren Datos Personales del Cliente desde otro país, incluido Brasil, protegemos la transferencia con salvaguardas contractuales con nuestros proveedores, incluidos términos de protección de datos y cláusulas contractuales tipo cuando el proveedor las ofrece, y con las medidas de este Anexo. El Cliente es responsable de los avisos a los Titulares que la ley exija sobre estas transferencias.</p>
+      </section>
+
+      <section aria-labelledby="es-14">
+        <h2 id="es-14">14. Responsabilidad y prelación</h2>
+        <p>La responsabilidad de cada parte en virtud de este Anexo está sujeta a las limitaciones y exclusiones de responsabilidad de los Términos. Si este Anexo entra en conflicto con los Términos en cuanto al tratamiento de Datos Personales del Cliente, prevalece este Anexo. Las traducciones se ofrecen por conveniencia; si hay conflicto, prevalece la versión en inglés.</p>
+      </section>
+
+      <section aria-labelledby="es-15">
+        <h2 id="es-15">15. Vigencia, cambios y contacto</h2>
+        <p>Este Anexo sigue vigente mientras tratemos Datos Personales del Cliente. Podemos actualizarlo para reflejar cambios en la ley o en el Servicio, con al menos 30 días de aviso por correo y en la aplicación ante cambios relevantes, y ninguna actualización reducirá la protección general de los Datos Personales del Cliente.</p>
+        <p>Contacto de privacidad y encargado de la LGPD: Tony Belleza, <a href="mailto:privacy@tonybelleza.com">privacy@tonybelleza.com</a><br>
+        Sitio web: <a href="https://rh.tonybelleza.com">https://rh.tonybelleza.com</a><br>
+        Dirección postal disponible a solicitud en privacy@tonybelleza.com.</p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Volver arriba</a></p>
+    </article>
+  </main>
+
+  <footer class="lp-foot">
+    <div class="lp-wrap">
+      <div class="lp-foot-grid">
+        <div>
+          <a class="lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+            <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+            <span class="sep" aria-hidden="true"></span>
+            <b>Bússola</b>
+          </a>
+          <p data-t="rod_sub">AI phone screening and onboarding for companies that hire hourly workers.</p>
+        </div>
+        <div>
+          <h4 data-t="rod_produto">Product</h4>
+          <ul>
+            <li><a href="/" data-t="rod_inicio">Home</a></li>
+            <li><a href="/assinar" data-t="rod_teste">Free trial</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_acesso">Access</h4>
+          <ul>
+            <li><a href="/vagas" data-t="rod_vagas">Jobs page</a></li>
+            <li><a href="/candidato" data-t="rod_candidato">Candidate area</a></li>
+            <li><a href="/gestor" data-t="rod_gestor">Manager login</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_legal">Legal</h4>
+          <ul>
+            <li><a href="/termos.html" data-t="rod_termos">Terms of use</a></li>
+            <li><a href="/privacidade.html" data-t="rod_privacidade">Privacy</a></li>
+            <li><a href="/dpa.html" aria-current="page" data-t="rod_dpa">Data Processing Addendum</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="lp-foot-base">
+        <span data-t="rod_copy">© Tony Belleza. Bússola, B.A.S.E. methodology curated by Tony Belleza.</span>
+        <span><a href="https://tonybelleza.com" target="_blank" rel="noopener">tonybelleza.com</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/legal.js"></script>
+</body>
+</html>

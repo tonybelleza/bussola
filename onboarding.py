@@ -2403,17 +2403,18 @@ def rotear_gestor(h, method, path, conn, gestor):
     return _resp(h, 404, {"erro": "Rota não encontrada"})
 
 
-# ------------------------------------------------------------- modelos padrão (RASCUNHOS)
+# ------------------------------------------------------------- modelos padrão
 # Formato do texto: "# " título, "## " seção, "- " item, "> " aviso; linha em branco
 # separa parágrafos. Variáveis: {{nome}}, {{empresa}}, {{cargo}}, {{data_inicio}},
 # {{pagamento}}, {{horario}}, {{periodo_experiencia}}, {{prazo}}, {{representante}}, {{data}}.
+# Texto genérico para empresas de limpeza residencial (e serviços parecidos), sem
+# promessas de um estado específico: vale para Connecticut e para a Califórnia.
 
-_AVISO_EN = ("> DRAFT TEMPLATE FOR LEGAL REVIEW. This text is a starting point, not legal advice. Have it reviewed by a "
-             "licensed Connecticut employment attorney, adjust it to your company, and remove this note before use.")
-_AVISO_PT = ("> RASCUNHO PARA REVISÃO JURÍDICA. Este texto é um ponto de partida, não é aconselhamento jurídico. Peça a "
-             "revisão de um advogado trabalhista licenciado em Connecticut, ajuste à sua empresa e remova este aviso antes de usar.")
-_AVISO_ES = ("> BORRADOR PARA REVISIÓN LEGAL. Este texto es un punto de partida, no es asesoría legal. Pide la revisión "
-             "de un abogado laboral con licencia en Connecticut, ajústalo a tu empresa y elimina esta nota antes de usarlo.")
+_AVISO_EN = "> Template provided by Bússola. Review with your attorney before use."
+_AVISO_PT = "> Modelo fornecido pela Bússola. Revise com o seu advogado antes de usar."
+_AVISO_ES = "> Plantilla proporcionada por Bússola. Revísela con su abogado antes de usarla."
+
+# ---------------------------------------------------------------- carta de proposta (W-2)
 
 _OFERTA_W2 = _AVISO_EN + """
 
@@ -2433,7 +2434,12 @@ We are happy to offer you the position of {{cargo}} at {{empresa}}. We enjoyed g
 - Schedule: {{horario}}
 - Introductory period: the first {{periodo_experiencia}} days
 
-Pay is subject to the tax withholdings required by law. You will be paid on the company's regular payday, as required by Connecticut law. If your position is non-exempt, hours worked over 40 in a workweek are paid at one and a half times your regular rate. Travel time between client homes during the workday is paid working time.
+Pay is subject to the tax withholdings required by law and is paid on the company's regular payday, at least as often as the law of the state where you work requires. If your position is non-exempt, overtime is paid as required by federal and state law. Travel time between client homes during the workday is paid working time, and necessary work expenses, such as approved mileage between client homes, are reimbursed as described in the Employee Handbook.
+
+## Your first weeks
+- Paid training with an experienced team member before you work on your own.
+- Uniform shirts and protective equipment provided at no cost to you.
+- Your schedule and routes shared in advance through the company scheduling app.
 
 ## At-will employment
 Your employment with {{empresa}} is at will. Either you or the company may end the employment relationship at any time, with or without cause or advance notice. Nothing in this letter, the introductory period, or any other company document creates a promise of employment for a specific length of time.
@@ -2443,6 +2449,7 @@ This offer depends on:
 - Completing your onboarding, including your tax forms and Form I-9 (proof of identity and authorization to work in the United States) within the time required by federal law.
 - Reviewing and acknowledging the Employee Handbook.
 - For positions that drive between client homes: a valid driver's license and proof of auto insurance.
+- If the company requires a background check for this position: your separate written authorization, with the check carried out only as permitted by law.
 
 ## Accepting this offer
 To accept, please sign this letter electronically by {{prazo}}. If you have any questions, reply to the email that brought you here.
@@ -2455,6 +2462,100 @@ Sincerely,
 {{empresa}}
 """
 
+_OFERTA_W2_PT = _AVISO_PT + """
+
+# Carta de Proposta de Emprego
+
+{{data}}
+
+Olá, {{nome}},
+
+Temos o prazer de oferecer a você o cargo de {{cargo}} na empresa {{empresa}}. Gostamos muito de conhecer você e acreditamos que será uma ótima adição à nossa equipe.
+
+## Detalhes do cargo
+- Cargo: {{cargo}}
+- Tipo de vínculo: funcionário W-2 (empregado)
+- Data de início: {{data_inicio}}
+- Pagamento: {{pagamento}}
+- Horário: {{horario}}
+- Período de experiência: os primeiros {{periodo_experiencia}} dias
+
+O pagamento tem as retenções de impostos exigidas por lei e é feito no dia de pagamento regular da empresa, com a frequência mínima exigida pela lei do estado onde você trabalha. Se o seu cargo não for isento ("non-exempt"), as horas extras são pagas conforme a lei federal e estadual. O tempo de deslocamento entre as casas dos clientes durante o dia de trabalho é tempo de trabalho pago, e as despesas necessárias do trabalho, como a quilometragem aprovada entre as casas dos clientes, são reembolsadas conforme o Manual do Colaborador.
+
+## Suas primeiras semanas
+- Treinamento pago com um colega experiente antes de você trabalhar sozinho.
+- Camisetas do uniforme e equipamentos de proteção fornecidos sem custo para você.
+- Sua agenda e suas rotas compartilhadas com antecedência pelo aplicativo de agendamento da empresa.
+
+## Vínculo "at will"
+O seu vínculo com a empresa {{empresa}} é "at will" (por vontade das partes). Você ou a empresa podem encerrar a relação de trabalho a qualquer momento, com ou sem motivo e com ou sem aviso prévio. Nada nesta carta, no período de experiência ou em qualquer outro documento da empresa cria uma promessa de emprego por um prazo determinado.
+
+## Condições desta proposta
+Esta proposta depende de:
+- Concluir o seu onboarding, incluindo os formulários fiscais e o Formulário I-9 (comprovação de identidade e de autorização para trabalhar nos Estados Unidos) no prazo exigido pela lei federal.
+- Ler e confirmar a ciência do Manual do Colaborador.
+- Para cargos que dirigem entre as casas dos clientes: carteira de motorista válida e comprovante de seguro do carro.
+- Se a empresa exigir verificação de antecedentes para este cargo: a sua autorização por escrito, em documento separado, com a verificação feita apenas como a lei permite.
+
+## Como aceitar
+Para aceitar, assine esta carta eletronicamente até {{prazo}}. Se tiver dúvidas, responda ao e-mail que trouxe você até aqui.
+
+Estamos ansiosos para trabalhar com você.
+
+Atenciosamente,
+
+{{representante}}
+{{empresa}}
+"""
+
+_OFERTA_W2_ES = _AVISO_ES + """
+
+# Oferta de Empleo
+
+{{data}}
+
+Hola, {{nome}},
+
+Nos alegra ofrecerte el puesto de {{cargo}} en {{empresa}}. Disfrutamos conocerte y creemos que serás un gran aporte para nuestro equipo.
+
+## Detalles del puesto
+- Puesto: {{cargo}}
+- Tipo de empleo: empleado W-2
+- Fecha de inicio: {{data_inicio}}
+- Pago: {{pagamento}}
+- Horario: {{horario}}
+- Período de prueba: los primeros {{periodo_experiencia}} días
+
+El pago tiene las retenciones de impuestos que exige la ley y se hace en el día de pago regular de la empresa, con la frecuencia mínima que exige la ley del estado donde trabajas. Si tu puesto no es exento ("non-exempt"), las horas extra se pagan según la ley federal y estatal. El tiempo de traslado entre las casas de los clientes durante la jornada es tiempo de trabajo pagado, y los gastos necesarios del trabajo, como el millaje aprobado entre las casas de los clientes, se reembolsan según el Manual del Empleado.
+
+## Tus primeras semanas
+- Capacitación pagada con un compañero con experiencia antes de que trabajes por tu cuenta.
+- Camisetas del uniforme y equipo de protección sin costo para ti.
+- Tu horario y tus rutas compartidos con anticipación en la aplicación de agenda de la empresa.
+
+## Empleo "at will"
+Tu empleo en {{empresa}} es "at will" (a voluntad). Tú o la empresa pueden terminar la relación laboral en cualquier momento, con o sin causa y con o sin aviso previo. Nada en esta carta, en el período de prueba ni en ningún otro documento de la empresa crea una promesa de empleo por un plazo determinado.
+
+## Condiciones de esta oferta
+Esta oferta depende de:
+- Completar tu incorporación, incluidos tus formularios de impuestos y el Formulario I-9 (prueba de identidad y de autorización para trabajar en los Estados Unidos) dentro del plazo que exige la ley federal.
+- Leer y confirmar el recibo del Manual del Empleado.
+- Para puestos que manejan entre las casas de los clientes: licencia de conducir vigente y comprobante de seguro del auto.
+- Si la empresa exige una verificación de antecedentes para este puesto: tu autorización por escrito, en un documento aparte, con la verificación hecha solo como lo permite la ley.
+
+## Cómo aceptar
+Para aceptar, firma esta carta electrónicamente a más tardar el {{prazo}}. Si tienes preguntas, responde al correo que te trajo hasta aquí.
+
+Esperamos trabajar contigo.
+
+Atentamente,
+
+{{representante}}
+{{empresa}}
+"""
+
+# ---------------------------------------------------------------- proposta de prestação de serviços (1099)
+
 _OFERTA_1099 = _AVISO_EN + """
 
 # Independent Contractor Engagement Offer
@@ -2463,7 +2564,7 @@ _OFERTA_1099 = _AVISO_EN + """
 
 Dear {{nome}},
 
-{{empresa}} would like to engage you as an independent contractor to provide {{cargo}} services.
+{{empresa}} would like to engage your business as an independent contractor to provide {{cargo}} services.
 
 ## Engagement details
 - Services: {{cargo}}
@@ -2471,9 +2572,9 @@ Dear {{nome}},
 - Rate: {{pagamento}}
 - Availability notes: {{horario}}
 
-As an independent contractor you are not an employee of {{empresa}}. The company will not withhold income tax, Social Security, or Medicare from your payments, and you are not eligible for employee benefits. You are responsible for your own taxes. The company will send you a Form 1099-NEC when required by law.
+As an independent contractor you are not an employee of {{empresa}}. The company will not withhold income tax, Social Security, or Medicare from your payments, and you are not eligible for employee benefits. You are responsible for your own taxes, business registrations, and insurance. The company will send you a Form 1099-NEC when required by law.
 
-You decide how to perform the services, you may accept or decline individual jobs, and you may offer your services to others. The full terms are in the Independent Contractor Agreement included in this onboarding.
+You run your own business: you decide how to perform the services, you may accept or decline individual jobs, you set your own hours for the jobs you accept, you use your own tools and supplies, and you may offer your services to other businesses and clients. The full terms are in the Independent Contractor Agreement included in this onboarding.
 
 ## Next steps
 To accept, please sign this letter electronically by {{prazo}} and complete the remaining steps, including Form W-9.
@@ -2483,6 +2584,66 @@ Sincerely,
 {{representante}}
 {{empresa}}
 """
+
+_OFERTA_1099_PT = _AVISO_PT + """
+
+# Proposta de Prestação de Serviços Independentes
+
+{{data}}
+
+Olá, {{nome}},
+
+A empresa {{empresa}} gostaria de contratar o seu negócio como prestador independente para serviços de {{cargo}}.
+
+## Detalhes da contratação
+- Serviços: {{cargo}}
+- Data prevista de início: {{data_inicio}}
+- Valor: {{pagamento}}
+- Observações sobre disponibilidade: {{horario}}
+
+Como prestador independente, você não é funcionário da empresa {{empresa}}. A empresa não vai reter imposto de renda, Social Security nem Medicare dos seus pagamentos, e você não tem direito a benefícios de funcionário. Você é responsável pelos seus próprios impostos, registros do seu negócio e seguros. A empresa vai enviar a você um Formulário 1099-NEC quando a lei exigir.
+
+Você administra o seu próprio negócio: decide como prestar os serviços, pode aceitar ou recusar cada trabalho, define o seu próprio horário nos trabalhos que aceitar, usa suas próprias ferramentas e materiais e pode oferecer seus serviços a outras empresas e clientes. Os termos completos estão no Contrato de Prestador Independente incluído neste onboarding.
+
+## Próximos passos
+Para aceitar, assine esta carta eletronicamente até {{prazo}} e conclua as demais etapas, incluindo o Formulário W-9.
+
+Atenciosamente,
+
+{{representante}}
+{{empresa}}
+"""
+
+_OFERTA_1099_ES = _AVISO_ES + """
+
+# Oferta de Contratación Independiente
+
+{{data}}
+
+Hola, {{nome}},
+
+{{empresa}} quiere contratar a tu negocio como contratista independiente para prestar servicios de {{cargo}}.
+
+## Detalles de la contratación
+- Servicios: {{cargo}}
+- Fecha prevista de inicio: {{data_inicio}}
+- Tarifa: {{pagamento}}
+- Notas sobre disponibilidad: {{horario}}
+
+Como contratista independiente no eres empleado de {{empresa}}. La empresa no retendrá impuesto sobre la renta, Social Security ni Medicare de tus pagos, y no tienes derecho a beneficios de empleado. Eres responsable de tus propios impuestos, registros de tu negocio y seguros. La empresa te enviará un Formulario 1099-NEC cuando la ley lo exija.
+
+Tú manejas tu propio negocio: decides cómo prestar los servicios, puedes aceptar o rechazar cada trabajo, fijas tu propio horario en los trabajos que aceptes, usas tus propias herramientas y materiales y puedes ofrecer tus servicios a otras empresas y clientes. Los términos completos están en el Contrato de Contratista Independiente incluido en esta incorporación.
+
+## Próximos pasos
+Para aceptar, firma esta carta electrónicamente a más tardar el {{prazo}} y completa los demás pasos, incluido el Formulario W-9.
+
+Atentamente,
+
+{{representante}}
+{{empresa}}
+"""
+
+# ---------------------------------------------------------------- acordo de interesse
 
 _INTERESSE_EN = _AVISO_EN + """
 
@@ -2559,6 +2720,8 @@ Este acuerdo no es un contrato a plazo fijo. El empleo sigue siendo "at will": c
 Al firmar electrónicamente, el Colaborador confirma la información anterior. La aceptación de la Empresa fue registrada por {{representante}}, en nombre de {{empresa}}, cuando se envió esta incorporación.
 """
 
+# ---------------------------------------------------------------- manual do colaborador
+
 _MANUAL_EN = _AVISO_EN + """
 
 # Employee Handbook
@@ -2567,16 +2730,16 @@ _MANUAL_EN = _AVISO_EN + """
 Welcome to {{empresa}}. Our clients trust us with their homes, their keys, and their families' privacy. This handbook explains how we work together to earn that trust every day. Please read it carefully and ask your manager about anything that is not clear.
 
 ## 2. About this handbook
-This handbook describes our main policies and expectations. It is not a contract of employment and it does not promise employment for any length of time. The company may update these policies; when it does, we will tell you. Where Connecticut or federal law gives you greater rights than this handbook, the law applies.
+This handbook describes our main policies and expectations. It is not a contract of employment and it does not promise employment for any length of time. The company may update these policies; when it does, we will tell you. Where federal, state, or local law gives you greater rights than this handbook, the law applies.
 
 ## 3. At-will employment
 Employment with {{empresa}} is at will. You or the company may end the employment relationship at any time, with or without cause or advance notice. Only the owner of the company, in a signed writing, can change this.
 
 ## 4. Equal employment opportunity
-We make employment decisions based on ability and performance. We do not discriminate on the basis of race, color, religious creed, age, sex (including pregnancy), gender identity or expression, sexual orientation, marital status, national origin, ancestry, present or past history of mental disability, intellectual disability, learning disability, physical disability, veteran status, genetic information, status as a victim of domestic violence, or any other characteristic protected by law. We provide reasonable accommodations for disabilities, pregnancy, and sincerely held religious beliefs. Ask your manager or the owner if you need one.
+We make employment decisions based on ability and performance. We do not discriminate on the basis of race, color, religion or creed, national origin, ancestry, sex (including pregnancy, childbirth, and related conditions), gender identity or expression, sexual orientation, age, physical or mental disability, medical condition, genetic information, marital status, military or veteran status, or any other characteristic protected by federal, state, or local law. We provide reasonable accommodations for disabilities, pregnancy, and sincerely held religious beliefs. Ask your manager or the owner if you need one.
 
 ## 5. Anti-harassment and no retaliation
-Harassment of any kind, including sexual harassment, is not allowed, whether it comes from a coworker, a manager, a client, or anyone else connected to our work. Sexual harassment is illegal under Connecticut and federal law. Examples include unwelcome sexual advances, requests for sexual favors, sexual jokes or comments, and touching. If you experience or see harassment, including by a client in a client's home, leave the situation if you feel unsafe and report it to your manager or the owner right away. We will investigate promptly and take appropriate action. No one will be punished for making a report in good faith or for taking part in an investigation. You may also contact the Connecticut Commission on Human Rights and Opportunities (CHRO) or the U.S. Equal Employment Opportunity Commission (EEOC). The company provides sexual harassment prevention training as required by Connecticut law.
+Harassment of any kind, including sexual harassment, is not allowed, whether it comes from a coworker, a manager, a client, or anyone else connected to our work. Examples include unwelcome sexual advances, requests for sexual favors, sexual or offensive jokes or comments, and unwanted touching. If you experience or see harassment, including by a client in a client's home, leave the situation if you feel unsafe and report it to your manager or the owner right away. We will investigate promptly and take appropriate action. No one will be punished for making a report in good faith or for taking part in an investigation. You may also contact the U.S. Equal Employment Opportunity Commission (EEOC) or your state civil rights agency. The company provides harassment prevention training where the law requires it.
 
 ## 6. Attendance and call-out policy
 Clients plan their day around our visits, so reliability matters.
@@ -2584,26 +2747,26 @@ Clients plan their day around our visits, so reliability matters.
 - If you will be late, let your manager know as soon as you know.
 - Not showing up without notice (no call, no show) is a serious problem. Repeated no call, no show absences may lead to discipline, up to termination.
 - Request time off in advance through your manager so we can adjust the routes.
+- Absences protected by law, such as paid sick leave or family and medical leave, are never counted against you.
 
 ## 7. Scheduling and routes
-- Your schedule and route (usually 2 to 3 homes a day) are shared in advance through the company scheduling app.
+- Your schedule and route are shared in advance through the company scheduling app.
 - Check the app before leaving home each day; routes can change when clients reschedule.
 - Follow the order of the route unless your manager approves a change, and tell your manager right away if you are running behind.
 - Do not change dates or times directly with clients. Send client requests to the office.
 
 ## 8. Timekeeping and breaks
 - Record all time worked accurately in the company app: clock in at the start of your workday and clock out at the end. Never work off the clock and never record time for someone else.
-- Travel time between client homes during the workday is paid working time.
-- Meal break: if you work 7 and a half or more consecutive hours, you will have a 30-minute unpaid meal break, taken after the first 2 hours and before the last 2 hours of your shift, as required by Connecticut law. During the meal break you are completely relieved of duty.
-- Short rest breaks are paid.
+- Training, team meetings, and travel time between client homes during the workday are paid working time.
+- Meal and rest breaks are provided as required by the law of the state where you work. Your manager will explain when to take them. During an unpaid meal break you are completely relieved of duty.
 - Overtime must be approved in advance by your manager, but all overtime worked is always paid.
 
 ## 9. Pay and pay days
-- Pay days are weekly, as required by Connecticut law, on the day the company announces in writing. You will receive a pay statement showing your hours, pay, and deductions.
+- You are paid on the company's regular payday, at least as often as the law requires. You will receive a pay statement showing your hours, pay, and deductions.
 - If you believe your pay is wrong, tell your manager or the office right away. We will review it and correct any error promptly.
 - The company makes only the deductions required by law or the ones you authorize in writing for your own benefit. The company never deducts money from your pay for damage, breakage, lost items, uniforms, or client complaints.
 - Direct deposit is optional. You may choose to be paid by paper check.
-- Paid sick leave is provided as required by the Connecticut Paid Sick Leave law (accrual of 1 hour for every 30 hours worked, up to 40 hours per year, once the law applies to the company).
+- Paid sick leave and other leave are provided as required by federal, state, and local law. Ask the office for the current policy that applies where you work.
 
 ## 10. Dress code and uniform
 - The company provides uniform shirts at no cost to you. Wear a clean uniform every workday.
@@ -2621,7 +2784,6 @@ Clients plan their day around our visits, so reliability matters.
 - Do not eat, smoke, or vape in client homes or on their property, and do not use client belongings such as the TV or the kitchen for personal use. You may use the restroom respectfully.
 - Pets: follow the client's instructions, keep doors closed so pets do not get out, and never discipline a pet. If an animal seems aggressive, do not enter; step away and call your manager.
 - If a client offers you a tip, you may accept it. Tips belong to you.
-- While you work for {{empresa}}, do not offer private cleaning services to company clients.
 
 ## 12. Safety and chemicals
 - Use only company-approved cleaning products and follow the label directions. Safety Data Sheets (SDS) for every product are available from your manager and in the company app; ask if you have questions.
@@ -2631,15 +2793,16 @@ Clients plan their day around our visits, so reliability matters.
 - Report any injury to your manager immediately, even a small one. Work injuries are covered by workers' compensation.
 - You may refuse a task you believe is unsafe and report safety concerns without retaliation.
 
-## 13. Driving and mileage (for positions that drive)
-- Keep a valid driver's license and auto insurance that meets Connecticut requirements, and tell your manager right away about any suspension, accident, or change in your insurance.
-- Obey all traffic laws. Connecticut law prohibits using a handheld phone while driving; set your navigation before you start.
-- Driving between client homes during the workday is paid working time. The company reimburses mileage between client homes at the rate it announces in writing. Your normal commute from home to the first job and from the last job back home is not reimbursed.
+## 13. Driving and expenses (for positions that drive)
+- Keep a valid driver's license and the auto insurance required by your state, and tell your manager right away about any suspension, accident, or change in your insurance.
+- Obey all traffic laws. Do not hold or use a phone while driving; set your navigation before you start.
+- Driving between client homes during the workday is paid working time. The company reimburses necessary work expenses as required by law, including approved mileage between client homes at the rate it announces in writing. Your normal commute from home to the first job and from the last job back home is not reimbursed.
+- If you need to use your personal phone for the company app, ask the office about reimbursement for that use.
 - Follow parking rules at client homes. If there is no legal parking, call your manager.
 
 ## 14. Quality checklist and re-cleans
 - Follow the cleaning checklist for each home in the company app and take the before and after photos it asks for.
-- If a client reports a problem, usually within 24 hours, the company may schedule a re-clean. Time spent on a re-clean is paid.
+- If a client reports a problem, the company may schedule a re-clean. Time spent on a re-clean is paid.
 - Quality feedback is used for coaching and training. It never results in deductions from your pay.
 
 ## 15. Damage and breakage reporting
@@ -2652,14 +2815,220 @@ Client information is confidential: names, addresses, keys, alarm codes, schedul
 Do not post photos, videos, names, addresses, or details about clients or their homes. Do not speak on behalf of {{empresa}} online without permission. This policy does not limit your right to discuss your wages, hours, or working conditions.
 
 ## 18. Drugs and alcohol
-Do not work under the influence of alcohol, cannabis, illegal drugs, or misused prescription medication, and do not bring them into client homes or company vehicles. Lawful off-duty cannabis use is handled as provided by Connecticut law, but you must never be impaired at work. If a medication may affect your ability to work safely, tell your manager that you need an accommodation; you do not need to name the medication.
+Do not work under the influence of alcohol, cannabis, illegal drugs, or misused prescription medication, and do not bring them into client homes or company vehicles. Lawful off-duty use is handled as provided by applicable law, but you must never be impaired at work. If a medication may affect your ability to work safely, tell your manager that you need an accommodation; you do not need to name the medication.
 
 ## 19. Complaints and open door
-We want to hear from you. Bring questions, concerns, or complaints to your manager or directly to the owner, in person or in writing. No one will be retaliated against for raising a concern in good faith. You also have the right to contact government agencies such as the Connecticut Department of Labor, CHRO, the EEOC, or OSHA.
+We want to hear from you. Bring questions, concerns, or complaints to your manager or directly to the owner, in person or in writing. No one will be retaliated against for raising a concern in good faith. You also have the right to contact government agencies, such as your state labor department, your state civil rights agency, the EEOC, or OSHA.
 
 ## 20. Acknowledgment
 By signing below, I confirm that I received and read the {{empresa}} Employee Handbook, that I had the chance to ask questions, and that I agree to follow its policies. I understand that the handbook is not a contract, that the company may update it, and that my employment is at will.
 """
+
+_MANUAL_PT = _AVISO_PT + """
+
+# Manual do Colaborador
+
+## 1. Boas-vindas
+Boas-vindas à equipe {{empresa}}. Nossos clientes nos confiam suas casas, suas chaves e a privacidade de suas famílias. Este manual explica como trabalhamos juntos para merecer essa confiança todos os dias. Leia com atenção e pergunte ao seu gestor sobre qualquer ponto que não estiver claro.
+
+## 2. Sobre este manual
+Este manual descreve nossas principais políticas e expectativas. Ele não é um contrato de trabalho e não promete emprego por nenhum prazo. A empresa pode atualizar estas políticas; quando isso acontecer, avisaremos você. Quando a lei federal, estadual ou local der a você mais direitos do que este manual, vale a lei.
+
+## 3. Vínculo "at will"
+O trabalho na empresa {{empresa}} é "at will" (por vontade das partes). Você ou a empresa podem encerrar a relação de trabalho a qualquer momento, com ou sem motivo e com ou sem aviso prévio. Só o dono da empresa, por escrito e com assinatura, pode mudar isso.
+
+## 4. Igualdade de oportunidades
+Tomamos decisões de emprego com base em capacidade e desempenho. Não discriminamos por raça, cor, religião ou crença, origem nacional, ascendência, sexo (incluindo gravidez, parto e condições relacionadas), identidade ou expressão de gênero, orientação sexual, idade, deficiência física ou mental, condição médica, informação genética, estado civil, condição militar ou de veterano, nem por qualquer outra característica protegida pela lei federal, estadual ou local. Oferecemos adaptações razoáveis para deficiências, gravidez e crenças religiosas sinceras. Fale com o seu gestor ou com o dono se precisar de uma.
+
+## 5. Contra o assédio e sem retaliação
+Nenhum tipo de assédio é permitido, incluindo o assédio sexual, venha ele de um colega, de um gestor, de um cliente ou de qualquer pessoa ligada ao nosso trabalho. Exemplos: investidas sexuais indesejadas, pedidos de favores sexuais, piadas ou comentários sexuais ou ofensivos e toques indesejados. Se você sofrer ou presenciar assédio, inclusive de um cliente na casa dele, saia da situação se não se sentir seguro e avise o seu gestor ou o dono imediatamente. Vamos investigar rapidamente e tomar as medidas adequadas. Ninguém será punido por fazer uma denúncia de boa-fé ou por participar de uma investigação. Você também pode procurar a U.S. Equal Employment Opportunity Commission (EEOC) ou o órgão de direitos civis do seu estado. A empresa oferece treinamento de prevenção ao assédio quando a lei exige.
+
+## 6. Presença e aviso de faltas
+Os clientes organizam o dia em torno das nossas visitas, por isso a confiabilidade é importante.
+- Se não puder trabalhar em um turno agendado, ligue ou mande mensagem ao seu gestor pelo menos 2 horas antes do primeiro trabalho, ou assim que possível em uma emergência. Avisar um colega não basta.
+- Se for se atrasar, avise o seu gestor assim que souber.
+- Faltar sem avisar ("no call, no show") é um problema sério. Faltas repetidas sem aviso podem levar a medidas disciplinares, inclusive demissão.
+- Peça folgas com antecedência ao seu gestor para que possamos ajustar as rotas.
+- Faltas protegidas por lei, como licença médica remunerada ou licença familiar e médica, nunca contam contra você.
+
+## 7. Agenda e rotas
+- Sua agenda e sua rota são compartilhadas com antecedência pelo aplicativo de agendamento da empresa.
+- Confira o aplicativo antes de sair de casa todos os dias; as rotas podem mudar quando os clientes remarcam.
+- Siga a ordem da rota, a menos que o seu gestor aprove uma mudança, e avise o seu gestor na hora se estiver atrasado.
+- Não mude datas ou horários diretamente com os clientes. Encaminhe os pedidos dos clientes ao escritório.
+
+## 8. Registro de ponto e intervalos
+- Registre com exatidão todo o tempo trabalhado no aplicativo da empresa: marque a entrada no início do dia de trabalho e a saída no final. Nunca trabalhe sem registrar o ponto e nunca registre o ponto de outra pessoa.
+- Treinamentos, reuniões de equipe e o deslocamento entre as casas dos clientes durante o dia de trabalho são tempo de trabalho pago.
+- Os intervalos para refeição e descanso seguem a lei do estado onde você trabalha. O seu gestor vai explicar quando fazê-los. Durante um intervalo de refeição não pago, você fica totalmente livre das suas tarefas.
+- As horas extras precisam ser aprovadas antes pelo seu gestor, mas toda hora extra trabalhada é sempre paga.
+
+## 9. Pagamento e dias de pagamento
+- Você recebe no dia de pagamento regular da empresa, com a frequência mínima exigida por lei. Você recebe um demonstrativo com suas horas, seu pagamento e os descontos.
+- Se achar que o seu pagamento está errado, avise o seu gestor ou o escritório na hora. Vamos revisar e corrigir qualquer erro rapidamente.
+- A empresa faz apenas os descontos exigidos por lei ou os que você autorizar por escrito em seu próprio benefício. A empresa nunca desconta do seu pagamento valores por danos, quebras, itens perdidos, uniformes ou reclamações de clientes.
+- O depósito direto é opcional. Você pode escolher receber em cheque.
+- A licença médica remunerada e outras licenças seguem a lei federal, estadual e local. Peça ao escritório a política atual que vale onde você trabalha.
+
+## 10. Vestimenta e uniforme
+- A empresa fornece camisetas do uniforme sem custo para você. Use um uniforme limpo em todos os dias de trabalho.
+- Use sapatos limpos, fechados e antiderrapantes. Mantenha o cabelo preso e use poucas joias.
+- Não use perfume, colônia ou cremes perfumados (veja a seção 11).
+- Devolva os uniformes e os equipamentos da empresa quando o seu vínculo terminar. Nenhum valor será descontado do seu pagamento por itens não devolvidos.
+
+## 11. Conduta na casa dos clientes
+- Privacidade: não abra gavetas, armários, correspondências, documentos ou telas, a menos que faça parte da limpeza. Não tire fotos na casa dos clientes, exceto as fotos de antes e depois que a empresa pede, e nunca inclua pessoas, documentos ou objetos pessoais nelas.
+- Chaves e códigos de alarme: guarde chaves e códigos com segurança o tempo todo. Nunca identifique uma chave com o endereço ou o nome do cliente, nunca compartilhe códigos e avise o seu gestor imediatamente se perder uma chave ou tiver problema com um código.
+- Sem perfume ou produtos perfumados: muitos clientes e animais são sensíveis a fragrâncias.
+- Uso do celular: use o celular apenas para o aplicativo da empresa, navegação, comunicação de trabalho ou emergências. Nada de ligações pessoais, vídeos ou redes sociais enquanto trabalha em uma casa.
+- Deixe tudo no lugar: coloque os objetos de volta exatamente onde estavam.
+- Não leve ninguém com você (amigos, familiares, crianças ou animais) à casa de um cliente.
+- Não coma, não fume e não use vape na casa dos clientes ou na propriedade deles, e não use objetos dos clientes, como a TV ou a cozinha, para uso pessoal. Você pode usar o banheiro com respeito.
+- Animais: siga as instruções do cliente, mantenha as portas fechadas para que os animais não fujam e nunca repreenda um animal. Se um animal parecer agressivo, não entre; afaste-se e ligue para o seu gestor.
+- Se um cliente oferecer uma gorjeta, você pode aceitar. A gorjeta é sua.
+
+## 12. Segurança e produtos químicos
+- Use apenas produtos de limpeza aprovados pela empresa e siga as instruções do rótulo. As Fichas de Dados de Segurança (SDS) de cada produto estão com o seu gestor e no aplicativo da empresa; pergunte se tiver dúvidas.
+- Nunca misture produtos químicos. Misturar água sanitária com amônia ou ácidos cria gases tóxicos.
+- Use as luvas e os outros equipamentos de proteção que a empresa fornece sem custo para você e mantenha os cômodos ventilados.
+- Use a escada pequena apenas como orientado. Não suba em móveis, bancadas ou banheiras e não levante nada pesado demais; peça ajuda.
+- Avise o seu gestor imediatamente sobre qualquer lesão, mesmo pequena. Lesões no trabalho são cobertas pelo seguro de acidentes de trabalho (workers' compensation).
+- Você pode recusar uma tarefa que considere insegura e relatar preocupações de segurança sem sofrer retaliação.
+
+## 13. Direção e despesas (para cargos que dirigem)
+- Mantenha a carteira de motorista válida e o seguro do carro exigido pelo seu estado, e avise o seu gestor na hora sobre qualquer suspensão, acidente ou mudança no seu seguro.
+- Respeite todas as leis de trânsito. Não segure nem use o celular enquanto dirige; configure a navegação antes de sair.
+- Dirigir entre as casas dos clientes durante o dia de trabalho é tempo de trabalho pago. A empresa reembolsa as despesas necessárias do trabalho conforme a lei, incluindo a quilometragem aprovada entre as casas dos clientes, pelo valor que ela informar por escrito. O trajeto normal de casa até o primeiro trabalho e do último trabalho de volta para casa não é reembolsado.
+- Se precisar usar o seu celular pessoal para o aplicativo da empresa, pergunte ao escritório sobre o reembolso desse uso.
+- Siga as regras de estacionamento nas casas dos clientes. Se não houver vaga permitida, ligue para o seu gestor.
+
+## 14. Checklist de qualidade e retornos
+- Siga o checklist de limpeza de cada casa no aplicativo da empresa e tire as fotos de antes e depois que ele pede.
+- Se um cliente relatar um problema, a empresa pode agendar um retorno para refazer a limpeza. O tempo gasto no retorno é pago.
+- O retorno sobre a qualidade é usado para orientação e treinamento. Ele nunca resulta em descontos no seu pagamento.
+
+## 15. Como relatar danos e quebras
+Acidentes acontecem. Se algo quebrar ou for danificado, pare, tire uma foto e avise o seu gestor antes de sair da casa. Nunca esconda um dano nem tente consertá-lo por conta própria. A empresa conversa com o cliente. A empresa não vai descontar danos do seu pagamento; descuidos repetidos podem levar a orientação ou medidas disciplinares.
+
+## 16. Confidencialidade
+As informações dos clientes são confidenciais: nomes, endereços, chaves, códigos de alarme, agendas e tudo o que você vir ou ouvir na casa de um cliente. Mantenha tudo em sigilo durante e depois do seu vínculo. Nada neste manual impede você de falar sobre seu salário, suas horas ou suas condições de trabalho com colegas ou outras pessoas, nem de relatar preocupações a um órgão do governo.
+
+## 17. Redes sociais
+Não publique fotos, vídeos, nomes, endereços ou detalhes sobre os clientes ou suas casas. Não fale em nome da empresa {{empresa}} na internet sem autorização. Esta política não limita o seu direito de falar sobre seu salário, suas horas ou suas condições de trabalho.
+
+## 18. Drogas e álcool
+Não trabalhe sob efeito de álcool, cannabis, drogas ilegais ou remédios usados de forma indevida, e não leve essas substâncias para a casa dos clientes ou para os veículos da empresa. O uso lícito fora do horário de trabalho segue a lei aplicável, mas você nunca pode estar sob efeito no trabalho. Se um remédio puder afetar a sua capacidade de trabalhar com segurança, avise o seu gestor que precisa de uma adaptação; você não precisa dizer o nome do remédio.
+
+## 19. Reclamações e portas abertas
+Queremos ouvir você. Leve perguntas, preocupações ou reclamações ao seu gestor ou diretamente ao dono, pessoalmente ou por escrito. Ninguém sofrerá retaliação por levantar uma preocupação de boa-fé. Você também tem o direito de procurar órgãos do governo, como o departamento do trabalho do seu estado, o órgão de direitos civis do seu estado, a EEOC ou a OSHA.
+
+## 20. Ciência
+Ao assinar abaixo, confirmo que recebi e li o Manual do Colaborador da empresa {{empresa}}, que tive a oportunidade de fazer perguntas e que concordo em seguir suas políticas. Entendo que o manual não é um contrato, que a empresa pode atualizá-lo e que o meu vínculo é "at will".
+"""
+
+_MANUAL_ES = _AVISO_ES + """
+
+# Manual del Empleado
+
+## 1. Bienvenida
+Bienvenido al equipo de {{empresa}}. Nuestros clientes nos confían sus casas, sus llaves y la privacidad de sus familias. Este manual explica cómo trabajamos juntos para ganarnos esa confianza todos los días. Léelo con atención y pregúntale a tu gerente sobre cualquier punto que no esté claro.
+
+## 2. Sobre este manual
+Este manual describe nuestras principales políticas y expectativas. No es un contrato de trabajo y no promete empleo por ningún plazo. La empresa puede actualizar estas políticas; cuando lo haga, te avisaremos. Cuando la ley federal, estatal o local te dé más derechos que este manual, se aplica la ley.
+
+## 3. Empleo "at will"
+El empleo en {{empresa}} es "at will" (a voluntad). Tú o la empresa pueden terminar la relación laboral en cualquier momento, con o sin causa y con o sin aviso previo. Solo el dueño de la empresa, por escrito y con su firma, puede cambiar esto.
+
+## 4. Igualdad de oportunidades
+Tomamos decisiones de empleo según la capacidad y el desempeño. No discriminamos por raza, color, religión o credo, origen nacional, ascendencia, sexo (incluidos el embarazo, el parto y condiciones relacionadas), identidad o expresión de género, orientación sexual, edad, discapacidad física o mental, condición médica, información genética, estado civil, condición militar o de veterano, ni por ninguna otra característica protegida por la ley federal, estatal o local. Ofrecemos adaptaciones razonables por discapacidad, embarazo y creencias religiosas sinceras. Habla con tu gerente o con el dueño si necesitas una.
+
+## 5. Contra el acoso y sin represalias
+No se permite ningún tipo de acoso, incluido el acoso sexual, venga de un compañero, un gerente, un cliente o cualquier persona relacionada con nuestro trabajo. Algunos ejemplos son los avances sexuales no deseados, los pedidos de favores sexuales, los chistes o comentarios sexuales u ofensivos y los toques no deseados. Si sufres o ves acoso, incluso de un cliente en su casa, sal de la situación si no te sientes seguro y avísale de inmediato a tu gerente o al dueño. Investigaremos rápidamente y tomaremos las medidas adecuadas. Nadie será castigado por hacer una denuncia de buena fe ni por participar en una investigación. También puedes comunicarte con la U.S. Equal Employment Opportunity Commission (EEOC) o con la agencia de derechos civiles de tu estado. La empresa ofrece capacitación para prevenir el acoso cuando la ley lo exige.
+
+## 6. Asistencia y aviso de ausencias
+Los clientes organizan su día según nuestras visitas, por eso la confiabilidad es importante.
+- Si no puedes trabajar un turno programado, llama o escribe a tu gerente al menos 2 horas antes de tu primer trabajo, o lo antes posible en una emergencia. Avisarle a un compañero no es suficiente.
+- Si vas a llegar tarde, avísale a tu gerente apenas lo sepas.
+- Faltar sin avisar ("no call, no show") es un problema serio. Las ausencias repetidas sin aviso pueden llevar a medidas disciplinarias, incluido el despido.
+- Pide tus días libres con anticipación a tu gerente para que podamos ajustar las rutas.
+- Las ausencias protegidas por la ley, como la licencia por enfermedad pagada o la licencia familiar y médica, nunca cuentan en tu contra.
+
+## 7. Horarios y rutas
+- Tu horario y tu ruta se comparten con anticipación en la aplicación de agenda de la empresa.
+- Revisa la aplicación antes de salir de casa todos los días; las rutas pueden cambiar cuando los clientes reprograman.
+- Sigue el orden de la ruta, a menos que tu gerente apruebe un cambio, y avísale de inmediato si vas atrasado.
+- No cambies fechas ni horarios directamente con los clientes. Envía los pedidos de los clientes a la oficina.
+
+## 8. Registro de horas y descansos
+- Registra con exactitud todo el tiempo trabajado en la aplicación de la empresa: marca la entrada al comienzo de tu jornada y la salida al final. Nunca trabajes sin registrar tus horas y nunca registres las horas de otra persona.
+- Las capacitaciones, las reuniones de equipo y el traslado entre las casas de los clientes durante la jornada son tiempo de trabajo pagado.
+- Los descansos para comer y descansar siguen la ley del estado donde trabajas. Tu gerente te explicará cuándo tomarlos. Durante un descanso para comer no pagado quedas totalmente libre de tus tareas.
+- Las horas extra deben ser aprobadas antes por tu gerente, pero toda hora extra trabajada siempre se paga.
+
+## 9. Pago y días de pago
+- Se te paga en el día de pago regular de la empresa, con la frecuencia mínima que exige la ley. Recibirás un comprobante con tus horas, tu pago y las deducciones.
+- Si crees que tu pago está mal, avísale de inmediato a tu gerente o a la oficina. Lo revisaremos y corregiremos cualquier error rápidamente.
+- La empresa solo hace las deducciones que exige la ley o las que tú autorices por escrito para tu propio beneficio. La empresa nunca descuenta de tu pago dinero por daños, roturas, objetos perdidos, uniformes o quejas de clientes.
+- El depósito directo es opcional. Puedes elegir que te paguen con cheque.
+- La licencia por enfermedad pagada y otras licencias siguen la ley federal, estatal y local. Pide en la oficina la política vigente que aplica donde trabajas.
+
+## 10. Vestimenta y uniforme
+- La empresa te da camisetas del uniforme sin costo. Usa un uniforme limpio todos los días de trabajo.
+- Usa zapatos limpios, cerrados y antideslizantes. Lleva el cabello recogido y pocas joyas.
+- No uses perfume, colonia ni cremas perfumadas (ver la sección 11).
+- Devuelve los uniformes y el equipo de la empresa cuando termine tu empleo. No se descontará dinero de tu pago por objetos no devueltos.
+
+## 11. Conducta en las casas de los clientes
+- Privacidad: no abras cajones, armarios, gabinetes, correspondencia, documentos ni pantallas, a menos que sea parte de la limpieza. No tomes fotos en las casas de los clientes, salvo las fotos de antes y después que pide la empresa, y nunca incluyas personas, documentos ni objetos personales en ellas.
+- Llaves y códigos de alarma: guarda las llaves y los códigos de forma segura en todo momento. Nunca marques una llave con la dirección o el nombre del cliente, nunca compartas códigos y avísale de inmediato a tu gerente si pierdes una llave o tienes un problema con un código.
+- Sin perfume ni productos perfumados: muchos clientes y mascotas son sensibles a las fragancias.
+- Uso del teléfono: usa el teléfono solo para la aplicación de la empresa, la navegación, la comunicación de trabajo o emergencias. Nada de llamadas personales, videos ni redes sociales mientras trabajas en una casa.
+- Deja todo en su lugar: vuelve a poner los objetos exactamente donde estaban.
+- No lleves a nadie contigo (amigos, familiares, niños ni mascotas) a la casa de un cliente.
+- No comas, no fumes ni uses vapeador en las casas de los clientes ni en su propiedad, y no uses objetos de los clientes, como el televisor o la cocina, para uso personal. Puedes usar el baño con respeto.
+- Mascotas: sigue las instrucciones del cliente, mantén las puertas cerradas para que las mascotas no se escapen y nunca castigues a una mascota. Si un animal parece agresivo, no entres; aléjate y llama a tu gerente.
+- Si un cliente te ofrece una propina, puedes aceptarla. La propina es tuya.
+
+## 12. Seguridad y productos químicos
+- Usa solo productos de limpieza aprobados por la empresa y sigue las instrucciones de la etiqueta. Las Hojas de Datos de Seguridad (SDS) de cada producto están disponibles con tu gerente y en la aplicación de la empresa; pregunta si tienes dudas.
+- Nunca mezcles productos químicos. Mezclar cloro con amoníaco o ácidos produce gases tóxicos.
+- Usa los guantes y el resto del equipo de protección que la empresa te da sin costo, y mantén las habitaciones ventiladas.
+- Usa el banquito solo como se te indicó. No te subas a muebles, mesadas ni bañeras, y no levantes nada demasiado pesado; pide ayuda.
+- Informa de inmediato a tu gerente cualquier lesión, aunque sea pequeña. Las lesiones de trabajo están cubiertas por el seguro de accidentes laborales (workers' compensation).
+- Puedes negarte a hacer una tarea que creas insegura y reportar problemas de seguridad sin represalias.
+
+## 13. Manejo y gastos (para puestos que manejan)
+- Mantén una licencia de conducir vigente y el seguro de auto que exige tu estado, y avísale de inmediato a tu gerente sobre cualquier suspensión, accidente o cambio en tu seguro.
+- Respeta todas las leyes de tránsito. No sostengas ni uses el teléfono mientras manejas; configura la navegación antes de salir.
+- Manejar entre las casas de los clientes durante la jornada es tiempo de trabajo pagado. La empresa reembolsa los gastos necesarios del trabajo según la ley, incluido el millaje aprobado entre las casas de los clientes, a la tarifa que informe por escrito. El trayecto normal de tu casa al primer trabajo y del último trabajo de vuelta a casa no se reembolsa.
+- Si necesitas usar tu teléfono personal para la aplicación de la empresa, pregunta en la oficina por el reembolso de ese uso.
+- Respeta las reglas de estacionamiento en las casas de los clientes. Si no hay lugar permitido, llama a tu gerente.
+
+## 14. Lista de calidad y repasos
+- Sigue la lista de limpieza de cada casa en la aplicación de la empresa y toma las fotos de antes y después que pide.
+- Si un cliente reporta un problema, la empresa puede programar un repaso de la limpieza. El tiempo del repaso se paga.
+- Los comentarios sobre la calidad se usan para orientación y capacitación. Nunca generan descuentos en tu pago.
+
+## 15. Cómo reportar daños y roturas
+Los accidentes pasan. Si algo se rompe o se daña, detente, toma una foto y avísale a tu gerente antes de salir de la casa. Nunca escondas un daño ni intentes repararlo por tu cuenta. La empresa habla con el cliente. La empresa no descontará daños de tu pago; los descuidos repetidos pueden llevar a orientación o medidas disciplinarias.
+
+## 16. Confidencialidad
+La información de los clientes es confidencial: nombres, direcciones, llaves, códigos de alarma, horarios y todo lo que veas u oigas en la casa de un cliente. Mantenla en reserva durante y después de tu empleo. Nada en este manual te impide hablar de tu salario, tus horas o tus condiciones de trabajo con compañeros u otras personas, ni reportar inquietudes a una agencia del gobierno.
+
+## 17. Redes sociales
+No publiques fotos, videos, nombres, direcciones ni detalles sobre los clientes o sus casas. No hables en nombre de {{empresa}} en internet sin permiso. Esta política no limita tu derecho a hablar de tu salario, tus horas o tus condiciones de trabajo.
+
+## 18. Drogas y alcohol
+No trabajes bajo los efectos del alcohol, el cannabis, drogas ilegales o medicamentos mal usados, y no los lleves a las casas de los clientes ni a los vehículos de la empresa. El uso legal fuera del horario de trabajo se rige por la ley aplicable, pero nunca puedes estar bajo sus efectos en el trabajo. Si un medicamento puede afectar tu capacidad de trabajar con seguridad, dile a tu gerente que necesitas una adaptación; no necesitas decir el nombre del medicamento.
+
+## 19. Quejas y puertas abiertas
+Queremos escucharte. Lleva tus preguntas, inquietudes o quejas a tu gerente o directamente al dueño, en persona o por escrito. Nadie sufrirá represalias por plantear una inquietud de buena fe. También tienes derecho a comunicarte con agencias del gobierno, como el departamento de trabajo de tu estado, la agencia de derechos civiles de tu estado, la EEOC u OSHA.
+
+## 20. Acuse de recibo
+Al firmar abajo, confirmo que recibí y leí el Manual del Empleado de {{empresa}}, que tuve la oportunidad de hacer preguntas y que acepto seguir sus políticas. Entiendo que el manual no es un contrato, que la empresa puede actualizarlo y que mi empleo es "at will".
+"""
+
+# ---------------------------------------------------------------- valores (com declaração)
 
 _VALORES = {
     "en": _AVISO_EN + """
@@ -2736,6 +3105,8 @@ En el espacio de abajo, escribe una declaración breve sobre cómo piensas vivir
 """,
 }
 
+# ---------------------------------------------------------------- contrato de trabalho (W-2)
+
 _CONTRATO_W2 = _AVISO_EN + """
 
 # Employment Contract
@@ -2743,7 +3114,7 @@ _CONTRATO_W2 = _AVISO_EN + """
 This Employment Contract is made on {{data}} between {{empresa}} ("the Company") and {{nome}} ("the Employee").
 
 ## 1. Position and duties
-The Employee is hired as {{cargo}}. The Employee will perform residential cleaning services at client homes assigned by the Company, following the Company's checklists, safety rules, and the Employee Handbook, and other reasonable duties related to the position.
+The Employee is hired as {{cargo}}. The Employee will perform the services of that position, such as residential cleaning at client homes assigned by the Company, following the Company's checklists, safety rules, and the Employee Handbook, and other reasonable duties related to the position.
 
 ## 2. Start date
 Employment begins on {{data_inicio}}.
@@ -2751,17 +3122,18 @@ Employment begins on {{data_inicio}}.
 ## 3. At-will employment
 Employment is at will. Either party may end it at any time, with or without cause or advance notice. Nothing in this contract promises employment for a specific length of time.
 
-## 4. Pay
+## 4. Pay and expenses
 - The Employee will be paid {{pagamento}}, less the withholdings required by law.
-- Pay is issued weekly on the Company's regular payday, as required by Connecticut law.
-- If the position is non-exempt, hours worked over 40 in a workweek are paid at one and a half times the regular rate.
-- Travel time between client homes during the workday is paid working time. Approved mileage between client homes is reimbursed at the Company's announced rate.
+- Pay is issued on the Company's regular payday, at least as often as the law of the state where the Employee works requires.
+- If the position is non-exempt, overtime is paid as required by federal and state law.
+- Training, team meetings, and travel time between client homes during the workday are paid working time.
+- The Company reimburses necessary work expenses as required by law, including approved mileage between client homes at the Company's announced rate.
 - The Company makes only deductions required by law or authorized by the Employee in writing for the Employee's benefit. The Company does not deduct for damage, breakage, lost items, or uniforms.
 
-## 5. Schedule
+## 5. Schedule and breaks
 {{horario}}
 
-Schedules and routes are shared in advance through the Company's scheduling app and may change based on client needs.
+Schedules and routes are shared in advance through the Company's scheduling app and may change based on client needs. Meal and rest breaks are provided as required by the law of the state where the Employee works.
 
 ## 6. Introductory period
 The first {{periodo_experiencia}} days are an introductory period for training and feedback. Completing it does not change the at-will nature of employment.
@@ -2775,44 +3147,179 @@ The Employee will keep confidential all client information (names, addresses, ke
 ## 9. Company property
 When employment ends, or whenever the Company asks, the Employee will promptly return all Company and client property, including keys, access cards, uniforms, equipment, and any client information. No amount will be deducted from wages for unreturned items.
 
-## 10. Employee information
+## 10. Freedom to work
+This contract does not contain a non-compete. Nothing in it prevents the Employee from working in the same industry after employment ends.
+
+## 11. Employee information
 The Employee confirms that the personal information provided during onboarding is true and agrees to keep it up to date.
 
-## 11. Governing law
-This contract is governed by the laws of the State of Connecticut.
+## 12. Governing law
+This contract is governed by the laws of the state where the Employee primarily works. If any provision is not enforceable under that law, the rest of the contract remains in effect.
 
-## 12. Entire agreement
+## 13. Entire agreement
 This contract, the offer letter, and the Employee Handbook acknowledgment are the full understanding between the parties about the terms of employment. Changes must be in writing and signed by the Employee and the owner of the Company.
 
 ## Signatures
 The Company's signature was recorded by {{representante}} on behalf of {{empresa}} when this onboarding was sent. The Employee signs electronically below.
 """
 
-_CONTRATO_1099 = _AVISO_EN + """
+_CONTRATO_W2_PT = _AVISO_PT + """
 
-> Legal note for the company: Connecticut uses the "ABC test" for unemployment insurance. A worker is an independent contractor only if (A) they are free from the company's control and direction, (B) the work is outside the usual course of the company's business or performed outside all of its places of business, and (C) they are customarily engaged in an independently established trade or business. Residential cleaners who clean homes for a cleaning company often fail part B. Confirm the classification with an attorney before using this agreement.
+# Contrato de Trabalho
+
+Este Contrato de Trabalho é celebrado em {{data}} entre a empresa {{empresa}} ("a Empresa") e {{nome}} ("o Colaborador").
+
+## 1. Cargo e funções
+O Colaborador é contratado como {{cargo}}. O Colaborador vai realizar os serviços desse cargo, como a limpeza residencial nas casas de clientes indicadas pela Empresa, seguindo os checklists, as regras de segurança e o Manual do Colaborador, além de outras tarefas razoáveis ligadas ao cargo.
+
+## 2. Data de início
+O vínculo começa em {{data_inicio}}.
+
+## 3. Vínculo "at will"
+O vínculo é "at will" (por vontade das partes). Qualquer das partes pode encerrá-lo a qualquer momento, com ou sem motivo e com ou sem aviso prévio. Nada neste contrato promete emprego por um prazo determinado.
+
+## 4. Pagamento e despesas
+- O Colaborador receberá {{pagamento}}, menos as retenções exigidas por lei.
+- O pagamento é feito no dia de pagamento regular da Empresa, com a frequência mínima exigida pela lei do estado onde o Colaborador trabalha.
+- Se o cargo não for isento ("non-exempt"), as horas extras são pagas conforme a lei federal e estadual.
+- Treinamentos, reuniões de equipe e o deslocamento entre as casas dos clientes durante o dia de trabalho são tempo de trabalho pago.
+- A Empresa reembolsa as despesas necessárias do trabalho conforme a lei, incluindo a quilometragem aprovada entre as casas dos clientes, pelo valor informado pela Empresa.
+- A Empresa faz apenas os descontos exigidos por lei ou autorizados por escrito pelo Colaborador em seu próprio benefício. A Empresa não desconta valores por danos, quebras, itens perdidos ou uniformes.
+
+## 5. Horário e intervalos
+{{horario}}
+
+As agendas e rotas são compartilhadas com antecedência pelo aplicativo de agendamento da Empresa e podem mudar conforme a necessidade dos clientes. Os intervalos para refeição e descanso seguem a lei do estado onde o Colaborador trabalha.
+
+## 6. Período de experiência
+Os primeiros {{periodo_experiencia}} dias são um período de experiência para treinamento e retorno. Concluí-lo não muda a natureza "at will" do vínculo.
+
+## 7. Políticas da Empresa
+O Colaborador concorda em seguir o Manual do Colaborador e as políticas escritas da Empresa, com as atualizações feitas ao longo do tempo.
+
+## 8. Confidencialidade
+O Colaborador vai manter em sigilo todas as informações dos clientes (nomes, endereços, chaves, códigos de alarme, agendas e tudo o que vir ou ouvir nas casas dos clientes) e as informações não públicas da Empresa, durante e depois do vínculo. Nada neste contrato impede o Colaborador de falar sobre salário, horas ou condições de trabalho, nem de relatar preocupações a um órgão do governo.
+
+## 9. Bens da Empresa
+Quando o vínculo terminar, ou sempre que a Empresa pedir, o Colaborador vai devolver prontamente todos os bens da Empresa e dos clientes, incluindo chaves, cartões de acesso, uniformes, equipamentos e qualquer informação de clientes. Nenhum valor será descontado do salário por itens não devolvidos.
+
+## 10. Liberdade para trabalhar
+Este contrato não tem cláusula de não concorrência. Nada nele impede o Colaborador de trabalhar no mesmo setor depois que o vínculo terminar.
+
+## 11. Informações do Colaborador
+O Colaborador confirma que as informações pessoais fornecidas no onboarding são verdadeiras e concorda em mantê-las atualizadas.
+
+## 12. Lei aplicável
+Este contrato é regido pelas leis do estado onde o Colaborador trabalha principalmente. Se alguma cláusula não puder ser aplicada segundo essa lei, o restante do contrato continua valendo.
+
+## 13. Acordo completo
+Este contrato, a carta de proposta e a ciência do Manual do Colaborador formam o entendimento completo entre as partes sobre as condições de trabalho. Mudanças precisam ser feitas por escrito e assinadas pelo Colaborador e pelo dono da Empresa.
+
+## Assinaturas
+A assinatura da Empresa foi registrada por {{representante}}, em nome da empresa {{empresa}}, quando este onboarding foi enviado. O Colaborador assina eletronicamente abaixo.
+"""
+
+_CONTRATO_W2_ES = _AVISO_ES + """
+
+# Contrato de Trabajo
+
+Este Contrato de Trabajo se celebra el {{data}} entre {{empresa}} ("la Empresa") y {{nome}} ("el Empleado").
+
+## 1. Puesto y funciones
+El Empleado es contratado como {{cargo}}. El Empleado prestará los servicios de ese puesto, como la limpieza residencial en las casas de clientes que asigne la Empresa, siguiendo las listas de verificación, las reglas de seguridad y el Manual del Empleado, además de otras tareas razonables relacionadas con el puesto.
+
+## 2. Fecha de inicio
+El empleo comienza el {{data_inicio}}.
+
+## 3. Empleo "at will"
+El empleo es "at will" (a voluntad). Cualquiera de las partes puede terminarlo en cualquier momento, con o sin causa y con o sin aviso previo. Nada en este contrato promete empleo por un plazo determinado.
+
+## 4. Pago y gastos
+- El Empleado recibirá {{pagamento}}, menos las retenciones que exige la ley.
+- El pago se hace en el día de pago regular de la Empresa, con la frecuencia mínima que exige la ley del estado donde trabaja el Empleado.
+- Si el puesto no es exento ("non-exempt"), las horas extra se pagan según la ley federal y estatal.
+- Las capacitaciones, las reuniones de equipo y el traslado entre las casas de los clientes durante la jornada son tiempo de trabajo pagado.
+- La Empresa reembolsa los gastos necesarios del trabajo según la ley, incluido el millaje aprobado entre las casas de los clientes, a la tarifa que informe la Empresa.
+- La Empresa solo hace las deducciones que exige la ley o que el Empleado autorice por escrito para su propio beneficio. La Empresa no descuenta por daños, roturas, objetos perdidos ni uniformes.
+
+## 5. Horario y descansos
+{{horario}}
+
+Los horarios y las rutas se comparten con anticipación en la aplicación de agenda de la Empresa y pueden cambiar según las necesidades de los clientes. Los descansos para comer y descansar siguen la ley del estado donde trabaja el Empleado.
+
+## 6. Período de prueba
+Los primeros {{periodo_experiencia}} días son un período de prueba para capacitación y comentarios. Completarlo no cambia la naturaleza "at will" del empleo.
+
+## 7. Políticas de la Empresa
+El Empleado acepta seguir el Manual del Empleado y las políticas escritas de la Empresa, con las actualizaciones que se hagan con el tiempo.
+
+## 8. Confidencialidad
+El Empleado mantendrá en reserva toda la información de los clientes (nombres, direcciones, llaves, códigos de alarma, horarios y todo lo que vea u oiga en sus casas) y la información no pública de la Empresa, durante y después del empleo. Nada en este contrato impide al Empleado hablar de salarios, horas o condiciones de trabajo, ni reportar inquietudes a una agencia del gobierno.
+
+## 9. Bienes de la Empresa
+Cuando termine el empleo, o cuando la Empresa lo pida, el Empleado devolverá de inmediato todos los bienes de la Empresa y de los clientes, incluidas llaves, tarjetas de acceso, uniformes, equipos y cualquier información de clientes. No se descontará ningún monto del salario por objetos no devueltos.
+
+## 10. Libertad para trabajar
+Este contrato no tiene una cláusula de no competencia. Nada en él impide al Empleado trabajar en la misma industria cuando termine el empleo.
+
+## 11. Información del Empleado
+El Empleado confirma que la información personal que dio en la incorporación es verdadera y acepta mantenerla actualizada.
+
+## 12. Ley aplicable
+Este contrato se rige por las leyes del estado donde el Empleado trabaja principalmente. Si alguna cláusula no puede aplicarse según esa ley, el resto del contrato sigue vigente.
+
+## 13. Acuerdo completo
+Este contrato, la carta de oferta y el acuse de recibo del Manual del Empleado son el entendimiento completo entre las partes sobre las condiciones de empleo. Los cambios deben hacerse por escrito y estar firmados por el Empleado y por el dueño de la Empresa.
+
+## Firmas
+La firma de la Empresa fue registrada por {{representante}}, en nombre de {{empresa}}, cuando se envió esta incorporación. El Empleado firma electrónicamente abajo.
+"""
+
+# ---------------------------------------------------------------- contrato de prestador independente (1099)
+
+_NOTA_1099_EN = ("> Note for the company: many states, including California and Connecticut, use the \"ABC test\" to decide "
+                 "who is an independent contractor. A worker usually qualifies only if (A) they are free from the company's "
+                 "control and direction, (B) the work is outside the usual course of the company's business, and (C) they are "
+                 "customarily engaged in an independently established trade or business. Cleaners who clean homes for a "
+                 "cleaning company often fail part B. Confirm the classification with your attorney before using this agreement.")
+_NOTA_1099_PT = ("> Nota para a empresa: muitos estados, incluindo a Califórnia e Connecticut, usam o \"teste ABC\" para decidir "
+                 "quem é prestador independente. Em geral, a pessoa só se enquadra se (A) estiver livre do controle e da direção "
+                 "da empresa, (B) o trabalho estiver fora da atividade normal da empresa e (C) ela exercer habitualmente um "
+                 "negócio próprio e independente. Quem limpa casas para uma empresa de limpeza muitas vezes não cumpre a parte B. "
+                 "Confirme a classificação com o seu advogado antes de usar este contrato.")
+_NOTA_1099_ES = ("> Nota para la empresa: muchos estados, incluidos California y Connecticut, usan la \"prueba ABC\" para decidir "
+                 "quién es contratista independiente. En general, la persona solo califica si (A) está libre del control y la "
+                 "dirección de la empresa, (B) el trabajo está fuera de la actividad habitual de la empresa y (C) se dedica "
+                 "habitualmente a un negocio propio e independiente. Quien limpia casas para una empresa de limpieza muchas veces "
+                 "no cumple la parte B. Confirme la clasificación con su abogado antes de usar este contrato.")
+
+_CONTRATO_1099 = _AVISO_EN + "\n\n" + _NOTA_1099_EN + """
 
 # Independent Contractor Agreement
 
 This Independent Contractor Agreement is made on {{data}} between {{empresa}} ("the Company") and {{nome}} ("the Contractor").
 
 ## 1. Services
-The Contractor will provide {{cargo}} services for jobs the Contractor chooses to accept. The Contractor decides how, when, and by what methods the services are performed, consistent with the results agreed for each job and with client access and safety requirements.
+The Contractor will provide {{cargo}} services for the jobs the Contractor chooses to accept. For each accepted job, the parties agree on the result to be delivered (for example, the home and the scope of the service). The Contractor decides how, when, and by what methods the work is done, consistent with that result and with the client's access and safety requirements.
 
 ## 2. Term
-This agreement starts on {{data_inicio}} and continues until either party ends it under section 9.
+This agreement starts on {{data_inicio}} and continues until either party ends it under section 11.
 
 ## 3. Independent contractor status
-The Contractor is an independent contractor, not an employee, partner, or agent of the Company. The Contractor:
-- may accept or decline any job;
-- may offer services to other businesses and clients, including competitors;
-- controls the manner and means of the work and sets their own hours for accepted jobs;
+The Contractor is an independent business, not an employee, partner, or agent of the Company. In particular, the Contractor:
+- may accept or decline any job offered, without penalty;
+- sets their own hours and days of availability, and is not required to work a minimum number of jobs or hours;
+- controls the manner and means of the work, and is not supervised, trained, or evaluated as an employee would be;
+- may offer services to other businesses and clients, including competitors of the Company, and may advertise their own business;
+- may hire helpers or subcontractors at their own expense, provided that anyone entering a client home meets the client's access and security requirements;
+- is responsible for their own business licenses, registrations, and tax identification where required;
+- is not required to wear a Company uniform and does not present themselves as a Company employee;
 - is not eligible for employee benefits, unemployment insurance, or workers' compensation through the Company.
 
 ## 4. Payment and invoicing
-- The Company will pay the Contractor {{pagamento}} for completed services.
+- The Company will pay the Contractor {{pagamento}} for completed services, or another rate agreed in writing for a specific job. The Contractor may propose its own rates for new jobs.
 - The Contractor will send invoices listing the jobs completed. The Company will pay correct invoices within 15 days of receiving them.
-- Any reimbursement of expenses must be agreed in writing in advance.
+- The Contractor bears its own business expenses, unless the parties agree in writing in advance on a reimbursement for a specific job.
 
 ## 5. Taxes
 The Company will not withhold income tax, Social Security, Medicare, or any other taxes. The Contractor is responsible for all taxes on payments received. The Contractor will provide a completed Form W-9, and the Company will issue Form 1099-NEC when required.
@@ -2821,50 +3328,171 @@ The Company will not withhold income tax, Social Security, Medicare, or any othe
 The Contractor provides their own tools, equipment, supplies, and transportation, unless the parties agree otherwise in writing for a specific client.
 
 ## 7. Insurance
-The Contractor will maintain general liability insurance appropriate for residential cleaning work and, if the Contractor uses a vehicle, auto insurance that meets Connecticut requirements, and will provide proof of insurance when asked.
+The Contractor will maintain general liability insurance appropriate for the services and, if the Contractor uses a vehicle, the auto insurance required by the Contractor's state, and will provide proof of insurance when asked.
 
 ## 8. Client homes and confidentiality
 The Contractor will respect client privacy and property, keep keys and alarm codes secure, and report any damage right away. The Contractor will keep confidential all client information and the Company's non-public business information, during and after this agreement. Nothing in this agreement prevents the Contractor from reporting concerns to a government agency.
 
-## 9. Termination
-Either party may end this agreement at any time with 7 days' written notice, or immediately if the other party materially breaches it. The Company will pay for services completed before the end date. The Contractor will promptly return any client keys or property.
+## 9. Responsibility for work
+The Contractor is responsible for the quality of its work and for damage it causes. If a client reports a problem with an accepted job, the Contractor may choose to correct it at no extra charge or the parties may agree on another solution.
 
 ## 10. No restrictions after the agreement
-This agreement does not contain a non-compete. Nothing in it prevents the Contractor from working in the cleaning industry after the agreement ends.
+This agreement does not contain a non-compete. Nothing in it prevents the Contractor from working in the same industry, during or after this agreement.
 
-## 11. Governing law
-This agreement is governed by the laws of the State of Connecticut.
+## 11. Termination
+Either party may end this agreement at any time with 7 days written notice, or immediately if the other party materially breaches it. The Company will pay for services completed before the end date. The Contractor will promptly return any client keys or property.
 
-## 12. Entire agreement
+## 12. Governing law
+This agreement is governed by the laws of the state where the services are mainly performed. If any provision is not enforceable under that law, the rest of the agreement remains in effect.
+
+## 13. Entire agreement
 This agreement and the engagement offer are the full understanding between the parties. Changes must be in writing and signed by both parties.
 
 ## Signatures
 The Company's signature was recorded by {{representante}} on behalf of {{empresa}} when this onboarding was sent. The Contractor signs electronically below.
 """
 
+_CONTRATO_1099_PT = _AVISO_PT + "\n\n" + _NOTA_1099_PT + """
+
+# Contrato de Prestador Independente
+
+Este Contrato de Prestador Independente é celebrado em {{data}} entre a empresa {{empresa}} ("a Empresa") e {{nome}} ("o Prestador").
+
+## 1. Serviços
+O Prestador vai prestar serviços de {{cargo}} nos trabalhos que escolher aceitar. Para cada trabalho aceito, as partes combinam o resultado a ser entregue (por exemplo, a casa e o escopo do serviço). O Prestador decide como, quando e por quais métodos o trabalho é feito, de acordo com esse resultado e com as exigências de acesso e segurança do cliente.
+
+## 2. Prazo
+Este contrato começa em {{data_inicio}} e continua até que uma das partes o encerre conforme a seção 11.
+
+## 3. Condição de prestador independente
+O Prestador é um negócio independente, e não funcionário, sócio ou representante da Empresa. Em especial, o Prestador:
+- pode aceitar ou recusar qualquer trabalho oferecido, sem penalidade;
+- define seus próprios horários e dias de disponibilidade e não é obrigado a cumprir um número mínimo de trabalhos ou de horas;
+- controla a forma e os meios do trabalho e não é supervisionado, treinado nem avaliado como um funcionário seria;
+- pode oferecer serviços a outras empresas e clientes, inclusive concorrentes da Empresa, e pode divulgar o seu próprio negócio;
+- pode contratar ajudantes ou subcontratados por sua própria conta, desde que quem entrar na casa de um cliente cumpra as exigências de acesso e segurança do cliente;
+- é responsável por suas próprias licenças, registros e identificação fiscal do negócio, quando exigidos;
+- não é obrigado a usar uniforme da Empresa e não se apresenta como funcionário da Empresa;
+- não tem direito a benefícios de funcionário, seguro-desemprego ou seguro de acidentes de trabalho (workers' compensation) pela Empresa.
+
+## 4. Pagamento e faturas
+- A Empresa vai pagar ao Prestador {{pagamento}} pelos serviços concluídos, ou outro valor combinado por escrito para um trabalho específico. O Prestador pode propor seus próprios valores para novos trabalhos.
+- O Prestador vai enviar faturas com a lista dos trabalhos concluídos. A Empresa vai pagar as faturas corretas em até 15 dias após recebê-las.
+- O Prestador arca com as despesas do seu negócio, salvo se as partes combinarem antes, por escrito, um reembolso para um trabalho específico.
+
+## 5. Impostos
+A Empresa não vai reter imposto de renda, Social Security, Medicare nem qualquer outro imposto. O Prestador é responsável por todos os impostos sobre os pagamentos recebidos. O Prestador vai entregar o Formulário W-9 preenchido, e a Empresa vai emitir o Formulário 1099-NEC quando exigido.
+
+## 6. Ferramentas e materiais
+O Prestador fornece suas próprias ferramentas, equipamentos, materiais e transporte, salvo se as partes combinarem outra coisa por escrito para um cliente específico.
+
+## 7. Seguro
+O Prestador vai manter um seguro de responsabilidade civil adequado aos serviços e, se usar um veículo, o seguro do carro exigido pelo seu estado, e vai apresentar comprovante do seguro quando solicitado.
+
+## 8. Casas dos clientes e confidencialidade
+O Prestador vai respeitar a privacidade e os bens dos clientes, guardar chaves e códigos de alarme com segurança e avisar na hora sobre qualquer dano. O Prestador vai manter em sigilo todas as informações dos clientes e as informações não públicas da Empresa, durante e depois deste contrato. Nada neste contrato impede o Prestador de relatar preocupações a um órgão do governo.
+
+## 9. Responsabilidade pelo trabalho
+O Prestador é responsável pela qualidade do seu trabalho e pelos danos que causar. Se um cliente relatar um problema em um trabalho aceito, o Prestador pode escolher corrigi-lo sem custo adicional, ou as partes podem combinar outra solução.
+
+## 10. Sem restrições depois do contrato
+Este contrato não tem cláusula de não concorrência. Nada nele impede o Prestador de trabalhar no mesmo setor, durante ou depois deste contrato.
+
+## 11. Encerramento
+Qualquer das partes pode encerrar este contrato a qualquer momento com 7 dias de aviso por escrito, ou imediatamente se a outra parte o violar de forma grave. A Empresa vai pagar os serviços concluídos antes da data de encerramento. O Prestador vai devolver prontamente qualquer chave ou bem dos clientes.
+
+## 12. Lei aplicável
+Este contrato é regido pelas leis do estado onde os serviços são prestados principalmente. Se alguma cláusula não puder ser aplicada segundo essa lei, o restante do contrato continua valendo.
+
+## 13. Acordo completo
+Este contrato e a proposta de prestação de serviços formam o entendimento completo entre as partes. Mudanças precisam ser feitas por escrito e assinadas pelas duas partes.
+
+## Assinaturas
+A assinatura da Empresa foi registrada por {{representante}}, em nome da empresa {{empresa}}, quando este onboarding foi enviado. O Prestador assina eletronicamente abaixo.
+"""
+
+_CONTRATO_1099_ES = _AVISO_ES + "\n\n" + _NOTA_1099_ES + """
+
+# Contrato de Contratista Independiente
+
+Este Contrato de Contratista Independiente se celebra el {{data}} entre {{empresa}} ("la Empresa") y {{nome}} ("el Contratista").
+
+## 1. Servicios
+El Contratista prestará servicios de {{cargo}} en los trabajos que elija aceptar. Para cada trabajo aceptado, las partes acuerdan el resultado a entregar (por ejemplo, la casa y el alcance del servicio). El Contratista decide cómo, cuándo y con qué métodos hace el trabajo, de acuerdo con ese resultado y con los requisitos de acceso y seguridad del cliente.
+
+## 2. Plazo
+Este contrato comienza el {{data_inicio}} y continúa hasta que una de las partes lo termine según la sección 11.
+
+## 3. Condición de contratista independiente
+El Contratista es un negocio independiente, y no un empleado, socio ni representante de la Empresa. En especial, el Contratista:
+- puede aceptar o rechazar cualquier trabajo ofrecido, sin penalidad;
+- fija sus propios horarios y días de disponibilidad y no está obligado a cumplir un mínimo de trabajos ni de horas;
+- controla la forma y los medios del trabajo, y no es supervisado, capacitado ni evaluado como lo sería un empleado;
+- puede ofrecer servicios a otras empresas y clientes, incluidos competidores de la Empresa, y puede promocionar su propio negocio;
+- puede contratar ayudantes o subcontratistas por su cuenta, siempre que quien entre a la casa de un cliente cumpla los requisitos de acceso y seguridad del cliente;
+- es responsable de sus propias licencias, registros e identificación fiscal del negocio, cuando se requieran;
+- no está obligado a usar uniforme de la Empresa y no se presenta como empleado de la Empresa;
+- no tiene derecho a beneficios de empleado, seguro de desempleo ni seguro de accidentes laborales (workers' compensation) por medio de la Empresa.
+
+## 4. Pago y facturas
+- La Empresa pagará al Contratista {{pagamento}} por los servicios completados, u otra tarifa acordada por escrito para un trabajo específico. El Contratista puede proponer sus propias tarifas para trabajos nuevos.
+- El Contratista enviará facturas con la lista de los trabajos completados. La Empresa pagará las facturas correctas dentro de los 15 días de recibirlas.
+- El Contratista asume los gastos de su negocio, salvo que las partes acuerden antes, por escrito, un reembolso para un trabajo específico.
+
+## 5. Impuestos
+La Empresa no retendrá impuesto sobre la renta, Social Security, Medicare ni ningún otro impuesto. El Contratista es responsable de todos los impuestos sobre los pagos recibidos. El Contratista entregará el Formulario W-9 completo, y la Empresa emitirá el Formulario 1099-NEC cuando se requiera.
+
+## 6. Herramientas y materiales
+El Contratista aporta sus propias herramientas, equipos, materiales y transporte, salvo que las partes acuerden otra cosa por escrito para un cliente específico.
+
+## 7. Seguro
+El Contratista mantendrá un seguro de responsabilidad civil adecuado para los servicios y, si usa un vehículo, el seguro de auto que exige su estado, y presentará el comprobante del seguro cuando se le pida.
+
+## 8. Casas de los clientes y confidencialidad
+El Contratista respetará la privacidad y los bienes de los clientes, guardará las llaves y los códigos de alarma de forma segura y avisará de inmediato sobre cualquier daño. El Contratista mantendrá en reserva toda la información de los clientes y la información no pública de la Empresa, durante y después de este contrato. Nada en este contrato impide al Contratista reportar inquietudes a una agencia del gobierno.
+
+## 9. Responsabilidad por el trabajo
+El Contratista es responsable de la calidad de su trabajo y de los daños que cause. Si un cliente reporta un problema en un trabajo aceptado, el Contratista puede elegir corregirlo sin costo adicional, o las partes pueden acordar otra solución.
+
+## 10. Sin restricciones después del contrato
+Este contrato no tiene una cláusula de no competencia. Nada en él impide al Contratista trabajar en la misma industria, durante o después de este contrato.
+
+## 11. Terminación
+Cualquiera de las partes puede terminar este contrato en cualquier momento con 7 días de aviso por escrito, o de inmediato si la otra parte lo incumple de forma grave. La Empresa pagará los servicios completados antes de la fecha de terminación. El Contratista devolverá de inmediato cualquier llave o bien de los clientes.
+
+## 12. Ley aplicable
+Este contrato se rige por las leyes del estado donde se prestan principalmente los servicios. Si alguna cláusula no puede aplicarse según esa ley, el resto del contrato sigue vigente.
+
+## 13. Acuerdo completo
+Este contrato y la oferta de contratación independiente son el entendimiento completo entre las partes. Los cambios deben hacerse por escrito y estar firmados por ambas partes.
+
+## Firmas
+La firma de la Empresa fue registrada por {{representante}}, en nombre de {{empresa}}, cuando se envió esta incorporación. El Contratista firma electrónicamente abajo.
+"""
+
 MODELOS_PADRAO = [
     {"chave": "offer_letter", "categoria": "oferta", "aplica": "w2",
      "titulos": {"en": "Offer Letter", "pt": "Carta de proposta", "es": "Carta de oferta"},
-     "textos": {"en": _OFERTA_W2}},
+     "textos": {"en": _OFERTA_W2, "pt": _OFERTA_W2_PT, "es": _OFERTA_W2_ES}},
     {"chave": "engagement_offer", "categoria": "oferta", "aplica": "1099",
      "titulos": {"en": "Contractor Engagement Offer", "pt": "Proposta de prestação de serviços",
                  "es": "Oferta de contratación independiente"},
-     "textos": {"en": _OFERTA_1099}},
+     "textos": {"en": _OFERTA_1099, "pt": _OFERTA_1099_PT, "es": _OFERTA_1099_ES}},
     {"chave": "interest_agreement", "categoria": "documento", "aplica": "w2",
      "titulos": {"en": "Interest Agreement", "pt": "Acordo de Interesse", "es": "Acuerdo de Interés"},
      "textos": {"en": _INTERESSE_EN, "pt": _INTERESSE_PT, "es": _INTERESSE_ES}},
     {"chave": "employee_handbook", "categoria": "documento", "aplica": "w2",
      "titulos": {"en": "Employee Handbook (acknowledgment)", "pt": "Manual do Colaborador (ciência)",
                  "es": "Manual del Empleado (acuse de recibo)"},
-     "textos": {"en": _MANUAL_EN}},
+     "textos": {"en": _MANUAL_EN, "pt": _MANUAL_PT, "es": _MANUAL_ES}},
     {"chave": "core_values", "categoria": "documento", "aplica": "ambos", "declaracao": True,
      "titulos": {"en": "Core Values", "pt": "Nossos Valores", "es": "Nuestros Valores"},
      "textos": _VALORES},
     {"chave": "employment_contract", "categoria": "documento", "aplica": "w2",
      "titulos": {"en": "Employment Contract", "pt": "Contrato de Trabalho", "es": "Contrato de Trabajo"},
-     "textos": {"en": _CONTRATO_W2}},
+     "textos": {"en": _CONTRATO_W2, "pt": _CONTRATO_W2_PT, "es": _CONTRATO_W2_ES}},
     {"chave": "contractor_agreement", "categoria": "documento", "aplica": "1099",
      "titulos": {"en": "Independent Contractor Agreement", "pt": "Contrato de Prestador Independente",
                  "es": "Contrato de Contratista Independiente"},
-     "textos": {"en": _CONTRATO_1099}},
+     "textos": {"en": _CONTRATO_1099, "pt": _CONTRATO_1099_PT, "es": _CONTRATO_1099_ES}},
 ]

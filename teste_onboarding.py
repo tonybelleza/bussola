@@ -412,7 +412,7 @@ class TestPortal(Base):
         self.assertIn("November 9, 2026", txt)
         self.assertIn("$22.00 per hour", txt)
         self.assertNotIn("{{", txt)
-        self.assertIn("DRAFT TEMPLATE FOR LEGAL REVIEW", txt)
+        self.assertIn("Template provided by Bússola", txt)
 
     def test_dados_validacao_e_criptografia(self):
         ob = self.oferta(self.candidato(), dirige=True)

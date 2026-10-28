@@ -1,300 +1,821 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Bússola: plataforma de recrutamento, seleção e desenvolvimento com testes DISC e B.A.S.E., match inteligente e pipeline de vagas. Por Tony Belleza.">
-  <meta property="og:title" content="Bússola · Talento na direção certa">
-  <meta property="og:description" content="Avaliação comportamental, competências e processo seletivo num só lugar, com um match que mede a pessoa inteira.">
+  <title>Bússola · The AI recruiter that calls every applicant · Tony Belleza</title>
+  <meta name="description" content="Francisca, an AI phone recruiter, calls every applicant within minutes in English, Spanish or Portuguese, screens them, books the interview and handles onboarding. Built for companies that hire hourly workers.">
+  <meta name="theme-color" content="#070B14">
+  <link rel="canonical" href="https://rh.tonybelleza.com/">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://rh.tonybelleza.com/img/og.jpg">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://rh.tonybelleza.com/img/og.jpg">
+  <meta property="og:site_name" content="Bússola">
   <meta property="og:url" content="https://rh.tonybelleza.com/">
+  <meta property="og:title" content="Bússola · Your AI recruiter calls every applicant in minutes, in their language">
+  <meta property="og:description" content="AI phone screening in English, Spanish and Portuguese, self-scheduled interviews, DISC and B.A.S.E. tests and digital onboarding. By Tony Belleza.">
+  <meta property="og:image" content="https://rh.tonybelleza.com/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="pt_BR">
+  <meta property="og:locale:alternate" content="es_419">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Bússola · Your AI recruiter calls every applicant in minutes">
+  <meta name="twitter:description" content="AI phone screening in English, Spanish and Portuguese, interviews booked automatically and digital onboarding.">
+  <meta name="twitter:image" content="https://rh.tonybelleza.com/img/og.jpg">
   <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
-  <title>Bússola · Recrutamento e Seleção · Tony Belleza</title>
+  <link rel="preload" href="fonts/Gabarito.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script>document.documentElement.classList.add("js");</script>
   <script src="js/tema.js"></script>
+  <script type="application/ld+json" id="jsonld">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Bússola",
+    "applicationCategory": "BusinessApplication",
+    "applicationSubCategory": "Recruiting software",
+    "operatingSystem": "Web",
+    "url": "https://rh.tonybelleza.com/",
+    "image": "https://rh.tonybelleza.com/img/og.jpg",
+    "description": "AI phone screening in English, Spanish and Portuguese, automatic intake from Indeed, self-scheduled interviews, DISC and B.A.S.E. tests and digital onboarding for companies that hire hourly workers.",
+    "inLanguage": ["en", "es", "pt-BR"],
+    "author": { "@type": "Person", "name": "Tony Belleza", "url": "https://tonybelleza.com" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free trial" }
+  }
+  </script>
 </head>
-<body class="landing">
-  <div class="topbar">
+<body class="lp">
+  <a class="lp-skip" href="#conteudo" data-i18n="pular">Skip to content</a>
+
+  <header class="topbar lp-top">
     <div class="inner">
-      <div class="brand">
-        <img src="img/logo-white.svg" alt="Tony Belleza">
-        <div class="sep"></div>
-        <div>
-          <h1>Bússola</h1>
-          <div class="sub">Recrutamento e Seleção</div>
-        </div>
-      </div>
+      <a class="brand lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+        <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+        <span class="sep" aria-hidden="true"></span>
+        <b>Bússola</b>
+      </a>
+      <nav class="lp-nav" aria-label="Main">
+        <a href="#recursos" data-i18n="nav_produto"></a>
+        <a href="#francisca" data-i18n="nav_francisca"></a>
+        <a href="#onboarding" data-i18n="nav_onboarding"></a>
+        <a href="#seguranca" data-i18n="nav_seguranca"></a>
+        <a href="#precos" data-i18n="nav_precos"></a>
+        <a href="#faq" data-i18n="nav_faq"></a>
+      </nav>
       <div class="actions">
-        <div class="ld-bandeiras" id="bandeiras"></div>
-        <a class="btn on-dark small" href="/vagas" data-i18n="nav_vagas">Vagas</a>
-        <a class="btn on-dark small" href="/candidato" data-i18n="nav_candidato">Candidato</a>
-        <a class="btn small" href="/gestor" data-i18n="nav_entrar">Entrar</a>
+        <div class="lp-lang" role="group"></div>
+        <a class="lp-entrar" href="/gestor" data-i18n="nav_entrar"></a>
+        <a class="btn small lp-cta-top" href="/assinar" data-i18n="cta_trial"></a>
       </div>
+      <button class="lp-menu-btn" type="button" id="btn-menu" aria-expanded="false" aria-controls="drawer"></button>
     </div>
-  </div>
-
-  <div class="ld-glow ld-glow-1"></div>
-  <div class="ld-glow ld-glow-2"></div>
-
-  <div class="container">
-    <div class="ld-hero revela">
-      <div class="ld-eyebrow" data-i18n="hero_eyebrow"></div>
-      <h2 data-i18n-html="hero_titulo"></h2>
-      <p data-i18n="hero_sub"></p>
-      <div class="linha-acoes ld-cta">
-        <a class="btn big" href="/vagas" data-i18n="cta_vagas"></a>
-        <a class="btn ghost big" href="/gestor" data-i18n="cta_gestor"></a>
+    <div class="lp-drawer" id="drawer" hidden>
+      <a class="lk" href="#recursos" data-i18n="nav_produto"></a>
+      <a class="lk" href="#francisca" data-i18n="nav_francisca"></a>
+      <a class="lk" href="#onboarding" data-i18n="nav_onboarding"></a>
+      <a class="lk" href="#seguranca" data-i18n="nav_seguranca"></a>
+      <a class="lk" href="#precos" data-i18n="nav_precos"></a>
+      <a class="lk" href="#faq" data-i18n="nav_faq"></a>
+      <div class="linha">
+        <div class="lp-lang" role="group"></div>
+        <a class="btn secondary small" href="/gestor" data-i18n="nav_entrar"></a>
       </div>
+      <a class="btn block" href="/assinar" style="margin-top:12px" data-i18n="cta_trial"></a>
     </div>
+  </header>
 
-    <div class="ld-mock revela">
-      <div class="ld-mock-janela">
-        <div class="ld-mock-topo"><span></span><span></span><span></span></div>
-        <div class="ld-mock-corpo">
-          <div class="ld-mock-col">
-            <div class="ld-mock-rot" data-i18n="mock_match"></div>
-            <div class="ld-mock-match">92%</div>
-            <div class="ld-mock-barra"><i style="width:92%"></i></div>
-            <div id="mock-dims"></div>
-          </div>
-          <div class="ld-mock-col">
-            <div class="ld-mock-rot" data-i18n="mock_pipeline"></div>
-            <div id="mock-etapas"></div>
-            <div class="ld-mock-rot" style="margin-top:14px" data-i18n="mock_codigo"></div>
-            <div class="ld-mock-codigo"><span style="background:#3B67CA">B</span><span style="background:#E05C2E">A</span><span style="background:#2EA87B">S</span><span style="background:#8B5CF6">E</span></div>
-          </div>
+  <div class="lp-bg" aria-hidden="true"></div>
+
+  <main id="conteudo">
+    <!-- herói -->
+    <section class="lp-wrap lp-hero" aria-labelledby="hero-titulo">
+      <div class="rv">
+        <span class="lp-eyebrow" data-i18n="hero_eyebrow"></span>
+        <h1 class="lp-h1" id="hero-titulo" data-i18n-html="hero_titulo"></h1>
+        <p class="lp-lead" data-i18n="hero_sub"></p>
+        <div class="lp-ctas">
+          <a class="btn big" href="/assinar"><span data-i18n="cta_trial"></span><span data-ic="seta"></span></a>
+          <a class="btn ghost big" href="#como" data-i18n="hero_cta2"></a>
         </div>
+        <ul class="lp-notas" data-notas></ul>
       </div>
-    </div>
 
-    <div class="ld-stats revela" id="stats"></div>
-
-    <div class="ld-marquee" aria-hidden="true">
-      <div class="ld-marquee-trilho" id="marquee"></div>
-    </div>
-
-    <div class="ld-secao revela">
-      <div class="ld-eyebrow" data-i18n="s1_eyebrow"></div>
-      <h2 class="ld-titulo" data-i18n="s1_titulo"></h2>
-      <div class="grid cols-4" id="recursos"></div>
-    </div>
-
-    <div class="ld-secao revela">
-      <div class="ld-eyebrow" data-i18n="bento_eyebrow"></div>
-      <h2 class="ld-titulo" data-i18n="bento_titulo"></h2>
-      <div class="ld-bento">
-
-        <div class="ld-bento-item ld-b-matriz">
-          <div class="ld-mock-rot" data-i18n="bm_rot"></div>
-          <div class="ld-mini-aderencia"><b>84%</b><span data-i18n="bm_ader"></span><i class="badge ok" data-i18n="bm_apto"></i></div>
-          <div class="ld-mini-tabela">
-            <div><span data-i18n="bm_linhas.0"></span><em>4/4</em><u class="ok">OK</u></div>
-            <div><span data-i18n="bm_linhas.1"></span><em>3/4</em><u class="medio">-1</u></div>
-            <div><span data-i18n="bm_linhas.2"></span><em>1/4</em><u class="alto">-3</u></div>
-            <div><span data-i18n="bm_linhas.3"></span><em>4/3</em><u class="ok">OK</u></div>
+      <div class="lp-call-wrap rv">
+        <div class="lp-call lp-glass" role="img" id="call-mock">
+          <div class="lp-call-top">
+            <span class="lp-av" aria-hidden="true">F</span>
+            <div><b data-i18n="francisca"></b><small data-i18n="mock_candidato"></small></div>
+            <div class="lp-live"><i aria-hidden="true"></i><span id="call-tempo">00:00</span><span class="lp-chip-idioma" id="call-idioma">EN</span></div>
           </div>
-          <div class="ld-mini-plano" data-i18n="bm_plano"></div>
+          <div class="lp-conv" id="call-conv" aria-hidden="true"></div>
         </div>
-
-        <div class="ld-bento-item ld-b-radar">
-          <div class="ld-mock-rot" data-i18n="br_rot"></div>
-          <p class="ld-bento-desc" data-i18n="br_desc"></p>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-1">MC</i><div><b>Marta C.</b><span data-i18n="br_subs.0"></span></div><em class="ld-match-badge">91%</em></div>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-2">JP</i><div><b>João P.</b><span data-i18n="br_subs.1"></span></div><em class="ld-match-badge">87%</em></div>
-          <div class="ld-mini-sugestao"><i class="ld-avatar av-3">RS</i><div><b>Rita S.</b><span data-i18n="br_subs.2"></span></div><em class="ld-match-badge">78%</em></div>
-        </div>
-
-        <div class="ld-bento-item ld-b-funil">
-          <div class="ld-mock-rot" data-i18n="bf_rot"></div>
-          <div class="ld-mini-funil">
-            <div><span data-i18n="bf_etapas.0"></span><i style="width:100%"></i><b>32</b></div>
-            <div><span data-i18n="bf_etapas.1"></span><i style="width:66%"></i><b>21</b></div>
-            <div><span data-i18n="bf_etapas.2"></span><i style="width:28%"></i><b>9</b></div>
-            <div><span data-i18n="bf_etapas.3"></span><i style="width:9%"></i><b>3</b></div>
-            <div><span data-i18n="bf_etapas.4"></span><i style="width:6%"></i><b>2</b></div>
-          </div>
-        </div>
-
-        <div class="ld-bento-item ld-b-email">
-          <div class="ld-mock-rot" data-i18n="be_rot"></div>
-          <div class="ld-mini-email">
-            <div class="ld-mini-email-topo"><i class="ld-avatar av-4">B</i><div><b>Bússola</b><span data-i18n="be_para"></span></div></div>
-            <p><strong data-i18n="be_titulo"></strong><br><span data-i18n="be_txt"></span></p>
-            <span class="ld-mini-email-btn" data-i18n="be_btn"></span>
-          </div>
-        </div>
-
-        <div class="ld-bento-item ld-b-ia">
-          <div class="ld-mock-rot" data-i18n="bi_rot"></div>
-          <p class="ld-bento-desc" data-i18n="bi_desc"></p>
-          <div class="ld-mini-chips" id="ia-chips"></div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="ld-secao revela">
-      <div class="ld-eyebrow" data-i18n="como_eyebrow"></div>
-      <h2 class="ld-titulo" data-i18n="como_titulo"></h2>
-      <div class="grid cols-2 mt">
-        <div class="card ld-passos">
-          <h3 data-i18n="como_cand_h"></h3>
-          <div id="passos-cand"></div>
-        </div>
-        <div class="card ld-passos">
-          <h3 data-i18n="como_gestor_h"></h3>
-          <div id="passos-gestor"></div>
+        <div class="lp-resultado lp-glass" id="call-resultado">
+          <div class="rot" data-i18n="mock_resultado"></div>
+          <div class="linha"><span class="lp-tier">STRONG</span><b>86</b><span data-i18n="mock_pontos"></span></div>
+          <p><span data-ic="check"></span><span data-i18n="mock_proximo"></span></p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="ld-secao revela">
-      <div class="ld-eyebrow" data-i18n="depo_eyebrow"></div>
-      <h2 class="ld-titulo" data-i18n="depo_titulo"></h2>
-      <div class="ld-depos" id="depoimentos"></div>
-    </div>
+    <!-- faixa de confiança -->
+    <section class="lp-wrap lp-trust rv" aria-label="Industries">
+      <p data-i18n="trust_titulo"></p>
+      <div class="lp-setores" id="setores"></div>
+      <div class="lp-fatos" id="fatos-produto"></div>
+    </section>
 
-    <div class="ld-secao revela">
-      <div class="ld-autor">
+    <!-- como funciona -->
+    <section class="lp-sec" id="como" aria-labelledby="como-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="como_eyebrow"></span>
+          <h2 class="lp-h2" id="como-titulo" data-i18n="como_titulo"></h2>
+        </div>
+        <ol class="lp-passos rv" id="passos"></ol>
+      </div>
+    </section>
+
+    <!-- recursos -->
+    <section class="lp-sec lp-band" id="recursos" aria-labelledby="rec-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="rec_eyebrow"></span>
+          <h2 class="lp-h2" id="rec-titulo" data-i18n="rec_titulo"></h2>
+        </div>
+        <div class="lp-grid3 rv" id="recursos-grid"></div>
+      </div>
+    </section>
+
+    <!-- Francisca -->
+    <section class="lp-sec" id="francisca" aria-labelledby="fr-titulo">
+      <div class="lp-wrap lp-split">
+        <div class="rv">
+          <span class="lp-eyebrow" data-i18n="fr_eyebrow"></span>
+          <h2 class="lp-h2" id="fr-titulo" data-i18n="fr_titulo"></h2>
+          <p class="lp-sub" data-i18n="fr_sub"></p>
+          <ul class="lp-check" id="fr-lista"></ul>
+        </div>
+        <div class="lp-demo lp-glass rv">
+          <div class="lp-demo-rot"><span data-i18n="fr_conversa"></span><span class="lp-chip-idioma" id="fr-par">EN / ES</span></div>
+          <div class="lp-conv" id="fr-conv"></div>
+          <div class="lp-fatos-call">
+            <h4><span data-i18n="fr_fatos"></span><span class="lp-tier">STRONG · 86</span></h4>
+            <dl id="fr-fatos"></dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- onboarding -->
+    <section class="lp-sec lp-band" id="onboarding" aria-labelledby="ob-titulo">
+      <div class="lp-wrap lp-split inverte">
+        <div class="lp-ob lp-glass rv">
+          <div class="lp-ob-topo">
+            <span class="lp-av" aria-hidden="true">MG</span>
+            <div><b data-i18n="ob_mock_titulo"></b><small id="ob-prog"></small></div>
+          </div>
+          <div class="lp-barra"><i id="ob-barra" style="width:0"></i></div>
+          <ul id="ob-itens"></ul>
+        </div>
+        <div class="rv">
+          <span class="lp-eyebrow" data-i18n="ob_eyebrow"></span><span class="lp-novo lp-sel-novo" data-i18n="novo"></span>
+          <h2 class="lp-h2" id="ob-titulo" data-i18n="ob_titulo"></h2>
+          <p class="lp-sub" data-i18n="ob_sub"></p>
+          <ul class="lp-check" id="ob-lista"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- segurança -->
+    <section class="lp-sec" id="seguranca" aria-labelledby="seg-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="seg_eyebrow"></span>
+          <h2 class="lp-h2" id="seg-titulo" data-i18n="seg_titulo"></h2>
+        </div>
+        <div class="lp-grid3 rv" id="seg-grid"></div>
+      </div>
+    </section>
+
+    <!-- preços -->
+    <section class="lp-sec lp-band" id="precos" aria-labelledby="pr-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="pr_eyebrow"></span>
+          <h2 class="lp-h2" id="pr-titulo" data-i18n="pr_titulo"></h2>
+          <p class="lp-sub" data-i18n="pr_sub"></p>
+        </div>
+        <div class="lp-toggle-linha" id="ciclo-linha" hidden>
+          <div class="lp-toggle" role="group" aria-labelledby="pr-titulo">
+            <button type="button" data-ciclo="mensal" aria-pressed="true" data-i18n="pr_mensal"></button>
+            <button type="button" data-ciclo="anual" aria-pressed="false" data-i18n="pr_anual"></button>
+          </div>
+          <span class="lp-economia-badge" id="economia-badge" hidden></span>
+        </div>
+        <div id="planos" aria-live="polite"></div>
+        <div id="addons"></div>
+        <p class="lp-trial-nota" id="trial-nota"></p>
+
+        <div class="lp-calc lp-glass rv" id="calc">
+          <div>
+            <h3 data-i18n="calc_titulo"></h3>
+            <p data-i18n="calc_sub"></p>
+            <div class="lp-range">
+              <label for="calc-cand"><span data-i18n="calc_candidatos"></span><output id="calc-cand-v" for="calc-cand">100</output></label>
+              <input type="range" id="calc-cand" min="10" max="1000" step="10" value="100">
+            </div>
+            <div class="lp-range">
+              <label for="calc-taxa"><span data-i18n="calc_taxa"></span><output id="calc-taxa-v" for="calc-taxa">40%</output></label>
+              <input type="range" id="calc-taxa" min="10" max="90" step="5" value="40">
+            </div>
+            <p class="lp-premissa" data-i18n="calc_premissa"></p>
+          </div>
+          <div class="lp-calc-res" aria-live="polite">
+            <span class="rot" data-i18n="calc_estimativa"></span>
+            <span class="grande" id="calc-min">0</span>
+            <span class="media" id="calc-media"></span>
+            <div class="plano" id="calc-plano"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="lp-sec" id="faq" aria-labelledby="faq-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="faq_eyebrow"></span>
+          <h2 class="lp-h2" id="faq-titulo" data-i18n="faq_titulo"></h2>
+        </div>
+        <div class="lp-faq rv" id="faq-lista"></div>
+      </div>
+    </section>
+
+    <!-- autor -->
+    <section class="lp-wrap" aria-labelledby="autor-titulo">
+      <div class="ld-autor rv">
         <div class="ld-autor-foto">
-          <img src="img/tony-palestra.jpg" alt="Tony Belleza" loading="lazy">
+          <img src="img/tony-palestra.jpg" alt="Tony Belleza giving a talk" loading="lazy">
         </div>
         <div class="ld-autor-texto">
-          <div class="ld-eyebrow" style="margin-left:0" data-i18n="autor_eyebrow"></div>
-          <h2 data-i18n="autor_titulo"></h2>
+          <span class="lp-eyebrow" data-i18n="autor_eyebrow"></span>
+          <h2 id="autor-titulo" data-i18n="autor_titulo"></h2>
           <p data-i18n="autor_p1"></p>
           <p data-i18n="autor_p2"></p>
           <div class="ld-autor-frase" data-i18n="autor_frase"></div>
           <div class="ld-autor-pilares" id="pilares"></div>
-          <div class="linha-acoes" style="margin-top:24px">
+          <div class="lp-ctas" style="margin-top:24px">
             <a class="btn secondary" href="https://tonybelleza.com" target="_blank" rel="noopener" data-i18n="autor_btn"></a>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="ld-secao revela">
-      <div class="grid cols-3">
-        <div class="card texto-centro ld-acesso">
-          <div class="ld-acesso-icone" id="ic-cand"></div>
-          <h2 style="font-size:1.1rem" data-i18n="ac_cand_t"></h2>
-          <p class="desc" data-i18n="ac_cand_p"></p>
-          <a class="btn block" href="/candidato" data-i18n="ac_cand_b"></a>
+    <!-- acesso rápido -->
+    <section class="lp-sec" aria-labelledby="ac-titulo">
+      <div class="lp-wrap">
+        <div class="lp-head rv">
+          <span class="lp-eyebrow" data-i18n="ac_eyebrow"></span>
+          <h2 class="lp-h2" id="ac-titulo" data-i18n="ac_titulo"></h2>
         </div>
-        <div class="card texto-centro ld-acesso">
-          <div class="ld-acesso-icone" id="ic-gestor"></div>
-          <h2 style="font-size:1.1rem" data-i18n="ac_gestor_t"></h2>
-          <p class="desc" data-i18n="ac_gestor_p"></p>
-          <a class="btn secondary block" href="/gestor" data-i18n="ac_gestor_b"></a>
-        </div>
-        <div class="card texto-centro ld-acesso">
-          <div class="ld-acesso-icone" id="ic-vagas"></div>
-          <h2 style="font-size:1.1rem" data-i18n="ac_vagas_t"></h2>
-          <p class="desc" data-i18n="ac_vagas_p"></p>
-          <a class="btn secondary block" href="/vagas" data-i18n="ac_vagas_b"></a>
+        <div class="lp-grid3 rv">
+          <div class="lp-card lp-glass lp-acesso">
+            <span class="lp-ico" data-ic="usuario"></span>
+            <h3 data-i18n="ac_cand_t"></h3>
+            <p data-i18n="ac_cand_p"></p>
+            <a class="btn secondary block" href="/candidato" data-i18n="ac_cand_b"></a>
+          </div>
+          <div class="lp-card lp-glass lp-acesso">
+            <span class="lp-ico" data-ic="grafico"></span>
+            <h3 data-i18n="ac_gestor_t"></h3>
+            <p data-i18n="ac_gestor_p"></p>
+            <a class="btn block" href="/gestor" data-i18n="ac_gestor_b"></a>
+          </div>
+          <div class="lp-card lp-glass lp-acesso">
+            <span class="lp-ico" data-ic="pasta"></span>
+            <h3 data-i18n="ac_vagas_t"></h3>
+            <p data-i18n="ac_vagas_p"></p>
+            <a class="btn secondary block" href="/vagas" data-i18n="ac_vagas_b"></a>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="ld-final revela">
-      <img class="simbolo" src="img/logo-symbol-white.svg" alt="">
-      <h2 data-i18n="final_titulo"></h2>
-      <p data-i18n="final_p"></p>
-      <div class="linha-acoes" style="justify-content:center">
-        <a class="btn big" href="/gestor" data-i18n="final_btn"></a>
+    <!-- CTA final -->
+    <section class="lp-wrap" aria-labelledby="final-titulo">
+      <div class="lp-final lp-glass rv">
+        <img class="simbolo" src="img/logo-symbol-white.svg" alt="" width="46" height="45">
+        <h2 id="final-titulo" data-i18n="final_titulo"></h2>
+        <p data-i18n="final_p"></p>
+        <div class="lp-ctas">
+          <a class="btn big" href="/assinar"><span data-i18n="cta_trial"></span><span data-ic="seta"></span></a>
+          <a class="btn ghost big" href="#precos" data-i18n="final_btn2"></a>
+        </div>
+        <ul class="lp-notas" data-notas></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lp-foot">
+    <div class="lp-wrap">
+      <div class="lp-foot-grid">
+        <div>
+          <a class="lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+            <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+            <span class="sep" aria-hidden="true"></span>
+            <b>Bússola</b>
+          </a>
+          <p data-i18n="hero_eyebrow"></p>
+        </div>
+        <div>
+          <h4 data-i18n="rod_produto"></h4>
+          <ul>
+            <li><a href="#recursos" data-i18n="rod_recursos"></a></li>
+            <li><a href="#francisca" data-i18n="nav_francisca"></a></li>
+            <li><a href="#precos" data-i18n="nav_precos"></a></li>
+            <li><a href="#faq" data-i18n="nav_faq"></a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-i18n="rod_acesso"></h4>
+          <ul>
+            <li><a href="/vagas" data-i18n="rod_vagas"></a></li>
+            <li><a href="/candidato" data-i18n="rod_candidato"></a></li>
+            <li><a href="/gestor" data-i18n="rod_gestor"></a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-i18n="rod_legal"></h4>
+          <ul>
+            <li><a href="/termos.html" data-i18n="rod_termos"></a></li>
+            <li><a href="/privacidade.html" data-i18n="rod_privacidade"></a></li>
+            <li><a href="/dpa.html" data-i18n="rod_dpa"></a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="lp-foot-base">
+        <span id="rod-copy"></span>
+        <span><a href="https://tonybelleza.com" target="_blank" rel="noopener">tonybelleza.com</a> · <a href="/dono" data-i18n="rod_admin"></a></span>
       </div>
     </div>
+  </footer>
 
-    <p class="texto-centro" style="color:var(--muted);font-size:.8rem;margin-top:44px">
-      <span data-i18n="rodape"></span> ·
-      <a href="https://tonybelleza.com" style="color:inherit" target="_blank" rel="noopener">tonybelleza.com</a> ·
-      <a href="/dono" style="color:inherit" data-i18n="rodape_admin"></a>
-    </p>
-  </div>
-
-  <script src="js/icons.js"></script>
   <script src="js/idiomas.js"></script>
   <script>
-    const BANDEIRAS = {
-      pt: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#2E9E5B"/><path d="M12 2.4L21.4 8.5 12 14.6 2.6 8.5z" fill="#F5CE41"/><circle cx="12" cy="8.5" r="3.4" fill="#28498E"/><path d="M8.9 7.6c2.3 0 4.4.9 6 2.3" stroke="#fff" stroke-width=".8" fill="none"/></svg>',
-      en: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#B7332E"/><path d="M0 2.6h24M0 5.2h24M0 7.8h24M0 10.4h24M0 13h24" stroke="#fff" stroke-width="1.3"/><rect width="10.5" height="9.1" fill="#28498E"/><g fill="#fff"><circle cx="2" cy="1.9" r=".55"/><circle cx="5.2" cy="1.9" r=".55"/><circle cx="8.4" cy="1.9" r=".55"/><circle cx="3.6" cy="4.4" r=".55"/><circle cx="6.8" cy="4.4" r=".55"/><circle cx="2" cy="6.9" r=".55"/><circle cx="5.2" cy="6.9" r=".55"/><circle cx="8.4" cy="6.9" r=".55"/></g></svg>',
-      es: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#C8443E"/><rect y="4.2" width="24" height="8.6" fill="#F5CE41"/><rect x="5" y="6.6" width="3.2" height="3.6" rx=".6" fill="#C8443E"/></svg>',
-      fr: '<svg viewBox="0 0 24 17"><rect width="24" height="17" fill="#fff"/><rect width="8" height="17" fill="#28498E"/><rect x="16" width="8" height="17" fill="#C8443E"/></svg>',
+  (function () {
+    "use strict";
+
+    // ------------------------------------------------ ícones (traço, 24x24)
+    const P = {
+      voz: '<path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+      entrada: '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
+      agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8.5 14.5l2 2 4-4"/>',
+      talentos: '<circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M2.5 19a5.5 5.5 0 0 1 11 0"/><path d="M14 19a4 4 0 0 1 7.5-1.5"/>',
+      mensagens: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6 8.5-6"/>',
+      onboarding: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 3l5 5h-5z"/><path d="M8 12h6M8 16h3"/><path d="M15 20l1-3 4.5-4.5a1.4 1.4 0 0 1 2 2L18 19z"/>',
+      indicacoes: '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8c-1.5-3-5-3.5-5-1.5S10 8 12 8zM12 8c1.5-3 5-3.5 5-1.5S14 8 12 8z"/>',
+      disc: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12h8.5"/><path d="M12 12l-6 6"/>',
+      matriz: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M14 17h6M17 14v6"/>',
+      entrevista: '<rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M8.5 10h7M8.5 13.5h7M8.5 17h4"/>',
+      pipeline: '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="7" rx="1.5"/>',
+      unidades: '<path d="M4 20.5V5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 14 5v15.5"/><path d="M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5"/><path d="M2.5 20.5h19M7.5 7.5h3M7.5 11h3M7.5 14.5h3"/>',
+      isolado: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+      cadeado: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/>',
+      historico: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 4v4h4"/><path d="M12 7.5V12l3 2"/>',
+      escudo: '<path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
+      consentimento: '<path d="M7 3.5h7l4 4v13H7a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M9 13.5l2 2 4-4"/>',
+      usuarios: '<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 10-5.5"/><circle cx="17.5" cy="16" r="2.5"/><path d="M17.5 18.5V21"/>',
+      check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+      seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+      mais: '<path d="M12 5v14M5 12h14"/>',
+      menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+      fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+      usuario: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5a8 8 0 0 1 16 0"/>',
+      grafico: '<path d="M4 20V10M10 20V4M16 20v-7M21 20.5H3"/>',
+      pasta: '<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.5l2 2.5H19a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z"/>',
+      brilho: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+      casa: '<path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+      cama: '<path d="M3 18V7M3 14h18v4M21 14v-2.5A2.5 2.5 0 0 0 18.5 9H11v5"/><circle cx="7" cy="11" r="2"/>',
+      folha: '<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14z"/><path d="M5 19l7-7"/>',
+      equipe: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.3A6.5 6.5 0 0 1 21.5 20"/>',
     };
+    const ic = (n) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (P[n] || "") + "</svg>";
+    const ICONES_SETORES = ["brilho", "casa", "cama", "unidades", "folha", "equipe"];
+    const ICONES_PASSOS = ["entrada", "voz", "disc", "agenda", "onboarding"];
+
+    // ------------------------------------------------ utilidades
+    const $ = (s, el) => (el || document).querySelector(s);
+    const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const fmt = (txt, vars) => String(txt || "").replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? vars[k] : m));
+    const pegar = (dic, caminho) => caminho.split(".").reduce((o, k) => (o ? o[k] : ""), dic);
+    const reduzMovimento = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const LOCALES = { pt: "pt-BR", en: "en-US", es: "es-US" };
+    const LANG_HTML = { pt: "pt-BR", en: "en", es: "es" };
 
     let idioma = idiomaAtual();
+    const T = () => TRADUCOES[idioma];
 
-    function pegar(dic, caminho) {
-      return caminho.split(".").reduce((o, k) => (o ? o[k] : ""), dic);
+    function num(v) { const n = Number(v); return v !== null && v !== undefined && v !== "" && isFinite(n) ? n : null; }
+    function inteiro(n) { return new Intl.NumberFormat(LOCALES[idioma]).format(Math.round(n)); }
+    function dinheiro(v, moeda) {
+      const n = num(v); if (n === null) return "";
+      const frac = Math.abs(n - Math.round(n)) > 1e-9;
+      try {
+        return new Intl.NumberFormat(LOCALES[idioma], {
+          style: "currency", currency: moeda || "USD",
+          minimumFractionDigits: frac ? 2 : 0, maximumFractionDigits: frac ? (n < 1 ? 3 : 2) : 0,
+        }).format(n);
+      } catch (e) { return "$" + n; }
     }
 
-    function aplicarIdioma() {
-      const t = TRADUCOES[idioma];
-      document.documentElement.lang = { pt: "pt-BR", en: "en", es: "es", fr: "fr" }[idioma];
+    // ------------------------------------------------ estado dos planos
+    let PLANOS = null;          // resposta de /api/planos
+    let estadoPlanos = "carregando";
+    let ciclo = "mensal";
+    let pedidoPlanos = 0;
 
-      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = pegar(t, el.dataset.i18n); });
-      document.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = pegar(t, el.dataset.i18nHtml); });
+    function trialDias() { return PLANOS && num(PLANOS.trial_dias) ? num(PLANOS.trial_dias) : 14; }
+    function trialMin() { return PLANOS && num(PLANOS.trial_minutos) ? num(PLANOS.trial_minutos) : null; }
+    function stripeAtivo() { return !!(PLANOS && PLANOS.stripe_ativo); }
 
-      document.getElementById("mock-dims").innerHTML = t.mock_dims.map((d, i) => `
-        <div class="ld-mock-linha"><span>${d}</span><i><b style="width:${[88, 95, 90, 96, 91][i]}%"></b></i></div>`).join("");
-      document.getElementById("mock-etapas").innerHTML = t.mock_etapas.map((e, i) => `
-        <div class="ld-mock-etapa ${i === 2 ? "ativo" : ""}"><span>${e}</span><b>${[14, 9, 4, 1][i]}</b></div>`).join("");
-      document.getElementById("stats").innerHTML = t.stats.map(([n, s]) => `<div><b>${n}</b><span>${s}</span></div>`).join("");
-      document.getElementById("marquee").innerHTML = [...t.marquee, ...t.marquee].map((c) => `<span>${c}</span>`).join("");
-      document.getElementById("recursos").innerHTML = t.recursos.map(([ic, titulo, texto]) => `
-        <div class="card ld-recurso" style="margin-bottom:0">
-          <div class="passo" style="border:none;background:none;padding:0;margin:0 0 10px">
-            <div class="icone">${icone(ic)}</div>
-            <div class="info"><div class="titulo">${titulo}</div></div>
-          </div>
-          <p class="desc" style="margin:0">${texto}</p>
-        </div>`).join("");
-      document.getElementById("ia-chips").innerHTML = t.bi_chips.map((c) => `<span>${c}</span>`).join("");
-      document.getElementById("passos-cand").innerHTML = t.como_cand.map((p, i) => `<div class="ld-passo"><span>${i + 1}</span>${p}</div>`).join("");
-      document.getElementById("passos-gestor").innerHTML = t.como_gestor.map((p, i) => `<div class="ld-passo"><span>${i + 1}</span>${p}</div>`).join("");
-      document.getElementById("depoimentos").innerHTML = t.depoimentos.map(([texto, ini, nome, cargo, av]) => `
-        <div class="ld-depo">
-          <div class="ld-depo-aspas">${icone("aspas")}</div>
-          <div class="ld-estrelas">${icone("estrela").repeat(5)}</div>
-          <p>${texto}</p>
-          <div class="ld-depo-autor">
-            <i class="ld-avatar av-${av}">${ini}</i>
-            <div><b>${nome}</b><span>${cargo}</span></div>
-          </div>
-        </div>`).join("");
-      document.getElementById("pilares").innerHTML = t.autor_pilares.map((p) => `<span>${p}</span>`).join("");
-
-      document.querySelectorAll("#bandeiras button").forEach((b) =>
-        b.classList.toggle("ativa", b.dataset.idioma === idioma));
+    // preço anual: o servidor manda o total do ano; se vier o valor mensal equivalente, convertemos
+    function anualTotal(p) {
+      const a = num(p.preco_anual), m = num(p.preco_mensal);
+      if (a === null || a <= 0) return null;
+      return m && a < m * 2 ? a * 12 : a;
+    }
+    function economiaAnual(p) {
+      const tot = anualTotal(p), m = num(p.preco_mensal);
+      if (tot === null || !m) return 0;
+      return Math.max(0, m * 12 - tot);
+    }
+    function maiorEconomiaPct() {
+      if (!PLANOS) return 0;
+      return PLANOS.planos.reduce((mx, p) => {
+        const m = num(p.preco_mensal);
+        return m ? Math.max(mx, Math.round(economiaAnual(p) / (m * 12) * 100)) : mx;
+      }, 0);
+    }
+    function linkAssinar(codigo) {
+      return "/assinar?plano=" + encodeURIComponent(codigo) + "&ciclo=" + ciclo;
     }
 
-    document.getElementById("bandeiras").innerHTML = Object.entries(BANDEIRAS).map(([cod, svg]) =>
-      `<button data-idioma="${cod}" title="${{ pt: "Português", en: "English", es: "Español", fr: "Français" }[cod]}" aria-label="${cod}">${svg}</button>`).join("");
-    document.querySelectorAll("#bandeiras button").forEach((b) =>
-      b.addEventListener("click", () => {
-        idioma = b.dataset.idioma;
-        localStorage.setItem("idioma", idioma);
-        aplicarIdioma();
-      })
-    );
+    async function carregarPlanos() {
+      const meu = ++pedidoPlanos;
+      let dados = null;
+      try {
+        const ctrl = "AbortController" in window ? new AbortController() : null;
+        const timer = setTimeout(() => ctrl && ctrl.abort(), 8000);
+        const r = await fetch("/api/planos?idioma=" + idioma, {
+          headers: { Accept: "application/json", "X-Idioma": idioma },
+          signal: ctrl ? ctrl.signal : undefined,
+        });
+        clearTimeout(timer);
+        if (!r.ok) throw new Error("http " + r.status);
+        dados = await r.json();
+        if (!dados || !Array.isArray(dados.planos)) throw new Error("formato");
+        dados.planos = dados.planos.filter((p) => p && p.codigo && p.nome);
+        if (!dados.planos.length) throw new Error("vazio");
+        dados.addons = dados.addons || {};
+      } catch (e) {
+        dados = null;
+      }
+      if (meu !== pedidoPlanos) return;
+      if (dados) { PLANOS = dados; estadoPlanos = "ok"; }
+      else if (!PLANOS) estadoPlanos = "erro";
+      desenharDinamicos();
+      atualizarJsonLd();
+    }
 
-    document.getElementById("ic-cand").innerHTML = icone("usuario");
-    document.getElementById("ic-gestor").innerHTML = icone("barras");
-    document.getElementById("ic-vagas").innerHTML = icone("pasta");
-    aplicarIdioma();
+    // ------------------------------------------------ preços
+    function desenharPrecos() {
+      const t = T();
+      const caixa = $("#planos"), linhaCiclo = $("#ciclo-linha");
+      $$("[data-ciclo]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ciclo === ciclo)));
+      if (estadoPlanos !== "ok") {
+        linhaCiclo.hidden = true;
+        caixa.className = "";
+        caixa.innerHTML = estadoPlanos === "carregando"
+          ? '<p class="lp-aviso">' + esc(t.pr_carregando) + "</p>"
+          : '<div class="lp-aviso lp-glass"><p>' + esc(t.pr_erro) + '</p><a class="btn" href="/assinar">' + esc(t.pr_cta) + "</a></div>";
+        $("#addons").innerHTML = "";
+        return;
+      }
+      const moeda = PLANOS.moeda || "USD";
+      const temAnual = PLANOS.planos.some((p) => anualTotal(p) !== null);
+      linhaCiclo.hidden = !temAnual;
+      if (!temAnual) ciclo = "mensal";
+      const pct = maiorEconomiaPct();
+      const badge = $("#economia-badge");
+      badge.hidden = !pct;
+      badge.textContent = pct ? fmt(t.pr_economize, { p: pct }) : "";
 
-    // revelação suave ao rolar (desativada se o usuário prefere menos movimento)
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+      caixa.className = "lp-planos";
+      caixa.innerHTML = PLANOS.planos.map((p) => {
+        const m = num(p.preco_mensal), tot = anualTotal(p);
+        const anual = ciclo === "anual" && tot !== null;
+        const preco = anual ? tot / 12 : m;
+        let nota = "";
+        if (anual) {
+          nota = esc(fmt(t.pr_cobrado_anual, { v: dinheiro(tot, moeda) }));
+          const eco = economiaAnual(p);
+          if (eco > 0) nota += '<span class="eco">' + esc(fmt(t.pr_economia, { v: dinheiro(eco, moeda) })) + "</span>";
+        }
+        // o servidor já manda a lista de recursos traduzida; sem ela, montamos pelos campos
+        const recursos = (Array.isArray(p.recursos) ? p.recursos : []).filter(Boolean).map(String);
+        const itens = [];
+        if (recursos.length) {
+          recursos.forEach((r, i) => itens.push([i === 0 && num(p.minutos_voz) > 0 ? "forte" : "", r]));
+        } else {
+          if (num(p.minutos_voz) > 0) itens.push(["forte", fmt(t.pr_minutos, { n: inteiro(p.minutos_voz) })]);
+          if ("numero_exclusivo" in p && num(p.minutos_voz) > 0) itens.push(["", p.numero_exclusivo ? t.pr_numero_sim : t.pr_numero_nao]);
+          if (num(p.sms_mes)) itens.push(["", fmt(t.pr_sms, { n: inteiro(p.sms_mes) })]);
+          if ("gestores_max" in p) itens.push(["", num(p.gestores_max) > 0 ? fmt(t.pr_gestores, { n: inteiro(p.gestores_max) }) : t.pr_gestores_ilim]);
+        }
+        return '<article class="lp-plano lp-glass' + (p.destaque ? " destaque" : "") + '">' +
+          (p.destaque ? '<span class="lp-plano-tag">' + esc(t.pr_destaque) + "</span>" : "") +
+          "<h3>" + esc(p.nome) + "</h3>" +
+          '<p class="desc">' + esc(p.descricao || "") + "</p>" +
+          '<div class="lp-preco"><b>' + esc(dinheiro(preco, moeda)) + "</b><span>" + esc(t.pr_mes) + "</span></div>" +
+          '<p class="lp-preco-nota">' + nota + "</p>" +
+          "<ul>" + itens.map(([cls, txt]) => '<li class="' + cls + '">' + ic("check") + "<span>" + esc(txt) + "</span></li>").join("") + "</ul>" +
+          '<a class="btn' + (p.destaque ? "" : " secondary") + ' block" href="' + esc(linkAssinar(p.codigo)) + '">' + esc(t.pr_cta) + "</a>" +
+          "</article>";
+      }).join("");
+
+      const a = PLANOS.addons || {};
+      const add = [
+        [num(a.minuto_extra), t.pr_addon_min, t.pr_por_min],
+        [num(a.numero_extra), t.pr_addon_num, t.pr_por_mes],
+        [num(a.sms_extra), t.pr_addon_sms, t.pr_por_sms],
+      ].filter((x) => x[0] !== null);
+      $("#addons").innerHTML = add.length
+        ? '<div class="lp-addons lp-glass"><h3>' + esc(t.pr_addons) + "</h3>" +
+          add.map(([v, nome, un]) => "<div><span>" + esc(nome) + "</span><b>" + esc(dinheiro(v, moeda)) + "</b><span>" + esc(un) + "</span></div>").join("") + "</div>"
+        : "";
+    }
+
+    function textoTrial() {
+      const t = T();
+      const min = trialMin();
+      let s = min ? fmt(t.pr_trial, { dias: trialDias(), min: inteiro(min) }) : fmt(t.pr_trial_sem_min, { dias: trialDias() });
+      if (!stripeAtivo()) s += " " + t.pr_cartao;
+      return s;
+    }
+
+    function desenharNotas() {
+      const t = T();
+      const notas = [fmt(t.nota_trial, { dias: trialDias() }), stripeAtivo() ? t.nota_cancelar : t.nota_cartao, t.nota_idiomas];
+      $$("[data-notas]").forEach((ul) => {
+        ul.innerHTML = notas.map((n) => "<li>" + ic("check") + "<span>" + esc(n) + "</span></li>").join("");
+      });
+      $("#trial-nota").textContent = estadoPlanos === "ok" ? textoTrial() : "";
+    }
+
+    // ------------------------------------------------ calculadora
+    const MIN_TRIAGEM = 6;      // minutos de uma triagem concluída
+    const MIN_SEM_RESPOSTA = 1; // minutos somados de tentativas e caixa postal de quem não atende
+
+    function desenharCalc() {
+      const t = T();
+      const cand = Number($("#calc-cand").value), taxa = Number($("#calc-taxa").value) / 100;
+      $("#calc-cand-v").textContent = inteiro(cand);
+      $("#calc-taxa-v").textContent = Math.round(taxa * 100) + "%";
+      const est = Math.round(cand * taxa * MIN_TRIAGEM + cand * (1 - taxa) * MIN_SEM_RESPOSTA);
+      const media = (est / cand).toLocaleString(LOCALES[idioma], { maximumFractionDigits: 1 });
+      $("#calc-min").textContent = inteiro(est);
+      $("#calc-media").textContent = fmt(t.calc_media, { n: media });
+
+      const caixa = $("#calc-plano");
+      if (estadoPlanos !== "ok") {
+        caixa.innerHTML = estadoPlanos === "erro" ? "<p>" + esc(t.calc_sem_planos) + "</p>" : "";
+        return;
+      }
+      const comMin = PLANOS.planos.filter((p) => num(p.minutos_voz) !== null).sort((a, b) => num(a.minutos_voz) - num(b.minutos_voz));
+      if (!comMin.length) { caixa.innerHTML = ""; return; }
+      let rec = comMin.find((p) => num(p.minutos_voz) >= est);
+      let extra = "";
+      if (!rec) {
+        rec = comMin[comMin.length - 1];
+        const falta = est - num(rec.minutos_voz);
+        const precoMin = num((PLANOS.addons || {}).minuto_extra);
+        extra = fmt(t.calc_excede, { plano: rec.nome, n: inteiro(falta), v: precoMin !== null ? dinheiro(falta * precoMin, PLANOS.moeda) : "?" });
+      }
+      const m = num(rec.preco_mensal), tot = anualTotal(rec);
+      const preco = ciclo === "anual" && tot !== null ? tot / 12 : m;
+      caixa.innerHTML = '<span class="rot">' + esc(t.calc_recomendado) + "</span>" +
+        "<b>" + esc(rec.nome) + "</b>" +
+        "<p>" + esc(fmt(t.pr_minutos, { n: inteiro(rec.minutos_voz) })) + (preco !== null ? " · " + esc(dinheiro(preco, PLANOS.moeda)) + esc(t.pr_mes) : "") + "</p>" +
+        (extra ? "<p>" + esc(extra) + "</p>" : "") +
+        '<a class="btn block" href="' + esc(linkAssinar(rec.codigo)) + '">' + esc(fmt(t.calc_escolher, { plano: rec.nome })) + "</a>";
+    }
+
+    // ------------------------------------------------ FAQ
+    function desenharFaq() {
+      const t = T();
+      const min = trialMin();
+      const minTxt = min ? fmt(t.faq_trial_min, { min: inteiro(min) }) : "";
+      const trial = fmt(stripeAtivo() ? t.faq_trial_com_cartao : t.faq_trial_sem_cartao, { dias: trialDias(), min_txt: minTxt });
+      const abertos = $$("#faq-lista details").map((d) => d.open);
+      $("#faq-lista").innerHTML = t.faq.map(([q, a], i) =>
+        "<details" + (abertos[i] ? " open" : "") + "><summary>" + esc(q) + ic("mais") + "</summary><p>" + esc(a === "{trial}" ? trial : a) + "</p></details>").join("");
+    }
+
+    // ------------------------------------------------ JSON-LD com os planos
+    function atualizarJsonLd() {
+      if (!PLANOS) return;
+      const el = $("#jsonld");
+      let base;
+      try { base = JSON.parse(el.textContent); } catch (e) { return; }
+      const moeda = PLANOS.moeda || "USD";
+      const offers = PLANOS.planos.filter((p) => num(p.preco_mensal) !== null).map((p) => ({
+        "@type": "Offer", name: String(p.nome), price: String(num(p.preco_mensal)), priceCurrency: moeda,
+        url: location.origin + "/assinar?plano=" + encodeURIComponent(p.codigo) + "&ciclo=mensal",
+        priceSpecification: { "@type": "UnitPriceSpecification", price: num(p.preco_mensal), priceCurrency: moeda, unitCode: "MON" },
+      }));
+      if (offers.length) base.offers = offers;
+      el.textContent = JSON.stringify(base);
+    }
+
+    // ------------------------------------------------ conversa (herói e Francisca)
+    function msgHtml(linha, t) {
+      const [quem, lng, txt] = linha;
+      if (quem === "t") return '<div class="lp-troca">' + esc(fmt(t.mock_troca, { idioma: t.idioma_nome[lng] })) + "</div>";
+      const nome = quem === "f" ? t.francisca : t.voce;
+      return '<div class="lp-msg ' + quem + '" lang="' + LANG_HTML[lng] + '"><small>' + esc(nome) + "<em>" + lng.toUpperCase() + "</em></small>" + esc(txt) + "</div>";
+    }
+
+    let timerConversa = null, timerRelogio = null, segundos = 0;
+    function pararConversa() { clearTimeout(timerConversa); clearInterval(timerRelogio); }
+    function rodarConversa() {
+      pararConversa();
+      const t = T(), conv = $("#call-conv"), res = $("#call-resultado"), chip = $("#call-idioma");
+      const linhas = t.conversa;
+      $("#call-mock").setAttribute("aria-label", t.mock_exemplo + ": " + linhas.filter((l) => l[0] !== "t").map((l) => l[2]).join(" "));
+      res.classList.remove("on");
+      chip.classList.remove("troca");
+      chip.textContent = linhas[0][1].toUpperCase();
+      if (reduzMovimento()) {
+        conv.innerHTML = linhas.map((l) => msgHtml(l, t)).join("");
+        chip.textContent = linhas[linhas.length - 1][1].toUpperCase();
+        $("#call-tempo").textContent = "02:14";
+        res.classList.add("on");
+        return;
+      }
+      conv.innerHTML = "";
+      segundos = 0;
+      $("#call-tempo").textContent = "00:00";
+      timerRelogio = setInterval(() => {
+        segundos++;
+        $("#call-tempo").textContent = String(Math.floor(segundos / 60)).padStart(2, "0") + ":" + String(segundos % 60).padStart(2, "0");
+      }, 1000);
+      let i = 0;
+      const proximo = () => {
+        if (i >= linhas.length) {
+          clearInterval(timerRelogio);
+          res.classList.add("on");
+          timerConversa = setTimeout(rodarConversa, 7000);
+          return;
+        }
+        const l = linhas[i++];
+        if (l[0] === "t") {
+          conv.insertAdjacentHTML("beforeend", msgHtml(l, t));
+          chip.textContent = l[1].toUpperCase();
+          chip.classList.add("troca");
+          timerConversa = setTimeout(proximo, 700);
+        } else if (l[0] === "f") {
+          conv.insertAdjacentHTML("beforeend", '<div class="lp-digitando" title="' + esc(t.mock_digitando) + '"><span></span><span></span><span></span></div>');
+          timerConversa = setTimeout(() => {
+            const d = $(".lp-digitando", conv); if (d) d.remove();
+            conv.insertAdjacentHTML("beforeend", msgHtml(l, t));
+            timerConversa = setTimeout(proximo, 1500);
+          }, 900);
+        } else {
+          conv.insertAdjacentHTML("beforeend", msgHtml(l, t));
+          timerConversa = setTimeout(proximo, 1300);
+        }
+      };
+      timerConversa = setTimeout(proximo, 600);
+    }
+
+    // ------------------------------------------------ desenho geral
+    function desenharEstaticos() {
+      const t = T();
+      document.documentElement.lang = LANG_HTML[idioma];
+      document.title = t.meta_title;
+      const md = $('meta[name="description"]'); if (md) md.setAttribute("content", t.meta_desc);
+
+      $$("[data-i18n]").forEach((el) => { el.textContent = pegar(t, el.dataset.i18n); });
+      $$("[data-i18n-html]").forEach((el) => { el.innerHTML = pegar(t, el.dataset.i18nHtml); });
+      $$("[data-ic]").forEach((el) => { el.innerHTML = ic(el.dataset.ic); el.style.display = "inline-flex"; });
+
+      $$(".lp-lang").forEach((g) => {
+        g.setAttribute("aria-label", t.idioma_rot);
+        g.innerHTML = IDIOMAS_LANDING.map((c) =>
+          '<button type="button" data-lang="' + c + '" lang="' + LANG_HTML[c] + '" aria-pressed="' + (c === idioma) + '" title="' +
+          { pt: "Português", en: "English", es: "Español" }[c] + '">' + c.toUpperCase() + "</button>").join("");
+      });
+      const menu = $("#btn-menu");
+      const aberto = menu.getAttribute("aria-expanded") === "true";
+      menu.innerHTML = ic(aberto ? "fechar" : "menu");
+      menu.setAttribute("aria-label", t.menu);
+      const bt = $(".btn-tema"); if (bt) bt.setAttribute("aria-label", t.tema);
+
+      $("#setores").innerHTML = t.setores.map((s, i) => "<span>" + ic(ICONES_SETORES[i]) + esc(s) + "</span>").join("");
+      $("#fatos-produto").innerHTML = t.fatos_produto.map(([n, s]) => '<div class="lp-glass"><b>' + esc(n) + "</b><span>" + esc(s) + "</span></div>").join("");
+      $("#passos").innerHTML = t.passos.map(([h, p], i) =>
+        '<li class="lp-passo lp-glass"><div class="topo"><span class="lp-ico">' + ic(ICONES_PASSOS[i]) + '</span><span class="num">0' + (i + 1) + "</span></div><h3>" + esc(h) + "</h3><p>" + esc(p) + "</p></li>").join("");
+      $("#recursos-grid").innerHTML = t.recursos.map(([icone, h, p, novo]) =>
+        '<article class="lp-card lp-glass"><span class="lp-ico">' + ic(icone) + "</span><h3>" + esc(h) + (novo ? '<span class="lp-novo">' + esc(t.novo) + "</span>" : "") + "</h3><p>" + esc(p) + "</p></article>").join("");
+      $("#fr-lista").innerHTML = t.fr_lista.map((x) => "<li>" + ic("check") + "<span>" + esc(x) + "</span></li>").join("");
+      $("#fr-conv").innerHTML = t.conversa.map((l) => msgHtml(l, t)).join("");
+      const pares = [...new Set(t.conversa.map((l) => l[1]))];
+      $("#fr-par").textContent = pares.map((x) => x.toUpperCase()).join(" / ");
+      $("#fr-fatos").innerHTML = t.fatos.map(([k, v]) => "<div><dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd></div>").join("");
+      $("#ob-lista").innerHTML = t.ob_lista.map((x) => "<li>" + ic("check") + "<span>" + esc(x) + "</span></li>").join("");
+      const feitos = 3;
+      $("#ob-prog").textContent = fmt(t.ob_mock_prog, { n: feitos });
+      $("#ob-itens").innerHTML = t.ob_itens.map((x, i) => {
+        const ok = i < feitos;
+        return '<li><span class="bola' + (ok ? " ok" : "") + '">' + (ok ? ic("check") : "") + "</span>" + esc(x) +
+          '<span class="st ' + (ok ? "ok" : "pend") + '">' + esc(ok ? t.ob_feito : t.ob_pendente) + "</span></li>";
+      }).join("");
+      $("#seg-grid").innerHTML = t.seg_itens.map(([icone, h, p]) =>
+        '<article class="lp-card lp-glass"><span class="lp-ico">' + ic(icone) + "</span><h3>" + esc(h) + "</h3><p>" + esc(p) + "</p></article>").join("");
+      $("#pilares").innerHTML = t.autor_pilares.map((p) => "<span>" + esc(p) + "</span>").join("");
+      $("#rod-copy").textContent = fmt(t.rod_copy, { ano: new Date().getFullYear() });
+    }
+
+    function desenharDinamicos() {
+      desenharPrecos();
+      desenharNotas();
+      desenharCalc();
+      desenharFaq();
+    }
+
+    function trocarIdioma(cod) {
+      if (!IDIOMAS_LANDING.includes(cod) || cod === idioma) return;
+      idioma = cod;
+      try { localStorage.setItem("idioma", cod); } catch (e) { /* armazenamento bloqueado */ }
+      desenharEstaticos();
+      desenharDinamicos();
+      rodarConversa();
+      carregarPlanos(); // nomes e descrições dos planos vêm traduzidos do servidor
+    }
+
+    // ------------------------------------------------ eventos
+    function fecharMenu() {
+      const btn = $("#btn-menu");
+      btn.setAttribute("aria-expanded", "false");
+      btn.innerHTML = ic("menu");
+      $("#drawer").hidden = true;
+    }
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-lang]");
+      if (b) { trocarIdioma(b.dataset.lang); return; }
+      const c = ev.target.closest("[data-ciclo]");
+      if (c) { ciclo = c.dataset.ciclo; desenharPrecos(); desenharCalc(); return; }
+      if (ev.target.closest("#drawer a")) fecharMenu();
+    });
+    $("#btn-menu").addEventListener("click", () => {
+      const btn = $("#btn-menu");
+      const abrir = btn.getAttribute("aria-expanded") !== "true";
+      btn.setAttribute("aria-expanded", String(abrir));
+      btn.innerHTML = ic(abrir ? "fechar" : "menu");
+      $("#drawer").hidden = !abrir;
+    });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") fecharMenu(); });
+    $("#calc-cand").addEventListener("input", desenharCalc);
+    $("#calc-taxa").addEventListener("input", desenharCalc);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pararConversa(); else rodarConversa(); });
+    document.addEventListener("DOMContentLoaded", () => {
+      const bt = $(".btn-tema"); if (bt) bt.setAttribute("aria-label", T().tema);
+    });
+
+    // ------------------------------------------------ início
+    desenharEstaticos();
+    desenharDinamicos();
+    rodarConversa();
+    carregarPlanos();
+
+    // revelação suave ao rolar (desligada com prefers-reduced-motion)
+    if (!reduzMovimento() && "IntersectionObserver" in window) {
       const obs = new IntersectionObserver((entradas) => entradas.forEach((e) => {
-        if (e.isIntersecting) { e.target.classList.add("visivel"); obs.unobserve(e.target); }
-      }), { threshold: .12 });
-      document.querySelectorAll(".revela").forEach((el) => obs.observe(el));
+        if (e.isIntersecting) { e.target.classList.add("on"); obs.unobserve(e.target); }
+      }), { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+      $$(".rv").forEach((el) => obs.observe(el));
+      const barra = $("#ob-barra");
+      const obsBarra = new IntersectionObserver((ent) => ent.forEach((e) => {
+        if (e.isIntersecting) { barra.style.width = "50%"; obsBarra.disconnect(); }
+      }), { threshold: 0.4 });
+      obsBarra.observe(barra);
     } else {
-      document.querySelectorAll(".revela").forEach((el) => el.classList.add("visivel"));
+      $$(".rv").forEach((el) => el.classList.add("on"));
+      $("#ob-barra").style.width = "50%";
     }
+  })();
   </script>
 </body>
 </html>

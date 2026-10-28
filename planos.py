@@ -560,6 +560,9 @@ def voz_bloqueada(conn, empresa_id, agora=None):
     if not e:
         return False
     u = uso(conn, e, agora=agora)
+    _tel = getattr(srv, "telefonia", None)  # alertas de uso 80% e 100% (telefonia.py)
+    if _tel is not None:
+        _tel.verificar_alerta(conn, e, u)
     if u["ilimitado"] or u["minutos"] < u["limite"]:
         return False
     return not u["excedente_permitido"]
@@ -677,6 +680,12 @@ def painel_uso(conn, mes=None, agora=None):
 
 TEXTOS = {
     "pt": {
+        "dono_nova_assunto": "Nova assinatura: {empresa} ({plano})",
+        "dono_nova": ("Empresa: {empresa}\nLink: {slug}\nPlano: {plano} ({ciclo})\nAdministrador: {nome} <{email}>\n"
+                      "Telefone: {telefone}\nTeste até: {fim}\nIdioma: {idioma}\n\n{url}/dono"),
+        "dono_recusado_assunto": "Pagamento recusado: {empresa}",
+        "dono_recusado": ("O Stripe recusou o pagamento da empresa {empresa} ({slug}). O Stripe vai tentar de novo; "
+                          "se a assinatura for cancelada, o acesso é suspenso."),
         "boas_vindas_assunto": "Bem-vindo à Bússola",
         "boas_vindas": ("Olá, {nome}!\n\nA conta da {empresa} na Bússola está pronta. Seu teste grátis vai até "
                         "{fim} e inclui {minutos} minutos de triagem por voz.\n\nSeu login: {login}\n\n"
@@ -689,6 +698,12 @@ TEXTOS = {
                      "continuam guardados. Para reativar, escolha seu plano:\n{url}\n\nEquipe Bússola"),
     },
     "en": {
+        "dono_nova_assunto": "New signup: {empresa} ({plano})",
+        "dono_nova": ("Company: {empresa}\nLink: {slug}\nPlan: {plano} ({ciclo})\nAdmin: {nome} <{email}>\n"
+                      "Phone: {telefone}\nTrial until: {fim}\nLanguage: {idioma}\n\n{url}/dono"),
+        "dono_recusado_assunto": "Payment declined: {empresa}",
+        "dono_recusado": ("Stripe declined the payment for {empresa} ({slug}). Stripe will try again; "
+                          "if the subscription is canceled, access is suspended."),
         "boas_vindas_assunto": "Welcome to Bússola",
         "boas_vindas": ("Hi {nome},\n\nThe {empresa} account on Bússola is ready. Your free trial runs until {fim} "
                         "and includes {minutos} minutes of voice screening.\n\nYour username: {login}\n\n"
@@ -701,6 +716,12 @@ TEXTOS = {
                      "still saved. To reactivate, pick your plan:\n{url}\n\nThe Bússola team"),
     },
     "es": {
+        "dono_nova_assunto": "Nueva suscripción: {empresa} ({plano})",
+        "dono_nova": ("Empresa: {empresa}\nEnlace: {slug}\nPlan: {plano} ({ciclo})\nAdministrador: {nome} <{email}>\n"
+                      "Teléfono: {telefone}\nPrueba hasta: {fim}\nIdioma: {idioma}\n\n{url}/dono"),
+        "dono_recusado_assunto": "Pago rechazado: {empresa}",
+        "dono_recusado": ("Stripe rechazó el pago de la empresa {empresa} ({slug}). Stripe volverá a intentarlo; "
+                          "si la suscripción se cancela, el acceso se suspende."),
         "boas_vindas_assunto": "Bienvenido a Bússola",
         "boas_vindas": ("Hola, {nome}:\n\nLa cuenta de {empresa} en Bússola está lista. Tu prueba gratis dura "
                         "hasta el {fim} e incluye {minutos} minutos de entrevista por voz.\n\nTu usuario: {login}\n\n"
@@ -717,6 +738,11 @@ TEXTOS = {
 
 def _t(lang, chave, **kw):
     return TEXTOS[_lang(lang)][chave].format(**kw)
+
+
+def idioma_dono(conn):
+    """Idioma dos e-mails ao dono (config dono_idioma, escolhido no painel do dono)."""
+    return _lang(srv.config_get(conn, "dono_idioma") or "pt")
 
 
 def _enviar(lista):
@@ -955,9 +981,9 @@ def processar_evento(conn, evento, hoje=None):
             acao = "sinalizada"
             email = srv.config_get(conn, "dono_email")
             if email:
-                _enviar([(email, "Pagamento recusado: %s" % e["nome"],
-                          "O Stripe recusou o pagamento da empresa %s (%s). O Stripe vai tentar de novo; "
-                          "se a assinatura for cancelada, o acesso é suspenso." % (e["nome"], e["slug"]), "pt")])
+                ld = idioma_dono(conn)
+                _enviar([(email, _t(ld, "dono_recusado_assunto", empresa=e["nome"]),
+                          _t(ld, "dono_recusado", empresa=e["nome"], slug=e["slug"]), ld)])
         elif tipo == "customer.subscription.deleted":
             _atualizar(conn, e["id"], {
                 "pagamento_status": "cancelada",
@@ -1042,6 +1068,8 @@ def rotina_planos(intervalo=3600):
                 dia = hoje_ny().isoformat()
                 if srv.config_get(conn, "planos_rotina_dia") != dia:
                     verificar_trials(conn)
+                    if getattr(srv, "telefonia", None) is not None:  # alertas de uso (telefonia.py)
+                        srv.telefonia.verificar_alertas(conn)
                     srv.config_set(conn, "planos_rotina_dia", dia)
                     conn.commit()
             finally:
@@ -1171,11 +1199,11 @@ def assinar(h, conn):
                   minutos=cat["trial"]["minutos"], login=email, url=url + "/gestor"), lang)]
     dono = srv.config_get(conn, "dono_email")
     if dono:
-        emails.append((dono, "Nova assinatura: %s (%s)" % (e["nome"], p["codigo"]),
-                       "Empresa: %s\nLink: %s\nPlano: %s (%s)\nAdministrador: %s <%s>\nTelefone: %s\n"
-                       "Teste até: %s\nIdioma: %s\n\n%s/dono"
-                       % (e["nome"], e["slug"], p["codigo"], ciclo, nome, email, (d.get("telefone") or "").strip(),
-                          fim.isoformat(), lang, url), "pt"))
+        ld = idioma_dono(conn)
+        emails.append((dono, _t(ld, "dono_nova_assunto", empresa=e["nome"], plano=p["codigo"]),
+                       _t(ld, "dono_nova", empresa=e["nome"], slug=e["slug"], plano=p["codigo"], ciclo=ciclo,
+                          nome=nome, email=email, telefone=(d.get("telefone") or "").strip(),
+                          fim=fim.isoformat(), idioma=lang, url=url), ld))
     _enviar(emails)
     return _resp(h, 200, resposta)
 
@@ -1298,6 +1326,7 @@ def _stripe_dono(conn, h):
         "webhook_url": _base_url(conn, h) + "/api/stripe/webhook",
         "precos": precos_stripe(conn),
         "dono_email": srv.config_get(conn, "dono_email"),
+        "dono_idioma": idioma_dono(conn),
     }
 
 
@@ -1362,6 +1391,11 @@ def rotear_dono(h, method, path, conn):
                 if email and not EMAIL_RE.match(email):
                     return _resp(h, 400, {"erro": "E-mail inválido"})
                 srv.config_set(conn, "dono_email", email)
+            if "dono_idioma" in d:
+                idioma = str(d.get("dono_idioma") or "").strip().lower()
+                if idioma not in IDIOMAS:
+                    return _resp(h, 400, {"erro": "Idioma inválido"})
+                srv.config_set(conn, "dono_idioma", idioma)
             conn.commit()
             return _resp(h, 200, {"ok": True, "stripe": _stripe_dono(conn, h)})
     if method == "POST" and path == "/api/dono/planos/assinatura":

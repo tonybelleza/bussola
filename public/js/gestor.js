@@ -481,6 +481,9 @@ function listaAbas() {
   if (typeof vozModuloAtivo === "function" && vozModuloAtivo()) {
     abas.splice(3, 0, ["voz", vt("aba")]);
   }
+  if (typeof fatAbaVisivel === "function" && fatAbaVisivel()) { // Meu plano, só administrador (gestor-faturamento.js)
+    abas.splice(abas.length - 1, 0, ["plano", fatRotuloAba()]);
+  }
   return abas;
 }
 
@@ -526,6 +529,7 @@ function desenharPainel() {
   if (abaAtiva === "diagnostico") abaDiagnostico(conteudo);
   if (abaAtiva === "voz") abaVoz(conteudo);
   if (abaAtiva === "config") abaConfig(conteudo);
+  if (abaAtiva === "plano" && typeof abaFaturamento === "function") abaFaturamento(conteudo); // Meu plano (gestor-faturamento.js)
   if (typeof planoBanner === "function") planoBanner(app); // aviso de limite e fim do teste (gestor-plano.js)
 }
 
@@ -570,7 +574,9 @@ async function abaRelatorios(el) {
 
   const maxMes = Math.max(...r.por_mes.map((m2) => m2.total), 1);
 
+  const temContratacao = typeof relatoriosContratacao === "function"; // relatório de contratação (gestor-relatorios.js)
   el.innerHTML = `
+    ${temContratacao ? '<div id="rel-contratacao"></div>' : ""}
     <div class="metricas">
       <div class="metrica"><div class="num">${fmtNum(r.total_candidatos)}</div><div class="rot">${tg("rel_m_banco")}</div></div>
       <div class="metrica"><div class="num">${fmtNum(r.avaliacoes_completas)}</div><div class="rot">${tg("m_avaliacoes_completas")}</div></div>
@@ -585,6 +591,7 @@ async function abaRelatorios(el) {
       ${distHtml(tg("rel_disc_banco"), r.disc, DISC_PERFIS)}
       ${distHtml(tg("rel_base_banco"), r.base, BASE_PERFIS)}
     </div>`;
+  if (temContratacao) relatoriosContratacao(document.getElementById("rel-contratacao"));
 }
 
 // ------------------------------------------------ guia do gestor
@@ -680,6 +687,7 @@ function abaVisao(el) {
   ).length;
 
   el.innerHTML = `
+    <div id="assistente-visao"></div>
     <div class="card" id="quadro-dia"></div>
     <div class="card" id="agenda-hoje"></div>
     <div class="card" id="onboarding-visao"></div>
@@ -701,6 +709,8 @@ function abaVisao(el) {
       <div id="feed-atividades"><p class="desc">${tg("carregando")}</p></div>
     </div>`;
   ligarLinhasCandidato(el);
+  if (typeof assistenteVisao === "function") assistenteVisao(document.getElementById("assistente-visao")); // assistente de configuração (gestor-assistente.js)
+  else document.getElementById("assistente-visao").remove();
   quadroDoDia(document.getElementById("quadro-dia"));
   if (typeof agendaHoje === "function") agendaHoje(document.getElementById("agenda-hoje")); // agenda de entrevistas (gestor-agenda.js)
   if (typeof onboardingVisao === "function") onboardingVisao(document.getElementById("onboarding-visao")); // onboarding (gestor-onboarding.js)
@@ -800,6 +810,7 @@ function formVaga(v) {
     <label class="field">${tg("descricao")}
       <textarea id="fv-desc" rows="3">${v ? esc(v.descricao) : ""}</textarea>
     </label>
+    ${typeof camposVagaHtml === "function" ? camposVagaHtml(v) : ""}
     <label class="field">${tg("status")}
       <select id="fv-status">
         ${["aberta", "pausada", "encerrada"].map((s) =>
@@ -817,6 +828,7 @@ function formVaga(v) {
           pais: f.querySelector("#fv-pais").value,
           descricao: f.querySelector("#fv-desc").value.trim(),
           status: f.querySelector("#fv-status").value,
+          ...(typeof camposVagaLer === "function" ? camposVagaLer(f) : {}),
         },
       });
     });
@@ -890,6 +902,7 @@ async function telaPipeline(el, vagaId, modo) {
         </div>
       </div>`}`;
 
+  if (typeof campanhasBotaoVaga === "function") campanhasBotaoVaga(r.vaga, document.getElementById("pp-adicionar")); // avisar o banco de talentos (gestor-campanhas.js)
   // radar de talentos: quem já está no banco e tem match alto com esta vaga
   if (modo === "kanban") {
     api("/api/gestor/vaga/" + vagaId + "/sugestoes").then((s) => {
@@ -1327,6 +1340,7 @@ async function abrirDetalheCandidato(id) {
   if (typeof talentosPreencherFicha === "function") talentosPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-talentos")); // gestor-talentos.js
   if (typeof onboardingPreencherFicha === "function") onboardingPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-onboarding")); // gestor-onboarding.js
   if (typeof indicacoesPreencherFicha === "function") indicacoesPreencherFicha(c.candidato.id, c.candidato.nome, fundo.querySelector("#bloco-indicacoes")); // gestor-indicacoes.js
+  if (typeof campanhasPreencherFicha === "function") campanhasPreencherFicha(c.candidato.id, fundo); // e-mails de vagas: descadastro (gestor-campanhas.js)
   const baixar = fundo.querySelector("#baixar-cv");
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {
@@ -1880,6 +1894,7 @@ async function abaConfig(el) {
         <button class="btn" id="cfg-salvar">${tg("cfg_alterar_senha")}</button>
       </div>
     </div>
+    <div id="cfg-assistente"></div>
     <div id="cfg-marca"></div>
     <div id="cfg-entrada"></div>
     <div id="cfg-auditoria"></div>
@@ -1889,6 +1904,7 @@ async function abaConfig(el) {
     <div id="cfg-plano"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
+  if (typeof assistenteConfig === "function") assistenteConfig(document.getElementById("cfg-assistente")); // guia de configuração (gestor-assistente.js)
   secaoMarca(document.getElementById("cfg-marca"));
   secaoEntrada(document.getElementById("cfg-entrada"));
   if (typeof secaoAuditoria === "function") secaoAuditoria(document.getElementById("cfg-auditoria"));

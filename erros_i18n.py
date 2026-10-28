@@ -498,3 +498,72 @@ PADROES.append((
      "es": "El plan {plano} permite hasta {n} vacantes activas. Mejora tu plan o cierra una vacante para abrir otra."}))
 for _regex, _modelos in PADROES[-2:]:
     _COMPILADOS.append((re.compile(_regex, re.S), _modelos))
+
+# relatório de contratação (relatorios.py)
+ERROS["Período inválido"] = {"en": "Invalid period", "es": "Período inválido"}
+ERROS["Filtro inválido"] = {"en": "Invalid filter", "es": "Filtro inválido"}
+
+# assistente de configuração e página Meu plano (assistente.py)
+ERROS["Apenas o administrador da empresa acessa esta área"] = {"en": "Only the company admin can access this area", "es": "Solo el administrador de la empresa puede acceder a esta área"}
+ERROS["Tipo de pedido inválido"] = {"en": "Invalid request type", "es": "Tipo de solicitud inválido"}
+ERROS["Muitos pedidos hoje. Tente de novo amanhã."] = {"en": "Too many requests today. Please try again tomorrow.", "es": "Demasiadas solicitudes hoy. Inténtalo de nuevo mañana."}
+
+# campos da vaga para o Google for Jobs (vagas_publicas.py)
+ERROS["Tipo de emprego inválido"] = {"en": "Invalid employment type", "es": "Tipo de empleo inválido"}
+ERROS["Salário inválido"] = {"en": "Invalid pay amount", "es": "Salario inválido"}
+ERROS["O salário mínimo não pode ser maior que o máximo"] = {"en": "The minimum pay cannot be higher than the maximum", "es": "El salario mínimo no puede ser mayor que el máximo"}
+ERROS["Unidade do salário inválida"] = {"en": "Invalid pay period", "es": "Unidad de salario inválida"}
+ERROS["Moeda inválida"] = {"en": "Invalid currency", "es": "Moneda inválida"}
+ERROS["Data de validade inválida"] = {"en": "Invalid expiration date", "es": "Fecha de vencimiento inválida"}
+
+# números por empresa e Twilio (telefonia.py)
+ERROS.update({
+    "Configure a Twilio em Integrações primeiro": {"en": "Set up Twilio in Integrations first", "es": "Configura primero Twilio en Integraciones"},
+    "Configure a ElevenLabs (chave e agente) em Integrações primeiro": {
+        "en": "Set up ElevenLabs (API key and agent) in Integrations first",
+        "es": "Configura primero ElevenLabs (clave y agente) en Integraciones"},
+    "A Twilio recusou as credenciais. Confira o Account SID e o Auth Token.": {
+        "en": "Twilio rejected the credentials. Check the Account SID and Auth Token.",
+        "es": "Twilio rechazó las credenciales. Revisa el Account SID y el Auth Token."},
+    "A ElevenLabs recusou a chave da API. Confira em Integrações.": {
+        "en": "ElevenLabs rejected the API key. Check it in Integrations.",
+        "es": "ElevenLabs rechazó la clave de la API. Revísala en Integraciones."},
+    "Código de área inválido: use 3 dígitos, ex.: 860": {
+        "en": "Invalid area code: use 3 digits, for example 860",
+        "es": "Código de área inválido: usa 3 dígitos, por ejemplo 860"},
+    "Número inválido: use o formato +1XXXXXXXXXX": {
+        "en": "Invalid number: use the format +1XXXXXXXXXX",
+        "es": "Número inválido: usa el formato +1XXXXXXXXXX"},
+    "Confirme a compra e o custo mensal do número": {
+        "en": "Confirm the purchase and the monthly cost of the number",
+        "es": "Confirma la compra y el costo mensual del número"},
+    "Confirme a liberação do número": {"en": "Confirm releasing the number", "es": "Confirma la liberación del número"},
+    "Este número já está em uso na plataforma": {
+        "en": "This number is already in use on the platform", "es": "Este número ya está en uso en la plataforma"},
+    "Este número não está na sua conta Twilio": {
+        "en": "This number is not in your Twilio account", "es": "Este número no está en tu cuenta de Twilio"},
+    "Este número já foi liberado": {"en": "This number was already released", "es": "Este número ya fue liberado"},
+    "Número não encontrado": {"en": "Number not found", "es": "Número no encontrado"},
+    "Account SID inválido (começa com AC e tem 34 caracteres)": {
+        "en": "Invalid Account SID (starts with AC and has 34 characters)",
+        "es": "Account SID inválido (empieza con AC y tiene 34 caracteres)"},
+    "Auth Token inválido": {"en": "Invalid Auth Token", "es": "Auth Token inválido"},
+    "Sem conexão com a Twilio. Tente de novo.": {
+        "en": "Could not reach Twilio. Try again.", "es": "No se pudo conectar con Twilio. Inténtalo de nuevo."},
+    "Sem conexão com a ElevenLabs. Tente de novo.": {
+        "en": "Could not reach ElevenLabs. Try again.", "es": "No se pudo conectar con ElevenLabs. Inténtalo de nuevo."},
+})
+PADROES.append((r"^Erro na Twilio: (?P<detalhe>.*)$",
+                {"en": "Twilio error: {detalhe}", "es": "Error de Twilio: {detalhe}"}))
+PADROES.append((r"^Erro na ElevenLabs: (?P<detalhe>.*)$",
+                {"en": "ElevenLabs error: {detalhe}", "es": "Error de ElevenLabs: {detalhe}"}))
+PADROES.append((r"^O número está na Twilio, mas a importação na ElevenLabs falhou\. (?P<detalhe>.*)$",
+                {"en": "The number is in Twilio, but importing it into ElevenLabs failed. {detalhe}",
+                 "es": "El número está en Twilio, pero falló la importación en ElevenLabs. {detalhe}"}))
+for _regex, _modelos in PADROES[-3:]:
+    _COMPILADOS.append((re.compile(_regex, re.S), _modelos))
+
+# banco de talentos: aviso de vaga aberta (campanhas.py)
+ERROS["A vaga precisa estar aberta para avisar o banco de talentos"] = {"en": "The job must be open to notify the talent pool", "es": "La vacante debe estar abierta para avisar al banco de talentos"}
+ERROS["Configure o envio de e-mails (SMTP) antes de avisar o banco de talentos"] = {"en": "Set up email sending (SMTP) before notifying the talent pool", "es": "Configura el envío de correos (SMTP) antes de avisar al banco de talentos"}
+ERROS["Nenhum candidato para avisar com esses filtros"] = {"en": "No candidates to notify with these filters", "es": "No hay candidatos para avisar con estos filtros"}

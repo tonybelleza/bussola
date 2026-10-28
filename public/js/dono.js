@@ -227,10 +227,12 @@ async function abaEmpresas(el) {
               <input type="checkbox" data-modulo="${m}" data-id="${e.id}" ${e.modulos.includes(m) ? "checked" : ""}> ${esc(rotuloModuloDono(m, rot))}</label>`).join("")}
             <button class="btn small" data-salvar-empresa="${e.id}">${td("salvar")}</button>
             <button class="btn secondary small" data-ver-gestores="${e.id}">${td("gestores_acesso")}</button>
+            <button class="btn secondary small" data-ver-numeros="${e.id}">${td("tel_botao")}</button>
             <label class="btn secondary small" style="cursor:pointer">${e.logo_url ? td("trocar_logo") : td("enviar_logo")}<input type="file" data-logo-empresa="${e.id}" accept="image/png,image/jpeg" style="display:none"></label>
             ${e.logo_url ? `<img src="${esc(e.logo_url)}" alt="" style="height:30px;max-width:120px;background:#fff;border-radius:6px;padding:2px 6px">` : ""}
           </div>
           <div id="gestores-empresa-${e.id}"></div>
+          <div id="numeros-empresa-${e.id}"></div>
         </div>`).join("") || `<p class="desc">${td("nenhuma_empresa")}</p>`}
     </div>
     <div class="card">
@@ -277,6 +279,8 @@ async function abaEmpresas(el) {
   }));
   el.querySelectorAll("[data-ver-gestores]").forEach((b) => b.addEventListener("click", () =>
     gestoresDaEmpresa(Number(b.dataset.verGestores), el.querySelector("#gestores-empresa-" + b.dataset.verGestores))));
+  el.querySelectorAll("[data-ver-numeros]").forEach((b) => b.addEventListener("click", () =>
+    numerosDaEmpresa(Number(b.dataset.verNumeros), el.querySelector("#numeros-empresa-" + b.dataset.verNumeros))));
   el.querySelector("#ne-criar").addEventListener("click", async () => {
     const erro = el.querySelector("#ne-erro");
     erro.textContent = "";
@@ -409,7 +413,8 @@ async function abaIntegracoes(el) {
       <label class="field" style="max-width:360px">${td("email_teste")} <input type="email" id="int-destino" placeholder="${td("ph_email_teste")}"></label>
     </div>
     <div class="card" id="int-voz"><p class="desc">${td("carregando_voz")}</p></div>
-    <div class="card" id="int-stripe"></div>`;
+    <div class="card" id="int-stripe"></div>
+    <div class="card" id="int-twilio"></div>`;
   document.getElementById("int-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("int-erro");
     erro.textContent = "";
@@ -460,6 +465,7 @@ async function abaIntegracoes(el) {
   });
   await secaoVozPlataforma(document.getElementById("int-voz"));
   await secaoStripe(document.getElementById("int-stripe")); // Stripe (planos.py)
+  await secaoTwilio(document.getElementById("int-twilio")); // Twilio (telefonia.py)
 }
 
 
@@ -571,7 +577,7 @@ async function abaPlanos(el) {
       <h3 style="margin-top:0">${td("pl_assin_titulo")}</h3>
       <p class="desc">${td("pl_assin_desc")}</p>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pl-assin" ${d.assinatura_aberta ? "checked" : ""}> ${td("pl_assin_rotulo")}</label>
-      <p class="desc"><a href="/site-novo.html" target="_blank" rel="noopener">${td("pl_assin_previa")}</a></p>
+      <p class="desc"><a href="/" target="_blank" rel="noopener">${td("pl_assin_previa")}</a></p>
     </div>
     <div class="card" id="pl-uso"></div>
     <div class="card" id="pl-calc"></div>
@@ -854,6 +860,9 @@ async function secaoStripe(box) {
       <label class="field">${td("st_chave")} <input type="password" id="st-chave" autocomplete="off" placeholder="${s.configurado ? td("ph_trocar") : "sk_live_..."}"></label>
       <label class="field">${td("st_segredo")} <input type="password" id="st-segredo" autocomplete="off" placeholder="${s.webhook_configurado ? "••••••" : "whsec_..."}"></label>
       <label class="field">${td("st_dono_email")} <span class="hint">${td("st_dono_email_dica")}</span><input type="email" id="st-email" value="${esc(s.dono_email)}"></label>
+      <label class="field">${td("st_dono_idioma")} <span class="hint">${td("st_dono_idioma_dica")}</span><select id="st-idioma">
+        ${[["pt", "Português"], ["en", "English"], ["es", "Español"]].map(([v, rot]) => `<option value="${v}"${(s.dono_idioma || "pt") === v ? " selected" : ""}>${rot}</option>`).join("")}
+      </select></label>
     </div>
     <p class="desc">${td("st_webhook")} <code>${esc(s.webhook_url)}</code></p>
     <p class="desc" style="font-size:.82rem">${td("st_eventos")}</p>
@@ -865,7 +874,7 @@ async function secaoStripe(box) {
     <div class="form-erro" id="st-erro"></div>
     <button class="btn mt" id="st-salvar">${td("st_salvar")}</button>`;
   box.querySelector("#st-salvar").addEventListener("click", async () => {
-    const corpo = { dono_email: box.querySelector("#st-email").value.trim(), precos: {} };
+    const corpo = { dono_email: box.querySelector("#st-email").value.trim(), dono_idioma: box.querySelector("#st-idioma").value, precos: {} };
     box.querySelectorAll("[data-preco]").forEach((i) => { corpo.precos[i.dataset.preco] = i.value.trim(); });
     const k = box.querySelector("#st-chave").value.trim();
     const sg = box.querySelector("#st-segredo").value.trim();
@@ -883,6 +892,173 @@ async function secaoStripe(box) {
   });
 }
 // ================================================================ fim planos e preços
+
+// ================================================================ números por empresa (telefonia.py)
+async function secaoTwilio(box) {
+  if (!box) return;
+  const r = await api("/api/dono/telefonia/twilio");
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("cadeado")}<span>${td("tel_twilio_titulo")}</span></h2>
+    <p class="desc">${td("tel_twilio_desc")}
+      ${r.configurado ? `<span class="badge ok">${td("tel_twilio_ok", { sid: esc(r.sid_mascarado), final: esc(r.token_final) })}</span>` : `<span class="badge warn">${td("nao_configurado")}</span>`}</p>
+    <div class="grid cols-2">
+      <label class="field">${td("tel_sid")} <input type="text" id="tw-sid" autocomplete="off" placeholder="${r.configurado ? esc(r.sid_mascarado) : "AC..."}"></label>
+      <label class="field">${td("tel_token")} <input type="password" id="tw-token" autocomplete="off" placeholder="${r.configurado ? "••••" + esc(r.token_final) : ""}"></label>
+    </div>
+    <div class="form-erro" id="tw-erro"></div>
+    <div class="linha-acoes">
+      <button class="btn" id="tw-salvar">${td("tel_twilio_salvar")}</button>
+      ${r.configurado ? `<button class="btn secondary" id="tw-remover">${td("tel_twilio_remover")}</button>` : ""}
+    </div>`;
+  const erro = box.querySelector("#tw-erro");
+  box.querySelector("#tw-salvar").addEventListener("click", async () => {
+    const corpo = {};
+    const sid = box.querySelector("#tw-sid").value.trim();
+    const token = box.querySelector("#tw-token").value.trim();
+    if (sid) corpo.account_sid = sid;
+    if (token) corpo.auth_token = token;
+    try {
+      await api("/api/dono/telefonia/twilio", { method: "POST", body: corpo });
+      await secaoTwilio(box);
+      const e2 = box.querySelector("#tw-erro");
+      e2.style.color = "var(--ok)";
+      e2.textContent = td("tel_twilio_salvo");
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+  const rem = box.querySelector("#tw-remover");
+  if (rem) rem.addEventListener("click", async () => {
+    if (!confirm(td("tel_twilio_confirma_remover"))) return;
+    try {
+      await api("/api/dono/telefonia/twilio", { method: "POST", body: { remover: true } });
+      await secaoTwilio(box);
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+}
+
+function rotuloNumeroDono(n) {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(n || "");
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : (n || "");
+}
+
+async function numerosDaEmpresa(id, box) {
+  if (box.dataset.aberto === "1" && box.innerHTML) { box.innerHTML = ""; box.dataset.aberto = ""; return; }
+  box.dataset.aberto = "1";
+  box.innerHTML = `<p class="desc">${td("carregando")}</p>`;
+  let r;
+  try {
+    r = await api("/api/dono/telefonia/empresa/" + id);
+  } catch (e) {
+    box.innerHTML = `<p class="form-erro">${esc(e.message)}</p>`;
+    return;
+  }
+  const custo = fmtUSD(r.custo_mensal, 2);
+  const corStatus = { ativo: "ok", pendente: "warn", liberado: "neutral" };
+  box.innerHTML = `
+    <div style="margin-top:10px;padding:12px;border:1px solid var(--line, #e3e7ee);border-radius:10px">
+      <h3 style="margin-top:0">${td("tel_titulo")}</h3>
+      <p class="desc" style="font-size:.82rem">${td("tel_desc", { custo })}</p>
+      ${r.twilio ? "" : `<p class="desc"><span class="badge warn">${td("tel_sem_twilio")}</span></p>`}
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>${td("tel_numero")}</th><th>${td("tel_status")}</th><th>${td("tel_origem")}</th><th>${td("tel_desde")}</th><th></th></tr></thead>
+        <tbody>${r.numeros.map((n) => `
+          <tr><td><strong>${esc(rotuloNumeroDono(n.numero))}</strong><br><span style="font-size:.75rem;color:var(--muted)">${esc(n.numero)}</span></td>
+            <td><span class="badge ${corStatus[n.status] || "neutral"}">${td("tel_st_" + n.status)}</span>
+              ${n.status === "pendente" ? `<br><span style="font-size:.75rem;color:var(--muted)">${td("tel_pendente_dica")}</span>` : ""}</td>
+            <td>${td("tel_or_" + n.origem)}</td>
+            <td>${esc(fmtDataDono(String(n.comprado_em).replace(" ", "T") + "Z"))}</td>
+            <td style="white-space:nowrap">
+              ${n.status === "pendente" ? `<button class="btn small" data-tel-importar="${n.id}">${td("tel_importar")}</button>` : ""}
+              ${n.origem === "anexado" ? `<button class="btn secondary small" data-tel-desanexar="${n.id}" data-num="${esc(n.numero)}">${td("tel_desanexar")}</button>` : ""}
+              <button class="btn secondary small" data-tel-liberar="${n.id}" data-num="${esc(n.numero)}">${td("tel_liberar")}</button>
+            </td></tr>`).join("") || `<tr><td colspan="5">${td("tel_nenhum")}</td></tr>`}</tbody>
+      </table></div>
+      <div class="grid cols-2" style="margin-top:10px">
+        <div>
+          <label class="field" style="margin:0">${td("tel_ddd")}
+            <span style="display:flex;gap:6px"><input type="text" inputmode="numeric" maxlength="3" id="tel-ddd-${id}" placeholder="860" style="margin:0;max-width:110px">
+            <button class="btn small" id="tel-buscar-${id}">${td("tel_buscar")}</button></span></label>
+          <div id="tel-lista-${id}"></div>
+        </div>
+        <div>
+          <label class="field" style="margin:0">${td("tel_anexar_rotulo")} <span class="hint">${td("tel_anexar_dica")}</span>
+            <span style="display:flex;gap:6px"><input type="text" id="tel-anexar-${id}" placeholder="+18605551234" style="margin:0">
+            <button class="btn secondary small" id="tel-anexar-btn-${id}">${td("tel_anexar")}</button></span></label>
+        </div>
+      </div>
+      <div class="form-erro" id="tel-erro-${id}"></div>
+    </div>`;
+  const erro = box.querySelector("#tel-erro-" + id);
+  const falhou = (e) => { erro.style.color = "var(--err)"; erro.textContent = e.message; };
+  const recarregar = async (msg) => {
+    box.dataset.aberto = "";
+    await numerosDaEmpresa(id, box);
+    if (msg) { const e2 = box.querySelector("#tel-erro-" + id); e2.style.color = "var(--ok)"; e2.textContent = msg; }
+  };
+  box.querySelector("#tel-buscar-" + id).addEventListener("click", async () => {
+    const lista = box.querySelector("#tel-lista-" + id);
+    erro.textContent = "";
+    lista.innerHTML = `<p class="desc">${td("carregando")}</p>`;
+    try {
+      const d = await api("/api/dono/telefonia/disponiveis?ddd=" + encodeURIComponent(box.querySelector("#tel-ddd-" + id).value.trim()));
+      lista.innerHTML = d.numeros.length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${d.numeros.map((n) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span><strong>${esc(rotuloNumeroDono(n.numero))}</strong> <span style="font-size:.78rem;color:var(--muted)">${esc([n.cidade, n.estado].filter(Boolean).join(", "))}</span></span>
+          <button class="btn small" data-tel-comprar="${esc(n.numero)}">${td("tel_comprar")}</button>
+        </div>`).join("")}</div>` : `<p class="desc">${td("tel_sem_disponiveis")}</p>`;
+      lista.querySelectorAll("[data-tel-comprar]").forEach((b) => b.addEventListener("click", async () => {
+        const numero = b.dataset.telComprar;
+        if (!confirm(td("tel_confirma_compra", { numero: rotuloNumeroDono(numero), custo: fmtUSD(d.custo_mensal, 2) }))) return;
+        b.disabled = true;
+        b.textContent = td("tel_comprando");
+        try {
+          await api("/api/dono/telefonia/empresa/" + id + "/comprar", { method: "POST", body: { numero, confirmar: true } });
+          await recarregar(td("tel_comprado"));
+        } catch (e) {
+          await recarregar();
+          const e2 = box.querySelector("#tel-erro-" + id);
+          e2.style.color = "var(--err)";
+          e2.textContent = e.message;
+        }
+      }));
+    } catch (e) { lista.innerHTML = ""; falhou(e); }
+  });
+  box.querySelector("#tel-anexar-btn-" + id).addEventListener("click", async () => {
+    const numero = box.querySelector("#tel-anexar-" + id).value.trim();
+    if (!numero) return;
+    try {
+      await api("/api/dono/telefonia/empresa/" + id + "/anexar", { method: "POST", body: { numero } });
+      await recarregar(td("tel_anexado"));
+    } catch (e) {
+      await recarregar();
+      const e2 = box.querySelector("#tel-erro-" + id);
+      e2.style.color = "var(--err)";
+      e2.textContent = e.message;
+    }
+  });
+  box.querySelectorAll("[data-tel-importar]").forEach((b) => b.addEventListener("click", async () => {
+    try {
+      await api("/api/dono/telefonia/numero/" + b.dataset.telImportar + "/importar", { method: "POST", body: {} });
+      await recarregar(td("tel_importado"));
+    } catch (e) { falhou(e); }
+  }));
+  const liberarNumero = async (nid, numero, manter) => {
+    const chave = manter ? "tel_confirma_desanexar" : "tel_confirma_liberar";
+    if (!confirm(td(chave, { numero: rotuloNumeroDono(numero) }))) return;
+    try {
+      await api("/api/dono/telefonia/numero/" + nid + "/liberar", { method: "POST", body: { confirmar: true, manter_twilio: manter } });
+      await recarregar(td(manter ? "tel_desanexado" : "tel_liberado"));
+    } catch (e) { falhou(e); }
+  };
+  box.querySelectorAll("[data-tel-liberar]").forEach((b) => b.addEventListener("click", () => liberarNumero(b.dataset.telLiberar, b.dataset.num, false)));
+  box.querySelectorAll("[data-tel-desanexar]").forEach((b) => b.addEventListener("click", () => liberarNumero(b.dataset.telDesanexar, b.dataset.num, true)));
+}
+// ================================================================ fim números por empresa
 
 // ------------------------------------------------ boot
 async function iniciar() {

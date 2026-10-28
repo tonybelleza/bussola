@@ -16,8 +16,8 @@ from email.message import EmailMessage
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="entrada-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py", "planos.py", "indicacoes.py") + tuple(
-        f for f in ("onboarding.py", "formularios.py") if os.path.exists(os.path.join(AQUI, f))):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "eventos_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py", "planos.py", "indicacoes.py") + tuple(
+        f for f in ("onboarding.py", "formularios.py", "vagas_publicas.py", "relatorios.py", "campanhas.py", "assistente.py", "telefonia.py") if os.path.exists(os.path.join(AQUI, f))):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)

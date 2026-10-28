@@ -1,5 +1,5 @@
 /* =====================================================================
-   Páginas legais (termos.html e privacidade.html): troca de idioma.
+   Páginas legais (termos.html, privacidade.html e dpa.html): troca de idioma.
    O texto de cada idioma fica no próprio HTML, em <article data-doc-lang>.
    Este script mostra o artigo certo, traduz o cabeçalho e o rodapé e
    desenha o seletor de idioma. Escolha: localStorage "idioma", depois o
@@ -20,7 +20,7 @@
       rod_produto: "Product", rod_acesso: "Access", rod_legal: "Legal",
       rod_inicio: "Home", rod_precos: "Pricing", rod_teste: "Free trial",
       rod_vagas: "Jobs page", rod_candidato: "Candidate area", rod_gestor: "Manager login",
-      rod_termos: "Terms of use", rod_privacidade: "Privacy",
+      rod_termos: "Terms of use", rod_privacidade: "Privacy", rod_dpa: "Data Processing Addendum",
       rod_copy: "© {ano} Tony Belleza. Bússola, B.A.S.E. methodology curated by Tony Belleza.",
     },
     pt: {
@@ -29,7 +29,7 @@
       rod_produto: "Produto", rod_acesso: "Acesso", rod_legal: "Legal",
       rod_inicio: "Início", rod_precos: "Preços", rod_teste: "Teste grátis",
       rod_vagas: "Página de vagas", rod_candidato: "Área do candidato", rod_gestor: "Login do gestor",
-      rod_termos: "Termos de uso", rod_privacidade: "Privacidade",
+      rod_termos: "Termos de uso", rod_privacidade: "Privacidade", rod_dpa: "Aditivo de Tratamento de Dados",
       rod_copy: "© {ano} Tony Belleza. Bússola, metodologia B.A.S.E. e curadoria Tony Belleza.",
     },
     es: {
@@ -38,7 +38,7 @@
       rod_produto: "Producto", rod_acesso: "Acceso", rod_legal: "Legal",
       rod_inicio: "Inicio", rod_precos: "Precios", rod_teste: "Prueba gratis",
       rod_vagas: "Página de vacantes", rod_candidato: "Área del candidato", rod_gestor: "Acceso del gestor",
-      rod_termos: "Términos de uso", rod_privacidade: "Privacidad",
+      rod_termos: "Términos de uso", rod_privacidade: "Privacidad", rod_dpa: "Anexo de Tratamiento de Datos",
       rod_copy: "© {ano} Tony Belleza. Bússola, metodología B.A.S.E. y curaduría de Tony Belleza.",
     },
   };

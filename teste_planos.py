@@ -502,8 +502,22 @@ class TestAssinatura(Base):
         self.assertEqual(len(boas), 1)
         self.assertEqual((boas[0]["assunto"], boas[0]["idioma"]), ("Welcome to Bússola", "en"))
         self.assertIn("https://rh.exemplo.com/gestor", boas[0]["corpo"])
-        self.assertTrue([m for m in self.enviados if m["para"] == "dono@example.com"])
+        dono = [m for m in self.enviados if m["para"] == "dono@example.com"]
+        self.assertEqual((dono[0]["assunto"], dono[0]["idioma"]), ("Nova assinatura: Clean Pros LLC (voz300)", "pt"))
         self.assertFalse(any(TRACOS.search(m["corpo"] + m["assunto"]) for m in self.enviados))
+
+    def test_aviso_ao_dono_no_idioma_escolhido(self):
+        server.config_set(self.conn, "dono_email", "dono@example.com")
+        server.config_set(self.conn, "dono_idioma", "es")
+        self.conn.commit()
+        st, d = self.req("POST", "/api/assinar", self.DADOS)
+        self.assertEqual(st, 200, d)
+        dono = [m for m in self.enviados if m["para"] == "dono@example.com"]
+        self.assertEqual(len(dono), 1)
+        self.assertEqual((dono[0]["assunto"], dono[0]["idioma"]), ("Nueva suscripción: Clean Pros LLC (voz300)", "es"))
+        self.assertIn("Prueba hasta:", dono[0]["corpo"])
+        self.assertIn("https://rh.exemplo.com/dono", dono[0]["corpo"])
+        self.assertIsNone(TRACOS.search(dono[0]["corpo"] + dono[0]["assunto"]))
 
     def test_validacoes(self):
         casos = (
@@ -597,9 +611,16 @@ class TestStripeWebhook(Base):
             "lines": {"data": [{"period": {"end": fim}}]}}}})
         self.assertEqual(d["acao"], "estendida")
         self.assertEqual(self.empresa(self.ea)["pago_ate"], "2027-10-27")
+        server.config_set(self.conn, "dono_email", "dono@example.com")
+        server.config_set(self.conn, "dono_idioma", "en")
+        self.conn.commit()
         self.enviar({"id": "evt_3", "type": "invoice.payment_failed",
                      "data": {"object": {"object": "invoice", "customer": "cus_1", "subscription": "sub_1"}}})
         self.assertEqual(self.empresa(self.ea)["pagamento_status"], "falhou")
+        recusado = [m for m in self.enviados if m["para"] == "dono@example.com"]
+        self.assertEqual((recusado[-1]["assunto"], recusado[-1]["idioma"]),
+                         ("Payment declined: Belleza Home Services", "en"))
+        self.assertIn("Stripe declined the payment", recusado[-1]["corpo"])
         self.enviar({"id": "evt_4", "type": "customer.subscription.deleted",
                      "data": {"object": {"object": "subscription", "id": "sub_1", "customer": "cus_1"}}})
         e = self.empresa(self.ea)
@@ -633,6 +654,14 @@ class TestStripeWebhook(Base):
         self.assertNotIn("sk_test_abcd1234", json.dumps(d))
         self.assertTrue(d["webhook_url"].endswith("/api/stripe/webhook"))
         self.assertEqual(self.req("POST", "/api/dono/planos/stripe", {"dono_email": "ruim"}, dono=True)[0], 400)
+        # idioma dos e-mails ao dono (padrão pt)
+        self.assertEqual(d["dono_idioma"], "pt")
+        st, d = self.req("POST", "/api/dono/planos/stripe", {"dono_idioma": "en"}, dono=True)
+        self.assertEqual((st, d["stripe"]["dono_idioma"]), (200, "en"))
+        self.assertEqual(self.req("GET", "/api/dono/planos/stripe", dono=True)[1]["dono_idioma"], "en")
+        self.assertEqual(server.config_get(self.conn, "dono_idioma"), "en")
+        self.assertEqual(self.req("POST", "/api/dono/planos/stripe", {"dono_idioma": "fr"}, dono=True)[0], 400)
+        self.assertEqual(self.req("GET", "/api/dono/planos/stripe", dono=True)[1]["dono_idioma"], "en")
 
 
 class TestFimDoTeste(Base):

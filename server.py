@@ -20,16 +20,31 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 import agenda  # agenda de entrevistas (agenda.py)
+try:
+    import campanhas  # avisar o banco de talentos sobre vagas abertas (campanhas.py)
+except ImportError:  # pragma: no cover
+    campanhas = None
 import empresas
 import entrada
 import erros_i18n
+import eventos_i18n  # linha do tempo no idioma do gestor (eventos_i18n.py)
 import indicacoes
 import mensagens
 import onboarding  # onboarding de novos contratados (onboarding.py)
 import planos  # planos, uso e cobrança (planos.py)
+try:
+    import relatorios  # relatório de contratação (relatorios.py)
+except ImportError:  # pragma: no cover
+    relatorios = None
 import seguranca
+import telefonia  # números por empresa (Twilio + ElevenLabs) e alertas de uso (telefonia.py)
 import talentos  # banco de talentos: resumo da ligação, filtros, comparação e lembretes (talentos.py)
+import vagas_publicas  # vagas no Google for Jobs, sitemap, robots e marca pública (vagas_publicas.py)
 import voz
+try:  # assistente de configuração e página Meu plano (assistente.py)
+    import assistente
+except ImportError:  # cópias parciais do código (alguns testes) seguem sem o assistente
+    assistente = None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
@@ -359,6 +374,12 @@ def init_db():
     talentos.init_talentos(c)  # banco de talentos: tabela lembretes_talentos
     onboarding.init_onboarding(c)  # onboarding: onboardings, onboarding_docs, onboarding_templates
     planos.init_planos(c)  # planos, uso e cobrança (planos.py)
+    if campanhas:
+        campanhas.init_campanhas(c)  # banco de talentos: campanhas, envios e descadastros
+    telefonia.init_telefonia(c)  # números por empresa e alertas de uso (telefonia.py)
+    vagas_publicas.init_vagas_publicas(c)  # campos da vaga para o Google for Jobs
+    if assistente:
+        assistente.init_assistente(c)  # pedidos de troca de plano e cancelamento (assistente.py)
     # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
     for tabela, coluna, ddl in (
         ("empresas", "logo", "TEXT DEFAULT ''"),
@@ -790,11 +811,12 @@ def montar_email_html(assunto, corpo_texto):
     return modelo.replace("__HERO__", hero_html).replace("__CORPO__", corpo_html)
 
 
-def enviar_email(conn, para, assunto, corpo, anexos=None, html=None, marca=None, idioma="pt"):
+def enviar_email(conn, para, assunto, corpo, anexos=None, html=None, marca=None, idioma="pt", cabecalhos=None):
     """Envia e-mail via SMTP configurado (HTML com a marca + texto). Retorna (ok, mensagem).
     anexos: lista opcional de (nome_arquivo, bytes, mime), ex.: ('relatorio.pdf', b'...', 'application/pdf').
     html: HTML pronto (senão é montado a partir do texto). marca: nome e logo da
-    empresa (mensagens.marca) para o cabeçalho; idioma: pt, en ou es."""
+    empresa (mensagens.marca) para o cabeçalho; idioma: pt, en ou es.
+    cabecalhos: dict opcional de cabeçalhos extras da mensagem (ex.: List-Unsubscribe)."""
     host = config_get(conn, "smtp_host")
     if not host:
         return False, "SMTP não configurado"
@@ -832,6 +854,9 @@ def enviar_email(conn, para, assunto, corpo, anexos=None, html=None, marca=None,
         msg["Subject"] = assunto
         msg["From"] = remetente
         msg["To"] = para
+        for nome_cab, valor_cab in (cabecalhos or {}).items():
+            if nome_cab and valor_cab and nome_cab.lower() not in ("subject", "from", "to"):
+                msg[nome_cab] = str(valor_cab).replace("\r", " ").replace("\n", " ")
         # porta 465 usa SSL direto; 587 (e demais) usam STARTTLS
         if porta == 465:
             with smtplib.SMTP_SSL(host, porta, timeout=20) as servidor:
@@ -1931,6 +1956,11 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("GET", path)
+        if path == "/descadastrar" and campanhas:  # descadastro dos e-mails de vagas (campanhas.py)
+            return campanhas.servir_descadastro(self)
+        # página da vaga (/vaga?id=), sitemap.xml e robots.txt (vagas_publicas.py)
+        if vagas_publicas.rotear_pagina(self, path):
+            return None
         return self.static(path)
 
     def do_POST(self):
@@ -1997,6 +2027,12 @@ class Handler(BaseHTTPRequestHandler):
             ".ttf": "font/ttf",
             ".woff": "font/woff",
             ".woff2": "font/woff2",
+            ".json": "application/json; charset=utf-8",
+            ".webmanifest": "application/manifest+json",
+            ".jpg": "image/jpeg",
+            ".pdf": "application/pdf",
+            ".txt": "text/plain; charset=utf-8",
+            ".xml": "application/xml; charset=utf-8",
         }
         ext = os.path.splitext(full)[1]
         with open(full, "rb") as f:
@@ -2034,6 +2070,12 @@ class Handler(BaseHTTPRequestHandler):
             return None
         # -- planos: catálogo público, assinatura e webhook do Stripe (planos.py) --
         if planos.rotear_publico(self, method, path, conn):
+            return None
+        # marca pública da empresa: /api/empresa/<slug>/marca (vagas_publicas.py)
+        if vagas_publicas.rotear_publico(self, method, path, conn):
+            return None
+        # descadastro dos e-mails de vagas: botão da página e one-click RFC 8058 (campanhas.py)
+        if campanhas and campanhas.rotear_publico(self, method, path, conn):
             return None
         if method == "GET" and path == "/api/cargos":
             # público: só os cargos da empresa do link (?e=slug)
@@ -2248,7 +2290,7 @@ class Handler(BaseHTTPRequestHandler):
                     "cargo_nome": r["nome"], "nivel": r["nivel"], "area": r["area"],
                 })
             return self._json(200, {"vagas": vagas, "pagina": pagina,
-                                    "empresa": {"nome": empresa_row["nome"], "slug": empresa_row["slug"]}})
+                                    "empresa": vagas_publicas.marca_publica(conn, empresa_row)})
 
         m = re.match(r"^/api/empresa/([a-z0-9-]+)/logo$", path)
         if method == "GET" and m:
@@ -2542,6 +2584,7 @@ class Handler(BaseHTTPRequestHandler):
             empresas.rotear_dono(self, method, path, conn) or voz.rotear_dono(self, method, path, conn)
             or seguranca.rotear_dono(self, method, path, conn)
             or planos.rotear_dono(self, method, path, conn)  # planos e preços (planos.py)
+            or telefonia.rotear_dono(self, method, path, conn)  # números por empresa (telefonia.py)
         ):
             return None
 
@@ -3003,7 +3046,11 @@ class Handler(BaseHTTPRequestHandler):
             return None
         if indicacoes.rotear_gestor(self, method, path, conn, gestor):
             return None
+        if campanhas and campanhas.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (campanhas.py)
+            return None
         if planos.rotear_gestor(self, method, path, conn, gestor):  # plano e uso (planos.py)
+            return None
+        if assistente and assistente.rotear_gestor(self, method, path, conn, gestor):  # assistente e Meu plano
             return None
         if entrada.rotear_gestor(self, method, path, conn, gestor):
             return None
@@ -3014,6 +3061,8 @@ class Handler(BaseHTTPRequestHandler):
         if talentos.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (talentos.py)
             return None
         if onboarding.rotear_gestor(self, method, path, conn, gestor):  # onboarding (onboarding.py)
+            return None
+        if relatorios and relatorios.rotear_gestor(self, method, path, conn, gestor):  # relatório de contratação
             return None
 
         # -- módulo Triagem por Voz --
@@ -3271,6 +3320,7 @@ class Handler(BaseHTTPRequestHandler):
                     "id": v["id"], "titulo": v["titulo"], "local": v["local"],
                     "pais": v["pais"] or "",
                     "descricao": v["descricao"], "status": v["status"],
+                    **vagas_publicas.campos(v),
                     "cargo_id": v["cargo_id"], "cargo_nome": v["cargo_nome"],
                     "criado_em": v["criado_em"], "etapas": contagem,
                     "total": sum(contagem.values()),
@@ -3296,6 +3346,9 @@ class Handler(BaseHTTPRequestHandler):
                 ).fetchone()
                 if not vaga_atual:
                     return self._json(404, {"erro": "Vaga não encontrada"})
+            erro_campos = vagas_publicas.validar(d)  # campos do Google for Jobs
+            if erro_campos:
+                return self._json(400, {"erro": erro_campos})
             if status == "aberta" and (vaga_atual is None or vaga_atual["status"] != "aberta"):
                 # limite de vagas ativas do plano (planos.py)
                 permitido, _, maximo = planos.limite_vagas(conn, gestor["empresa_id"])
@@ -3311,14 +3364,16 @@ class Handler(BaseHTTPRequestHandler):
                      (d.get("pais") or "").strip(),
                      (d.get("descricao") or "").strip(), status, d["id"]),
                 )
+                vagas_publicas.salvar(conn, int(d["id"]), gestor["empresa_id"], d)
             else:
-                conn.execute(
+                nova_vaga = conn.execute(
                     "INSERT INTO vagas (titulo, cargo_id, local, pais, descricao, status, empresa_id)"
                     " VALUES (?,?,?,?,?,?,?)",
                     (titulo, d["cargo_id"], (d.get("local") or "").strip(),
                      (d.get("pais") or "").strip(),
                      (d.get("descricao") or "").strip(), status, gestor["empresa_id"]),
-                )
+                ).lastrowid
+                vagas_publicas.salvar(conn, nova_vaga, gestor["empresa_id"], d)
             conn.commit()
             return self._json(200, {"ok": True})
 
@@ -3831,6 +3886,8 @@ class Handler(BaseHTTPRequestHandler):
                 })
                 if len(atividades) >= 30:
                     break
+            eventos_i18n.traduzir_lista(atividades, self.headers.get("X-Idioma")
+                                        or (gestor["idioma"] if "idioma" in gestor.keys() else ""))
             return self._json(200, {"atividades": atividades})
 
         if method == "GET" and path == "/api/gestor/candidatos":
@@ -3873,6 +3930,8 @@ class Handler(BaseHTTPRequestHandler):
                         (cand_row["id"],),
                     ).fetchall()
                 ]
+                eventos_i18n.traduzir_lista(resumo["eventos"], self.headers.get("X-Idioma")
+                                            or (gestor["idioma"] if "idioma" in gestor.keys() else ""))
                 resumo["analise_ia"] = (
                     json.loads(cand_row["analise_ia"]) if cand_row["analise_ia"] else None
                 )
@@ -4078,6 +4137,14 @@ agenda.ligar(sys.modules[__name__])
 talentos.ligar(sys.modules[__name__])
 onboarding.ligar(sys.modules[__name__])
 planos.ligar(sys.modules[__name__])
+if campanhas:
+    campanhas.ligar(sys.modules[__name__])
+telefonia.ligar(sys.modules[__name__])
+vagas_publicas.ligar(sys.modules[__name__])
+if assistente:
+    assistente.ligar(sys.modules[__name__])
+if relatorios:
+    relatorios.ligar(sys.modules[__name__])
 
 
 def main():

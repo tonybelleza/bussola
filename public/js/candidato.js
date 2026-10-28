@@ -131,6 +131,26 @@ function aoTrocarIdioma(lang) {
 
 montarSeletorIdioma(aoTrocarIdioma);
 
+// ------------------------------------------------ marca da empresa
+// logo e nome da empresa do link (?e=slug) ou da vaga escolhida, no topo da página
+async function mostrarMarcaEmpresa(slug) {
+  if (!slug || document.getElementById("marca-empresa-topo")) return;
+  try {
+    const r = await fetch("/api/empresa/" + encodeURIComponent(slug) + "/marca");
+    if (!r.ok) return;
+    const m = await r.json();
+    const brand = document.querySelector(".topbar .brand");
+    if (!brand || !m.nome) return;
+    const caixa = document.createElement("div");
+    caixa.id = "marca-empresa-topo";
+    caixa.style.cssText = "display:flex;align-items:center;gap:10px";
+    caixa.innerHTML = '<div class="sep"></div>' + (m.logo_url
+      ? `<img src="${esc(m.logo_url)}" alt="${esc(m.nome)}" style="height:34px;max-width:120px;object-fit:contain;border-radius:6px;background:#fff;padding:3px">`
+      : "") + `<span style="font-size:.9rem;color:var(--text)">${esc(m.nome)}</span>`;
+    brand.appendChild(caixa);
+  } catch (e) { /* sem marca: segue com o cabeçalho padrão */ }
+}
+
 // ------------------------------------------------ inicialização
 async function iniciar() {
   if (vagaEscolhida) {
@@ -141,6 +161,7 @@ async function iniciar() {
       vagaInfo = null;
     }
   }
+  mostrarMarcaEmpresa(empresaSlug);
   cargos = (await api("/api/cargos?e=" + encodeURIComponent(empresaSlug))).cargos;
   const token = localStorage.getItem("cand_token");
   if (!token) return telaCadastro();

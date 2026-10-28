@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /vagas
+Allow: /vaga
+Disallow: /api/
+Disallow: /gestor
+Disallow: /dono
+Disallow: /onboarding
+Disallow: /agendar
+Disallow: /assinar
+Disallow: /candidato
+
+Sitemap: https://rh.tonybelleza.com/sitemap.xml

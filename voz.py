@@ -885,13 +885,18 @@ class ElevenLabs:
         return self._req("GET", "/conversations/%s/audio" % conversation_id, binario=True)
 
 
-def gateway(conn):
+def gateway(conn, empresa_id=None):
     """O ElevenLabs configurado em Integrações (ou o falso dos testes)."""
     if GATEWAY_TESTE is not None:
         return GATEWAY_TESTE
     chave = srv.config_get(conn, "elevenlabs_api_key")
     agente = srv.config_get(conn, "elevenlabs_agent_id")
     numero = srv.config_get(conn, "elevenlabs_phone_number_id")
+    # -- telefonia (telefonia.py): número próprio da empresa, quando houver um ativo --
+    _tel = getattr(srv, "telefonia", None)
+    if empresa_id and _tel is not None:
+        numero = _tel.phone_id_da_empresa(conn, empresa_id) or numero
+    # -- fim telefonia --
     if not (chave and agente and numero):
         return None
     return ElevenLabs(chave, agente, numero)
@@ -1029,7 +1034,7 @@ def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False, agora=Non
     if _planos is not None and _planos.voz_bloqueada(conn, row["empresa_id"]):
         raise ErroVoz("plan_limit")
     # -- fim planos --
-    gw = gateway(conn)
+    gw = gateway(conn, row["empresa_id"])
     if gw is None:
         raise ErroVoz("not_configured")
 

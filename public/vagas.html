@@ -25,6 +25,7 @@
   </div>
 
   <div class="container narrow">
+    <div id="marca-empresa" style="display:none;align-items:center;justify-content:center;gap:14px;padding-top:32px"></div>
     <div class="hero" style="padding-bottom:24px">
       <h2 id="hero-titulo">Vagas abertas</h2>
       <p data-i18n="v_hero_p">Candidate-se a uma vaga e faça a avaliação completa: testes comportamentais,
@@ -76,6 +77,24 @@
       } catch (e) { /* sem indicação */ }
     }
 
+    const TEXTO_VER_VAGA = { pt: "Ver detalhes", en: "View details", es: "Ver detalles" };
+    function idiomaPagina() {
+      return (typeof idiomaCand !== "undefined" && TEXTO_VER_VAGA[idiomaCand]) ? idiomaCand : "en";
+    }
+    // marca da empresa (logo e nome) no topo quando a página é de uma empresa
+    function desenharMarca() {
+      const caixa = document.getElementById("marca-empresa");
+      const emp = dadosPagina && dadosPagina.empresa;
+      if (!emp) { caixa.style.display = "none"; return; }
+      caixa.innerHTML = (emp.logo_url
+        ? `<img src="${esc(emp.logo_url)}" alt="${esc(emp.nome)}" style="max-height:64px;max-width:180px;border-radius:8px;background:#fff;padding:6px">`
+        : "") + `<span style="font-size:1.1rem;color:var(--text-2)">${esc(emp.nome)}</span>`;
+      caixa.style.display = "flex";
+    }
+    function linkVaga(v) {
+      return "/vaga?id=" + v.id + "&lang=" + idiomaPagina() + (refPagina ? "&ref=" + refPagina : "");
+    }
+
     // cabeçalho: nome da empresa ou do gestor e título com o local
     function desenharCabecalho() {
       const sub = document.getElementById("sub-vagas");
@@ -115,11 +134,14 @@
       el.innerHTML = vagas.map((v) => `
         <div class="vaga-card">
           <div class="info-vaga">
-            <h2>${esc(v.titulo)}</h2>
+            <h2><a href="${linkVaga(v)}" style="color:inherit;text-decoration:none">${esc(v.titulo)}</a></h2>
             <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(nomePais(v.pais)) : ""}</div>
             ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
           </div>
+          <div class="linha-acoes" style="margin:0">
+          <a class="btn secondary" href="${linkVaga(v)}">${esc(TEXTO_VER_VAGA[idiomaPagina()])}</a>
           <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}${refPagina ? "&ref=" + refPagina : ""}">${esc(t("v_candidatar"))}</a>
+          </div>
         </div>`).join("");
     }
 
@@ -150,6 +172,7 @@
       empresaPagina = d.empresa.slug;
       dadosPagina = d;
       todasVagas = d.vagas;
+      desenharMarca();
       desenharCabecalho();
       desenharFiltro();
       if (todasVagas.length) document.getElementById("filtro-paises-card").style.display = "";
