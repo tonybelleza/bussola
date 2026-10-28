@@ -401,3 +401,9 @@ ERROS['Nenhuma entrevista marcada'] = {"en": 'No interview scheduled', "es": 'No
 ERROS['O fim da janela deve ser depois do início'] = {"en": 'The window end must be after the start', "es": 'El fin del horario debe ser después del inicio'}
 ERROS['Status inválido'] = {"en": 'Invalid status', "es": 'Estado inválido'}
 ERROS['Valor inválido na agenda'] = {"en": 'Invalid value in the scheduling settings', "es": 'Valor inválido en la agenda'}
+
+# segurança (seguranca.py)
+ERROS["Apenas o administrador da empresa vê o histórico de acessos"] = {"en": "Only the company admin can see the access history", "es": "Solo el administrador de la empresa ve el historial de accesos"}
+
+# banco de talentos (talentos.py)
+ERROS['Data do lembrete inválida (use AAAA-MM-DD)'] = {"en": 'Invalid reminder date (use YYYY-MM-DD)', "es": 'Fecha del recordatorio inválida (usa AAAA-MM-DD)'}

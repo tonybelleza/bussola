@@ -24,6 +24,8 @@ import empresas
 import entrada
 import erros_i18n
 import mensagens
+import seguranca
+import talentos  # banco de talentos: resumo da ligação, filtros, comparação e lembretes (talentos.py)
 import voz
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -348,7 +350,9 @@ def init_db():
     )
     voz.init_voz(c)
     empresas.init_empresas(c)
+    seguranca.init_seguranca(c)  # trilha de auditoria
     agenda.init_agenda(c)  # agenda de entrevistas: tabela entrevistas_agenda e candidatos.agenda_token
+    talentos.init_talentos(c)  # banco de talentos: tabela lembretes_talentos
     # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
     for tabela, coluna, ddl in (
         ("empresas", "logo", "TEXT DEFAULT ''"),
@@ -1906,17 +1910,25 @@ class Handler(BaseHTTPRequestHandler):
             (token,),
         ).fetchone()
 
+    def end_headers(self):
+        seguranca.cabecalhos(self)  # cabeçalhos de segurança em todas as respostas
+        super().end_headers()
+
     def log_message(self, fmt, *args):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
     # ---------- roteamento ----------
     def do_GET(self):
+        if seguranca.filtrar(self, self.path):  # robôs de varredura e IPs bloqueados
+            return None
         path = urlparse(self.path).path
         if path.startswith("/api/"):
             return self.api("GET", path)
         return self.static(path)
 
     def do_POST(self):
+        if seguranca.filtrar(self, self.path):
+            return None
         if self._corpo_grande_demais():
             return None
         self._ler_corpo()  # drena o corpo sempre (mantém a conexão em sincronia)
@@ -1926,6 +1938,8 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(404, {"erro": "Não encontrado"})
 
     def do_DELETE(self):
+        if seguranca.filtrar(self, self.path):
+            return None
         if self._corpo_grande_demais():
             return None
         self._ler_corpo()
@@ -2251,6 +2265,9 @@ class Handler(BaseHTTPRequestHandler):
             })
 
         if method == "POST" and path == "/api/candidato/recuperar-acesso":
+            if self._login_bloqueado("recuperar"):
+                return self._json(429, {"erro": "Muitas tentativas. Aguarde alguns minutos."})
+            self._registrar_falha_login("recuperar")
             d = self._body()
             email = (d.get("email") or "").strip()
             if not email:
@@ -2504,6 +2521,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/dono/") and (
             empresas.rotear_dono(self, method, path, conn) or voz.rotear_dono(self, method, path, conn)
+            or seguranca.rotear_dono(self, method, path, conn)
         ):
             return None
 
@@ -2774,8 +2792,11 @@ class Handler(BaseHTTPRequestHandler):
             senha_ok = gestor_row and senha_confere(d.get("senha") or "", gestor_row["senha"])
             if not senha_ok:
                 self._registrar_falha_login("gestor")
+                seguranca.registrar(conn, "login_falhou", None, (d.get("login") or "").strip(), self._ip_cliente(),
+                                    empresa_id=gestor_row["empresa_id"] if gestor_row else None)
                 return self._json(401, {"erro": "Login ou senha incorretos"})
             self._limpar_falhas_login("gestor")
+            seguranca.registrar(conn, "login", gestor_row, "", self._ip_cliente())
             if not gestor_row["aprovado"]:
                 return self._json(403, {"erro": "Sua conta ainda está aguardando aprovação do administrador. Você receberá um aviso quando for liberada."})
             empresa_row = conn.execute(
@@ -2902,6 +2923,7 @@ class Handler(BaseHTTPRequestHandler):
             gestor = self._gestor(conn)
             if not gestor:
                 return self._json(401, {"erro": "Acesso restrito ao gestor"})
+            seguranca.auditar_pedido(self, conn, gestor, method, path)
 
         # objetos globais de configuração: só o administrador cria, edita ou
         # remove cargos, competências e avaliações (evita dano em cascata).
@@ -2957,11 +2979,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True})
 
         # -- entrada de candidatos (e-mail do Indeed e CSV) e quadro do dia --
+        if seguranca.rotear_gestor(self, method, path, conn, gestor):
+            return None
         if entrada.rotear_gestor(self, method, path, conn, gestor):
             return None
 
         # -- agenda de entrevistas (agenda.py) --
         if agenda.rotear_gestor(self, method, path, conn, gestor):
+            return None
+        if talentos.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (talentos.py)
             return None
 
         # -- módulo Triagem por Voz --
@@ -3994,9 +4020,11 @@ def backup_diario():
 
 voz.ligar(sys.modules[__name__])
 mensagens.ligar(sys.modules[__name__])
+seguranca.ligar(sys.modules[__name__])
 entrada.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
 agenda.ligar(sys.modules[__name__])
+talentos.ligar(sys.modules[__name__])
 
 
 def main():

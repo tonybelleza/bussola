@@ -529,6 +529,24 @@ def prioridades(conn, gestor):
             continue
         vistos[grupo].add(r["candidato_id"])
         grupos[grupo].append(item)
+    # lembretes vencidos ("Lembrar em", talentos.py) entram primeiro em "Ligar hoje"
+    talentos = getattr(srv, "talentos", None)
+    if talentos is not None:
+        lembretes = []
+        for r in talentos.lembretes_vencidos(conn, empresa_id, agora_local.strftime("%Y-%m-%d")):
+            if not srv.gestor_ve_candidato(gestor, {"local": r["local"], "empresa_id": r["empresa_id"]}):
+                continue
+            extra = {"lembrete": True, "lembrete_data": r["data"], "lembrete_nota": r["nota"] or ""}
+            existente = next((i for i in grupos["ligar_hoje"] if i["candidato_id"] == r["candidato_id"]), None)
+            if existente:
+                grupos["ligar_hoje"].remove(existente)
+                existente.update(extra)
+                lembretes.append(existente)
+                continue
+            lembretes.append(dict({"candidato_id": r["candidato_id"], "candidatura_id": r["candidatura_id"], "nome": r["nome"],
+                                   "vaga": r["vaga"] or "", "tier": "", "score": None, "status": "", "proxima": "",
+                                   "tentativas": 0}, **extra))
+        grupos["ligar_hoje"] = lembretes + grupos["ligar_hoje"]
     return {k: {"total": len(v), "itens": v[:12]} for k, v in grupos.items()}
 
 

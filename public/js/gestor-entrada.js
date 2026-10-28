@@ -102,6 +102,8 @@ async function quadroDoDia(el) {
     ["sem_resposta", tg("en_sem_resposta"), "err"],
   ];
   const detalhe = (k, i) => {
+    // lembrete do banco de talentos (gestor-talentos.js): marcador e nota
+    if (k === "ligar_hoje" && i.lembrete) return tg("tal_lembrete_quadro") + (i.lembrete_nota ? ": " + i.lembrete_nota : "");
     if (k === "ligar_hoje") return i.status === "callback" ? tg("en_callback") : (i.tentativas ? tg("en_tentativas", { n: i.tentativas }) : "");
     if (k === "sem_resposta") return tg("en_tentativas", { n: i.tentativas || 0 });
     return i.tier ? i.tier + (i.score != null ? " · " + i.score : "") : "";

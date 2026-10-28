@@ -48,6 +48,16 @@ const VOZ_TEXTOS = {
     resumo: "Resumo", gravacao: "Ouvir gravação", carregando: "Carregando...", convite: "Convite para os testes enviado",
     francisca: "Francisca", candidato: "Candidato", por: "por {q}", fila_auto: "fila automática",
     idiomaLigacao: { es: "espanhol", en: "inglês", pt: "português" },
+    placar: "Placar da Francisca", placarSub: "Números por semana, no fuso da empresa ({fuso}).",
+    periodos: { sem0: "Esta semana", sem1: "Semana passada", sem4: "Últimas 4 semanas", sem8: "Últimas 8 semanas" },
+    pLigacoes: "Ligações", pTaxa: "Taxa de atendimento", pDuracao: "Duração média", pMediana: "mediana {d}",
+    pQualificados: "Qualificados", pStrongGood: "STRONG + GOOD", pDetalhe: "{a} atendidas, {c} correio de voz, {s} sem resposta",
+    pDeAtendidas: "das atendidas", pResultados: "Resultados", pTiers: "Tiers", pIdiomas: "Idioma (atendidas)",
+    pHoras: "Melhores horários", pHorasDica: "Taxa de atendimento por hora local (top 5).", pLigs: "{n} lig.",
+    pAbandono: "Onde desligaram", pAbandonoDica: "Última etapa alcançada nas ligações que terminaram sem resultado.",
+    pFaltando: "Respostas que faltaram", pFaltandoDica: "Perguntas sem resposta nas ligações pontuadas.",
+    pVazio: "Nenhuma ligação neste período.", pSemDados: "Sem dados no período.",
+    etapas: { start: "Antes do consentimento", consent: "Consentimento", language: "Idioma", still_looking: "Ainda procura trabalho", requirements: "Requisitos (carteira e carro)", town: "Cidade", availability: "Disponibilidade", experience: "Experiência", previous_work: "Trabalhos anteriores", works_alone: "Trabalha sozinho", smartphone: "Smartphone", pets: "Pets", standards: "Padrões", start_date: "Data de início", text_phone: "Telefone para SMS", questions: "Perguntas do candidato" },
   },
   en: {
     identidade: "Call identity", nomeLigacao: "Company name spoken on the call", cidadeLigacao: "City",
@@ -91,6 +101,16 @@ const VOZ_TEXTOS = {
     resumo: "Summary", gravacao: "Play recording", carregando: "Loading...", convite: "Assessment invite sent",
     francisca: "Francisca", candidato: "Candidate", por: "by {q}", fila_auto: "automatic queue",
     idiomaLigacao: { es: "Spanish", en: "English", pt: "Portuguese" },
+    placar: "Francisca's scoreboard", placarSub: "Weekly numbers in the company time zone ({fuso}).",
+    periodos: { sem0: "This week", sem1: "Last week", sem4: "Last 4 weeks", sem8: "Last 8 weeks" },
+    pLigacoes: "Calls", pTaxa: "Answer rate", pDuracao: "Avg. duration", pMediana: "median {d}",
+    pQualificados: "Qualified", pStrongGood: "STRONG + GOOD", pDetalhe: "{a} answered, {c} voicemail, {s} no answer",
+    pDeAtendidas: "of answered calls", pResultados: "Outcomes", pTiers: "Tiers", pIdiomas: "Language (answered)",
+    pHoras: "Best hours", pHorasDica: "Answer rate by local hour (top 5).", pLigs: "{n} calls",
+    pAbandono: "Where they hung up", pAbandonoDica: "Last step reached on calls that ended without a result.",
+    pFaltando: "Missing answers", pFaltandoDica: "Questions left unanswered on scored calls.",
+    pVazio: "No calls in this period.", pSemDados: "No data for this period.",
+    etapas: { start: "Before consent", consent: "Consent", language: "Language", still_looking: "Still looking for work", requirements: "Requirements (license and car)", town: "Town", availability: "Availability", experience: "Experience", previous_work: "Previous work", works_alone: "Works alone", smartphone: "Smartphone", pets: "Pets", standards: "Standards", start_date: "Start date", text_phone: "Phone for texts", questions: "Candidate questions" },
   },
   es: {
     identidade: "Identidad en la llamada", nomeLigacao: "Nombre de la empresa dicho en la llamada", cidadeLigacao: "Ciudad",
@@ -134,6 +154,16 @@ const VOZ_TEXTOS = {
     resumo: "Resumen", gravacao: "Escuchar grabación", carregando: "Cargando...", convite: "Invitación a las pruebas enviada",
     francisca: "Francisca", candidato: "Candidato", por: "por {q}", fila_auto: "cola automática",
     idiomaLigacao: { es: "español", en: "inglés", pt: "portugués" },
+    placar: "Marcador de Francisca", placarSub: "Números por semana, en la zona horaria de la empresa ({fuso}).",
+    periodos: { sem0: "Esta semana", sem1: "Semana pasada", sem4: "Últimas 4 semanas", sem8: "Últimas 8 semanas" },
+    pLigacoes: "Llamadas", pTaxa: "Tasa de respuesta", pDuracao: "Duración promedio", pMediana: "mediana {d}",
+    pQualificados: "Calificados", pStrongGood: "STRONG + GOOD", pDetalhe: "{a} contestadas, {c} buzón de voz, {s} sin respuesta",
+    pDeAtendidas: "de las contestadas", pResultados: "Resultados", pTiers: "Tiers", pIdiomas: "Idioma (contestadas)",
+    pHoras: "Mejores horarios", pHorasDica: "Tasa de respuesta por hora local (top 5).", pLigs: "{n} llam.",
+    pAbandono: "Dónde colgaron", pAbandonoDica: "Último paso alcanzado en las llamadas que terminaron sin resultado.",
+    pFaltando: "Respuestas que faltaron", pFaltandoDica: "Preguntas sin respuesta en las llamadas con puntaje.",
+    pVazio: "Ninguna llamada en este período.", pSemDados: "Sin datos en este período.",
+    etapas: { start: "Antes del consentimiento", consent: "Consentimiento", language: "Idioma", still_looking: "Todavía busca trabajo", requirements: "Requisitos (licencia y carro)", town: "Ciudad", availability: "Disponibilidad", experience: "Experiencia", previous_work: "Trabajos anteriores", works_alone: "Trabaja solo", smartphone: "Smartphone", pets: "Mascotas", standards: "Normas", start_date: "Fecha de inicio", text_phone: "Teléfono para mensajes", questions: "Preguntas del candidato" },
   },
 };
 
@@ -286,6 +316,7 @@ async function abaVoz(el) {
       <div class="metrica"><div class="num">${r.hoje.good}</div><div class="rot">${vt("good")}</div></div>
       <div class="metrica"><div class="num">${r.ativas}</div><div class="rot">${vt("andamento")}</div></div>
     </div>
+    <div class="card" id="voz-placar"></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <h3 style="margin:0">${vt("fila")} (${fila.length})</h3>
@@ -354,12 +385,106 @@ async function abaVoz(el) {
     ev.preventDefault();
     abrirDetalheCandidato(Number(a.dataset.vozCand));
   }));
+  vozCarregarPlacar(el.querySelector("#voz-placar"));
   vozLigarBotoesCandidatura(el, redesenhar, aviso);
   vozLigarFora(el, redesenhar, aviso);
   if (r.admin) {
     vozLigarConfig(el, r, redesenhar);
     vozLigarCargos(el, redesenhar);
   }
+}
+
+// ------------------------------------------------ placar semanal
+let vozPlacarPeriodo = "sem0";
+const VOZ_PLACAR_SEMANAS = { sem0: 1, sem1: 2, sem4: 4, sem8: 8 };
+
+function vozDuracao(seg) {
+  if (seg == null) return "";
+  const s = Math.round(seg);
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+
+function vozPct(v) {
+  return v == null ? "" : String(v).replace(/\.0$/, "") + "%";
+}
+
+/** Lista de barras horizontais em HTML e CSS puro: itens = [{rot, n, valor?, dica?}]. */
+function vozBarras(itens, maximo) {
+  const lista = itens.filter((i) => i.n > 0);
+  if (!lista.length) return `<p class="hint" style="margin:6px 0 0">${vt("pSemDados")}</p>`;
+  const max = maximo || Math.max(...lista.map((i) => i.n)) || 1;
+  return `<div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">${lista.map((i) => `
+    <div title="${esc(i.dica || "")}">
+      <div style="display:flex;justify-content:space-between;gap:8px;font-size:.85rem">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.rot)}</span>
+        <strong style="white-space:nowrap">${esc(i.valor != null ? i.valor : String(i.n))}</strong>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--line-soft, rgba(127,127,127,.18));overflow:hidden;margin-top:3px">
+        <div style="height:100%;width:${Math.max(2, Math.round((100 * i.n) / max))}%;background:var(--accent, #4a7bd0);border-radius:3px"></div>
+      </div>
+    </div>`).join("")}</div>`;
+}
+
+function vozBlocoPlacar(titulo, dica, corpo) {
+  return `<div style="min-width:0">
+    <h4 style="margin:0">${titulo}</h4>
+    ${dica ? `<p class="hint" style="margin:2px 0 0">${dica}</p>` : ""}
+    ${corpo}
+  </div>`;
+}
+
+function vozHtmlPlacar(d) {
+  const p = vozPlacarPeriodo === "sem1" ? d.semanas[1] : d.total;
+  const T = VOZ_TEXTOS[vozIdioma];
+  const seletor = `<div class="tabs" style="margin:0;flex-wrap:wrap">${Object.keys(VOZ_PLACAR_SEMANAS).map((k) =>
+    `<button class="tab ${vozPlacarPeriodo === k ? "ativa" : ""}" data-voz-periodo="${k}">${esc(T.periodos[k])}</button>`).join("")}</div>`;
+  const topo = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div><h3 style="margin:0">${vt("placar")}</h3>
+        <p class="hint" style="margin:2px 0 0">${esc(vt("placarSub", { fuso: d.fuso }))}${p ? " " + esc(p.inicio) + " / " + esc(p.fim) : ""}</p></div>
+      ${seletor}
+    </div>`;
+  if (!p || !p.ligacoes) return topo + `<p class="desc" style="margin-top:14px">${vt("pVazio")}</p>`;
+  const outcomes = Object.entries(p.outcomes).map(([k, n]) => ({ rot: VOZ_OUTCOME[vozIdioma][k] || k, n }));
+  const tiers = Object.entries(p.tiers).map(([k, n]) => ({ rot: k, n }));
+  const idiomas = Object.entries(p.idiomas).map(([k, n]) => ({ rot: T.idiomaLigacao[k] || k, n }));
+  const horas = [...p.horas].sort((a, b) => (b.taxa - a.taxa) || (b.ligacoes - a.ligacoes) || (a.hora - b.hora)).slice(0, 5)
+    .map((h) => ({ rot: String(h.hora).padStart(2, "0") + ":00", n: h.taxa || 0.0001, valor: vozPct(h.taxa) + " (" + vt("pLigs", { n: h.ligacoes }) + ")" }));
+  const abandono = p.abandono.map((a) => ({ rot: T.etapas[a.etapa] || a.etapa, n: a.n }));
+  const faltando = p.faltando.map((f) => ({ rot: (VOZ_PONTOS[vozIdioma][f.item] || [f.item])[0], n: f.n }));
+  const tile = (num, rot, sub) => `<div class="metrica"><div class="num">${esc(String(num))}</div><div class="rot">${esc(rot)}</div>${sub ? `<div class="hint" style="margin-top:4px">${esc(sub)}</div>` : ""}</div>`;
+  return topo + `
+    <div class="metricas" style="margin:16px 0">
+      ${tile(p.ligacoes, vt("pLigacoes"), vt("pDetalhe", { a: p.atendidas, c: p.correio_voz, s: p.sem_resposta }))}
+      ${tile(p.taxa_atendimento == null ? "0%" : vozPct(p.taxa_atendimento), vt("pTaxa"), "")}
+      ${tile(p.duracao_media == null ? "0:00" : vozDuracao(p.duracao_media), vt("pDuracao"), p.duracao_mediana == null ? "" : vt("pMediana", { d: vozDuracao(p.duracao_mediana) }))}
+      ${tile(p.qualificados_pct == null ? "0%" : vozPct(p.qualificados_pct), vt("pQualificados"), vt("pDeAtendidas"))}
+      ${tile(p.strong_good, vt("pStrongGood"), "")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px">
+      ${vozBlocoPlacar(vt("pResultados"), "", vozBarras(outcomes))}
+      ${vozBlocoPlacar(vt("pTiers"), "", vozBarras(tiers))}
+      ${vozBlocoPlacar(vt("pIdiomas"), "", vozBarras(idiomas))}
+      ${vozBlocoPlacar(vt("pHoras"), vt("pHorasDica"), vozBarras(horas, 100))}
+      ${vozBlocoPlacar(vt("pAbandono"), vt("pAbandonoDica"), vozBarras(abandono))}
+      ${vozBlocoPlacar(vt("pFaltando"), vt("pFaltandoDica"), vozBarras(faltando))}
+    </div>`;
+}
+
+async function vozCarregarPlacar(caixa) {
+  if (!caixa) return;
+  caixa.innerHTML = `<h3 style="margin:0">${vt("placar")}</h3><p class="desc">${vt("carregando")}</p>`;
+  let d;
+  try {
+    d = await vozApi("/api/gestor/voz/placar?semanas=" + VOZ_PLACAR_SEMANAS[vozPlacarPeriodo]);
+  } catch (e) {
+    caixa.innerHTML = `<h3 style="margin:0">${vt("placar")}</h3><p class="form-erro">${esc(e.message)}</p>`;
+    return;
+  }
+  caixa.innerHTML = vozHtmlPlacar(d);
+  caixa.querySelectorAll("[data-voz-periodo]").forEach((b) => b.addEventListener("click", () => {
+    vozPlacarPeriodo = b.dataset.vozPeriodo;
+    vozCarregarPlacar(caixa);
+  }));
 }
 
 function vozHtmlFora(fora) {

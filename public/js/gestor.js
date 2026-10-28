@@ -1106,6 +1106,7 @@ function abaCandidatos(el) {
         <option value="externo">${tg("aba_candidatos")}</option>
         <option value="interno">${tg("c_internos")}</option>
       </select>
+      ${typeof talentosFiltrosHtml === "function" ? talentosFiltrosHtml() : ""}
     </div>
     <div id="ft-resultado">${tabelaCandidatos(candidatos)}</div></div>`;
 
@@ -1129,10 +1130,12 @@ function abaCandidatos(el) {
       if (tag && !(c.candidato.tags || []).includes(tag)) return false;
       if (matchMin && !(c.match && c.match.geral >= matchMin)) return false;
       if (tipoSel && (c.candidato.tipo || "externo") !== tipoSel) return false;
+      if (typeof talentosFiltra === "function" && !talentosFiltra(c)) return false; // banco de talentos (gestor-talentos.js)
       return true;
     });
     document.getElementById("ft-resultado").innerHTML = tabelaCandidatos(filtrados);
     ligarLinhasCandidato(el);
+    if (typeof talentosDecorarTabela === "function") talentosDecorarTabela(el); // seleção para comparar (gestor-talentos.js)
   };
   ["ft-busca", "ft-local", "ft-cargo", "ft-tag", "ft-match", "ft-tipo"].forEach((id) =>
     document.getElementById(id).addEventListener(id === "ft-busca" ? "input" : "change", aplicar)
@@ -1142,6 +1145,7 @@ function abaCandidatos(el) {
   if (btn) btn.addEventListener("click", exportarCandidatosCsv);
   const imp = document.getElementById("importar-csv");
   if (imp) imp.addEventListener("click", () => modalImportarCsv(async () => { await carregarDados(); abaCandidatos(el); }));
+  if (typeof talentosLigarAba === "function") talentosLigarAba(el, aplicar); // filtros de voz e comparação (gestor-talentos.js)
 }
 
 function exportarCandidatosCsv() {
@@ -1177,6 +1181,7 @@ function exportarCandidatosCsv() {
 async function abrirDetalheCandidato(id) {
   const c = await api("/api/gestor/candidato/" + id);
   const blocos = [];
+  if (typeof talentosPreencherFicha === "function") blocos.push('<div class="card" id="bloco-talentos"></div>'); // resumo da ligação e lembrete (gestor-talentos.js)
   if (c.match) blocos.push(`<div class="card">${htmlMatch(c.match, c.gaps ? c.gaps.cargo.nome : "")}</div>`);
   const comVoz = typeof vozModuloAtivo === "function" && vozModuloAtivo();
   if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
@@ -1302,6 +1307,7 @@ async function abrirDetalheCandidato(id) {
   fundo.querySelector("#modal-fechar").addEventListener("click", () => fundo.remove());
   if (comVoz) vozPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-voz"));
   if (typeof agendaPreencherFicha === "function") agendaPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-agenda"));
+  if (typeof talentosPreencherFicha === "function") talentosPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-talentos")); // gestor-talentos.js
   const baixar = fundo.querySelector("#baixar-cv");
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {
@@ -1857,11 +1863,13 @@ async function abaConfig(el) {
     </div>
     <div id="cfg-marca"></div>
     <div id="cfg-entrada"></div>
+    <div id="cfg-auditoria"></div>
     <div id="cfg-agenda"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
   secaoMarca(document.getElementById("cfg-marca"));
   secaoEntrada(document.getElementById("cfg-entrada"));
+  if (typeof secaoAuditoria === "function") secaoAuditoria(document.getElementById("cfg-auditoria"));
   if (typeof secaoAgenda === "function") secaoAgenda(document.getElementById("cfg-agenda")); // agenda de entrevistas
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);

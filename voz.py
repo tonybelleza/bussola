@@ -1335,6 +1335,198 @@ NOMES_TEMPLATES_VOZ = {
 }
 
 
+# ------------------------------------------------------------ placar semanal
+
+PLACAR_OUTCOMES = (
+    "QUALIFIED", "NEEDS_REVIEW", "NOT_QUALIFIED", "CALLBACK", "NOT_INTERESTED",
+    "WRONG_NUMBER", "NOT_AVAILABLE", "DO_NOT_CALL",
+)
+PLACAR_TIERS = ("STRONG", "GOOD", "REVIEW", "LOW")
+PLACAR_MAX_SEMANAS = 8
+STATUS_EM_ANDAMENTO = ("iniciando", "em_andamento", "processando")
+
+# Etapas da triagem na ordem do roteiro e os fatos que provam que a etapa foi
+# alcançada. "still_looking" não tem fato próprio: só aparece como passagem.
+ETAPAS_TRIAGEM = (
+    ("consent", ("recording_consent",)),
+    ("language", ("preferred_language",)),
+    ("still_looking", ()),
+    ("requirements", ("license", "own_car")),
+    ("town", ("city",)),
+    ("availability", ("weekdays_available", "days_available", "saturdays_ok")),
+    ("experience", ("experience_level", "experience")),
+    ("previous_work", ("previous_work",)),
+    ("works_alone", ("works_alone",)),
+    ("smartphone", ("has_smartphone",)),
+    ("pets", ("pets",)),
+    ("standards", ("standards",)),
+    ("start_date", ("start_timeframe", "start_date")),
+    ("text_phone", ("text_phone", "ok_to_text")),
+    ("questions", ("candidate_questions",)),
+)
+ETAPA_INICIO = "start"  # atendeu, mas desligou antes de qualquer fato
+
+
+def etapa_alcancada(fatos):
+    """Última etapa da triagem com algum fato coletado ('start' se nenhuma)."""
+    ultima = ETAPA_INICIO
+    for etapa, campos in ETAPAS_TRIAGEM:
+        if any((fatos or {}).get(c) not in (None, "") for c in campos):
+            ultima = etapa
+    return ultima
+
+
+def _json_ou(texto, padrao):
+    if not texto:
+        return padrao
+    try:
+        valor = json.loads(texto)
+    except (TypeError, ValueError):
+        return padrao
+    return valor if valor is not None else padrao
+
+
+def classificar_chamada(r):
+    """Resumo de uma linha de voz_chamadas para o placar."""
+    transcricao = _json_ou(r["transcricao"], [])
+    fatos = _json_ou(r["fatos"], {}) or {}
+    resultado = _json_ou(r["resultado"], {}) or {}
+    falou = isinstance(transcricao, list) and any(
+        isinstance(t, dict) and t.get("papel") == "user" for t in transcricao)
+    outcome = resultado.get("outcome") or ""
+    if r["status"] in STATUS_EM_ANDAMENTO:
+        tipo = "andamento"
+    elif falou:
+        tipo = "atendida"
+    elif outcome == "VOICEMAIL" or fatos.get("outcome") == "VOICEMAIL":
+        tipo = "correio"
+    else:
+        tipo = "sem_resposta"
+    abandono = None
+    if tipo == "atendida":
+        bruto = fatos.get("outcome")
+        if not bruto or (bruto in ("CALLBACK", "NOT_AVAILABLE") and not triagem_completa(fatos)):
+            abandono = etapa_alcancada(fatos)
+    idioma = fatos.get("preferred_language") or r["idioma"] or ""
+    return {
+        "tipo": tipo, "outcome": outcome, "tier": resultado.get("tier") or "",
+        "pontuada": resultado.get("score") is not None,
+        "motivos": resultado.get("motivos") or [], "duracao": r["duracao"],
+        "idioma": idioma if idioma in IDIOMAS_LIGACAO else "", "abandono": abandono,
+    }
+
+
+def _mediana(valores):
+    v = sorted(valores)
+    if not v:
+        return None
+    meio = len(v) // 2
+    return float(v[meio]) if len(v) % 2 else (v[meio - 1] + v[meio]) / 2.0
+
+
+def _pct(parte, todo):
+    return round(100.0 * parte / todo, 1) if todo else None
+
+
+def resumo_placar(itens):
+    """Números de um conjunto de chamadas já classificadas: itens = [(hora_local, classe)]."""
+    cont = {"atendida": 0, "correio": 0, "sem_resposta": 0, "andamento": 0}
+    outcomes = dict.fromkeys(PLACAR_OUTCOMES, 0)
+    tiers = dict.fromkeys(PLACAR_TIERS, 0)
+    idiomas = dict.fromkeys(IDIOMAS_LIGACAO, 0)
+    horas, abandono, faltando, duracoes = {}, {}, {}, []
+    for hora, c in itens:
+        cont[c["tipo"]] += 1
+        if c["outcome"] in outcomes:
+            outcomes[c["outcome"]] += 1
+        if c["tier"] in tiers:
+            tiers[c["tier"]] += 1
+        if c["tipo"] != "andamento":
+            h = horas.setdefault(hora, [0, 0])
+            h[0] += 1
+            h[1] += 1 if c["tipo"] == "atendida" else 0
+        if c["tipo"] == "atendida":
+            if c["idioma"]:
+                idiomas[c["idioma"]] += 1
+            if isinstance(c["duracao"], (int, float)):
+                duracoes.append(c["duracao"])
+        if c["abandono"]:
+            abandono[c["abandono"]] = abandono.get(c["abandono"], 0) + 1
+        if c["pontuada"]:
+            for m in c["motivos"]:
+                if isinstance(m, str) and m.startswith("missing:"):
+                    item = m.split(":", 1)[1]
+                    faltando[item] = faltando.get(item, 0) + 1
+    terminadas = cont["atendida"] + cont["correio"] + cont["sem_resposta"]
+    ordem = [ETAPA_INICIO] + [e for e, _ in ETAPAS_TRIAGEM]
+    return {
+        "ligacoes": len(itens),
+        "atendidas": cont["atendida"],
+        "correio_voz": cont["correio"],
+        "sem_resposta": cont["sem_resposta"],
+        "em_andamento": cont["andamento"],
+        "taxa_atendimento": _pct(cont["atendida"], terminadas),
+        "duracao_media": round(sum(duracoes) / float(len(duracoes)), 1) if duracoes else None,
+        "duracao_mediana": _mediana(duracoes),
+        "outcomes": outcomes,
+        "tiers": tiers,
+        "idiomas": idiomas,
+        "qualificados_pct": _pct(outcomes["QUALIFIED"], cont["atendida"]),
+        "strong_good": tiers["STRONG"] + tiers["GOOD"],
+        "horas": [
+            {"hora": h, "ligacoes": n, "atendidas": a, "taxa": _pct(a, n)}
+            for h, (n, a) in sorted(horas.items())
+        ],
+        "abandono": [{"etapa": e, "n": abandono[e]} for e in ordem if abandono.get(e)],
+        "faltando": [{"item": k, "n": n} for k, n in sorted(faltando.items(), key=lambda kv: (-kv[1], kv[0]))],
+    }
+
+
+def placar_semanal(conn, gestor, semanas=PLACAR_MAX_SEMANAS, agora=None):
+    """Placar da Francisca por semana ISO no fuso da empresa (mais recente primeiro)
+    e o total do período. Só chamadas da empresa do gestor e visíveis para ele."""
+    semanas = max(1, min(int(semanas or PLACAR_MAX_SEMANAS), PLACAR_MAX_SEMANAS))
+    empresa_id = gestor["empresa_id"]
+    cfg = config_empresa(conn, empresa_id)
+    zona = _zona(cfg)
+    local_agora = (agora or _agora_utc()).astimezone(zona)
+    segunda = local_agora.date() - timedelta(days=local_agora.weekday())
+    primeira = segunda - timedelta(weeks=semanas - 1)
+    inicio_local = datetime(primeira.year, primeira.month, primeira.day, tzinfo=zona)
+    linhas = conn.execute(
+        "SELECT vc.*, c.empresa_id AS empresa_id, c.local AS cand_local"
+        " FROM voz_chamadas vc JOIN candidatos c ON c.id=vc.candidato_id"
+        " WHERE c.empresa_id=? AND vc.iniciada_em >= ? ORDER BY vc.iniciada_em",
+        (empresa_id, _sql(inicio_local)),
+    ).fetchall()
+    por_semana = [[] for _ in range(semanas)]
+    todos = []
+    for r in linhas:
+        if not visivel_para(gestor, r):
+            continue
+        inicio = _de_sql(r["iniciada_em"])
+        if not inicio:
+            continue
+        local = inicio.astimezone(zona)
+        indice = (segunda - (local.date() - timedelta(days=local.weekday()))).days // 7
+        if not 0 <= indice < semanas:
+            continue
+        item = (local.hour, classificar_chamada(r))
+        por_semana[indice].append(item)
+        todos.append(item)
+    lista = []
+    for i, itens in enumerate(por_semana):
+        seg = segunda - timedelta(weeks=i)
+        ano, num, _ = seg.isocalendar()
+        bloco = {"semana": "%d-W%02d" % (ano, num), "inicio": seg.isoformat(),
+                 "fim": (seg + timedelta(days=6)).isoformat()}
+        bloco.update(resumo_placar(itens))
+        lista.append(bloco)
+    total = {"inicio": primeira.isoformat(), "fim": (segunda + timedelta(days=6)).isoformat()}
+    total.update(resumo_placar(todos))
+    return {"fuso": str(zona), "semanas": lista, "total": total}
+
+
 # ------------------------------------------------------------ rotas HTTP
 
 def _chamada_publica(r, completa=False):
@@ -1516,6 +1708,13 @@ def rotear_gestor(h, method, path, conn, gestor):
         salvar_config(conn, empresa_id, dados)
         conn.commit()
         return _resp(h, 200, {"ok": True, "config": config_empresa(conn, empresa_id)})
+
+    # placar semanal da Francisca (mesmo isolamento do painel)
+    if method == "GET" and path == "/api/gestor/voz/placar":
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(getattr(h, "path", "") or "").query)
+        bruto = (qs.get("semanas") or [""])[0]
+        semanas = int(bruto) if bruto.isdigit() else PLACAR_MAX_SEMANAS
+        return _resp(h, 200, placar_semanal(conn, gestor, semanas))
 
     if method == "POST" and path == "/api/gestor/voz/rodar":
         return _resp(h, 200, tick(conn, empresa_id=empresa_id))

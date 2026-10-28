@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="voz-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py"):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
@@ -222,6 +222,14 @@ class TestFatos(unittest.TestCase):
         self.assertEqual(voz.faixa_da_cidade("west hartford, CT"), "25mi")
         self.assertEqual(voz.faixa_da_cidade("Chicopee MA"), "40mi")
         self.assertIsNone(voz.faixa_da_cidade("Boston"))
+
+    def test_etapa_alcancada_no_placar(self):
+        self.assertEqual(voz.etapa_alcancada({}), "start")
+        self.assertEqual(voz.etapa_alcancada({"recording_consent": True}), "consent")
+        self.assertEqual(voz.etapa_alcancada({"recording_consent": True, "preferred_language": "es",
+                                              "license": "yes", "city": "Hartford"}), "town")
+        self.assertEqual(voz.etapa_alcancada(FATOS_FORTES), "text_phone")
+        self.assertEqual(voz.etapa_alcancada({"recording_consent": False, "has_smartphone": False}), "smartphone")
 
 
 class TestRegras(unittest.TestCase):
@@ -774,6 +782,124 @@ class TestHTTP(unittest.TestCase):
         status, _ = self.req("POST", "/api/gestor/solicitar-acesso",
                              {"nome": "Z", "login": "z", "email": "z@x.com", "senha": "senha-123"})
         self.assertEqual(status, 400)
+
+    def test_placar_semanal_numeros_e_isolamento(self):
+        conn = server.db()
+        conn.execute("DELETE FROM voz_chamadas")
+        zona = voz._zona(voz.config_empresa(conn, self.ea))
+        agora = datetime.now(zona)
+        seg = agora.date().toordinal() - agora.weekday()
+
+        def quando(semanas_atras, hora, minuto=0):
+            d = datetime.fromordinal(seg - 7 * semanas_atras)
+            return voz._sql(datetime(d.year, d.month, d.day, hora, minuto, tzinfo=zona))
+
+        cargo_b = conn.execute("INSERT INTO cargos (nome, empresa_id, voz_ativa) VALUES ('Tech B', ?, 1)",
+                               (self.eb,)).lastrowid
+        vaga_b = conn.execute("INSERT INTO vagas (cargo_id, titulo, local, status, empresa_id)"
+                              " VALUES (?, 'Vaga B', '', 'aberta', ?)", (cargo_b, self.eb)).lastrowid
+        conn.commit()
+
+        def limpar():
+            # apaga os dados do placar para não afetar os outros testes da classe
+            conn.execute("DELETE FROM voz_chamadas WHERE conversation_id LIKE 'placar_%'")
+            conn.execute("DELETE FROM candidaturas WHERE candidato_id IN"
+                         " (SELECT id FROM candidatos WHERE token LIKE 'placar%')")
+            conn.execute("DELETE FROM candidatos WHERE token LIKE 'placar%'")
+            conn.execute("DELETE FROM vagas WHERE id=?", (vaga_b,))
+            conn.execute("DELETE FROM cargos WHERE id=?", (cargo_b,))
+            conn.commit()
+            conn.close()
+
+        self.addCleanup(limpar)
+        seq = [0]
+
+        def ligacao(empresa, vaga, local, inicio, status="concluida", falou=True, fatos=None, resultado=None,
+                    duracao=None, idioma="es"):
+            seq[0] += 1
+            cid = conn.execute("INSERT INTO candidatos (token, nome, email, local, telefone, empresa_id)"
+                               " VALUES (?,?,?,?,?,?)", ("placar%d" % seq[0], "Placar %d" % seq[0], "", local,
+                                                        "+18605550199", empresa)).lastrowid
+            ca = conn.execute("INSERT INTO candidaturas (candidato_id, vaga_id) VALUES (?,?)", (cid, vaga)).lastrowid
+            falas = [{"papel": "agent", "texto": "Hola", "t": 0}] + ([{"papel": "user", "texto": "Si", "t": 3}] if falou else [])
+            conn.execute(
+                "INSERT INTO voz_chamadas (candidatura_id, candidato_id, conversation_id, status, idioma, iniciada_em,"
+                " duracao, transcricao, fatos, resultado) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (ca, cid, "placar_%d" % seq[0], status, idioma, inicio, duracao, json.dumps(falas),
+                 json.dumps(fatos) if fatos is not None else "", json.dumps(resultado) if resultado else ""))
+
+        a, ct_local = self.ea, "BHS CT"
+        # semana atual da empresa A
+        ligacao(a, self.vaga_a, ct_local, quando(0, 10), fatos=FATOS_FORTES, duracao=300,
+                resultado={"outcome": "QUALIFIED", "tier": "STRONG", "score": 95, "motivos": []})
+        ligacao(a, self.vaga_a, ct_local, quando(0, 10, 30), idioma="en", duracao=200,
+                fatos=dict(FATOS_FORTES, preferred_language="en", outcome="NEEDS_REVIEW", pets=None, standards=None),
+                resultado={"outcome": "NEEDS_REVIEW", "tier": "GOOD", "score": 60,
+                           "motivos": ["missing:pets", "missing:standards"]})
+        ligacao(a, self.vaga_a, ct_local, quando(0, 14), duracao=60,
+                fatos={"recording_consent": True, "preferred_language": "es", "license": "yes",
+                       "own_car": "yes", "city": "Hartford", "outcome": None},
+                resultado={"outcome": "NEEDS_REVIEW", "score": None, "tier": None, "motivos": ["no_outcome"]})
+        ligacao(a, self.vaga_a, ct_local, quando(0, 14, 10), falou=False, duracao=25,
+                fatos={"outcome": "VOICEMAIL"}, resultado={"outcome": "VOICEMAIL", "score": None})
+        ligacao(a, self.vaga_a, ct_local, quando(0, 14, 20), status="falhou", falou=False)
+        ligacao(a, self.vaga_a, ct_local, quando(0, 15), status="iniciando", falou=False)
+        # outra unidade da empresa A: o admin vê, a Carine (BHS CT) não
+        ligacao(a, self.vaga_a, "NY Office", quando(0, 11), status="falhou", falou=False)
+        # semana passada da empresa A
+        ligacao(a, self.vaga_a, ct_local, quando(1, 9), idioma="pt", duracao=40,
+                fatos={"recording_consent": True, "preferred_language": "pt", "outcome": "CALLBACK"},
+                resultado={"outcome": "CALLBACK", "score": None})
+        ligacao(a, self.vaga_a, ct_local, quando(1, 9, 30), status="falhou", falou=False)
+        # fora do período (9 semanas atrás) e uma ligação da empresa B
+        ligacao(a, self.vaga_a, ct_local, quando(9, 10), status="falhou", falou=False)
+        ligacao(self.eb, vaga_b, "", quando(0, 10), fatos=FATOS_FORTES, duracao=500,
+                resultado={"outcome": "QUALIFIED", "tier": "STRONG", "score": 95, "motivos": []})
+        conn.commit()
+
+        status, d = self.req("GET", "/api/gestor/voz/placar?semanas=8", cabecalhos=self.token("carine"))
+        self.assertEqual(status, 200, d)
+        self.assertEqual(len(d["semanas"]), 8)
+        s0, s1 = d["semanas"][0], d["semanas"][1]
+        self.assertTrue(s0["inicio"] > s1["inicio"])
+        self.assertEqual((s0["ligacoes"], s0["atendidas"], s0["correio_voz"], s0["sem_resposta"], s0["em_andamento"]),
+                         (6, 3, 1, 1, 1))
+        self.assertEqual(s0["taxa_atendimento"], 60.0)
+        self.assertEqual((s0["duracao_media"], s0["duracao_mediana"]), (186.7, 200.0))
+        self.assertEqual((s0["outcomes"]["QUALIFIED"], s0["outcomes"]["NEEDS_REVIEW"], s0["outcomes"]["CALLBACK"]),
+                         (1, 2, 0))
+        self.assertEqual(s0["tiers"], {"STRONG": 1, "GOOD": 1, "REVIEW": 0, "LOW": 0})
+        self.assertEqual(s0["idiomas"], {"es": 2, "en": 1, "pt": 0})
+        self.assertEqual(s0["horas"], [{"hora": 10, "ligacoes": 2, "atendidas": 2, "taxa": 100.0},
+                                       {"hora": 14, "ligacoes": 3, "atendidas": 1, "taxa": 33.3}])
+        self.assertEqual(s0["abandono"], [{"etapa": "town", "n": 1}])
+        self.assertEqual(s0["faltando"], [{"item": "pets", "n": 1}, {"item": "standards", "n": 1}])
+        self.assertEqual((s0["qualificados_pct"], s0["strong_good"]), (33.3, 2))
+        self.assertEqual((s1["ligacoes"], s1["atendidas"], s1["taxa_atendimento"], s1["duracao_mediana"]),
+                         (2, 1, 50.0, 40.0))
+        self.assertEqual(s1["abandono"], [{"etapa": "language", "n": 1}])
+        self.assertEqual(s1["outcomes"]["CALLBACK"], 1)
+        self.assertTrue(all(s["ligacoes"] == 0 for s in d["semanas"][2:]))
+        t = d["total"]
+        self.assertEqual((t["ligacoes"], t["atendidas"], t["taxa_atendimento"]), (8, 4, round(400 / 7, 1)))
+        self.assertEqual(t["idiomas"], {"es": 2, "en": 1, "pt": 1})
+
+        _, admin = self.req("GET", "/api/gestor/voz/placar?semanas=1", cabecalhos=self.token("admin"))
+        self.assertEqual(len(admin["semanas"]), 1)
+        self.assertEqual((admin["total"]["ligacoes"], admin["total"]["sem_resposta"]), (7, 2))
+
+        # empresa B: sem o módulo, 403; com o módulo, só vê a própria ligação
+        self.assertEqual(self.req("GET", "/api/gestor/voz/placar", cabecalhos=self.token("admin.b"))[0], 403)
+        modulos_b = conn.execute("SELECT modulos FROM empresas WHERE id=?", (self.eb,)).fetchone()[0]
+        conn.execute("UPDATE empresas SET modulos='[\"voz\"]' WHERE id=?", (self.eb,))
+        conn.commit()
+        try:
+            status, b = self.req("GET", "/api/gestor/voz/placar", cabecalhos=self.token("admin.b"))
+            self.assertEqual(status, 200)
+            self.assertEqual((b["total"]["ligacoes"], b["total"]["duracao_media"]), (1, 500.0))
+        finally:
+            conn.execute("UPDATE empresas SET modulos=? WHERE id=?", (modulos_b, self.eb))
+            conn.commit()
 
 
 if __name__ == "__main__":
