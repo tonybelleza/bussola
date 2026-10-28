@@ -7,3 +7,5 @@ __pycache__/
 nohup.out
 .DS_Store
 docs/
+# chave de criptografia dos dados do onboarding: nunca versionar, nunca sobrescrever
+chave_dados.key

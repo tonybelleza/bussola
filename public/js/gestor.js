@@ -526,6 +526,7 @@ function desenharPainel() {
   if (abaAtiva === "diagnostico") abaDiagnostico(conteudo);
   if (abaAtiva === "voz") abaVoz(conteudo);
   if (abaAtiva === "config") abaConfig(conteudo);
+  if (typeof planoBanner === "function") planoBanner(app); // aviso de limite e fim do teste (gestor-plano.js)
 }
 
 // ------------------------------------------------ relatórios
@@ -681,6 +682,7 @@ function abaVisao(el) {
   el.innerHTML = `
     <div class="card" id="quadro-dia"></div>
     <div class="card" id="agenda-hoje"></div>
+    <div class="card" id="onboarding-visao"></div>
     <div class="metricas">
       <div class="metrica"><div class="num">${fmtNum(candidatos.length)}</div><div class="rot">${tg("v_m_cadastrados")}</div></div>
       <div class="metrica"><div class="num">${fmtNum(comDisc)}</div><div class="rot">${tg("v_m_disc")}</div></div>
@@ -701,6 +703,8 @@ function abaVisao(el) {
   ligarLinhasCandidato(el);
   quadroDoDia(document.getElementById("quadro-dia"));
   if (typeof agendaHoje === "function") agendaHoje(document.getElementById("agenda-hoje")); // agenda de entrevistas (gestor-agenda.js)
+  if (typeof onboardingVisao === "function") onboardingVisao(document.getElementById("onboarding-visao")); // onboarding (gestor-onboarding.js)
+  else document.getElementById("onboarding-visao").remove();
   api("/api/gestor/atividades").then((r) => {
     const alvo = document.getElementById("feed-atividades");
     if (!alvo) return;
@@ -1186,6 +1190,8 @@ async function abrirDetalheCandidato(id) {
   const comVoz = typeof vozModuloAtivo === "function" && vozModuloAtivo();
   if (comVoz) blocos.push('<div class="card" id="bloco-voz"></div>');
   blocos.push('<div class="card" id="bloco-agenda"></div>'); // agenda de entrevistas (gestor-agenda.js)
+  if (typeof onboardingPreencherFicha === "function") blocos.push('<div class="card" id="bloco-onboarding"></div>'); // onboarding (gestor-onboarding.js)
+  if (typeof indicacoesPreencherFicha === "function") blocos.push('<div class="card" id="bloco-indicacoes"></div>'); // indicações (gestor-indicacoes.js)
   if (c.testes.disc) blocos.push(`<div class="card">${htmlResultadoDisc(c.testes.disc.payload)}</div>`);
   if (c.testes.base) blocos.push(`<div class="card">${htmlResultadoBase(c.testes.base.payload)}</div>`);
   if (c.quiz) blocos.push(`<div class="card">${tituloIcone("bloco", tg("quiz_titulo"))}
@@ -1308,6 +1314,8 @@ async function abrirDetalheCandidato(id) {
   if (comVoz) vozPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-voz"));
   if (typeof agendaPreencherFicha === "function") agendaPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-agenda"));
   if (typeof talentosPreencherFicha === "function") talentosPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-talentos")); // gestor-talentos.js
+  if (typeof onboardingPreencherFicha === "function") onboardingPreencherFicha(c.candidato.id, fundo.querySelector("#bloco-onboarding")); // gestor-onboarding.js
+  if (typeof indicacoesPreencherFicha === "function") indicacoesPreencherFicha(c.candidato.id, c.candidato.nome, fundo.querySelector("#bloco-indicacoes")); // gestor-indicacoes.js
   const baixar = fundo.querySelector("#baixar-cv");
   if (baixar) {
     baixar.addEventListener("click", async (ev) => {
@@ -1865,12 +1873,18 @@ async function abaConfig(el) {
     <div id="cfg-entrada"></div>
     <div id="cfg-auditoria"></div>
     <div id="cfg-agenda"></div>
+    <div id="cfg-onboarding"></div>
+    <div id="cfg-indicacoes"></div>
+    <div id="cfg-plano"></div>
     <div id="cfg-gestores"></div>
     <div id="cfg-templates"></div>`;
   secaoMarca(document.getElementById("cfg-marca"));
   secaoEntrada(document.getElementById("cfg-entrada"));
   if (typeof secaoAuditoria === "function") secaoAuditoria(document.getElementById("cfg-auditoria"));
   if (typeof secaoAgenda === "function") secaoAgenda(document.getElementById("cfg-agenda")); // agenda de entrevistas
+  if (typeof secaoOnboarding === "function") secaoOnboarding(document.getElementById("cfg-onboarding")); // onboarding (gestor-onboarding.js)
+  if (typeof secaoIndicacoes === "function") secaoIndicacoes(document.getElementById("cfg-indicacoes")); // indicações (gestor-indicacoes.js)
+  if (typeof secaoPlano === "function") secaoPlano(document.getElementById("cfg-plano")); // plano e uso (gestor-plano.js)
   document.getElementById("cfg-copiar").addEventListener("click", () => {
     navigator.clipboard.writeText(linkCandidato);
     document.getElementById("cfg-copiar").textContent = tg("copiado");

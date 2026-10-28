@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de RH — DISC + B.A.S.E. + Mapeamento de Cargos e Matriz de Gaps
+Sistema de RH: DISC + B.A.S.E. + Mapeamento de Cargos e Matriz de Gaps
 Servidor sem dependências externas (Python 3 stdlib + SQLite).
 
 Uso:  python3 server.py [porta]   (padrão: 8080)
@@ -23,7 +23,10 @@ import agenda  # agenda de entrevistas (agenda.py)
 import empresas
 import entrada
 import erros_i18n
+import indicacoes
 import mensagens
+import onboarding  # onboarding de novos contratados (onboarding.py)
+import planos  # planos, uso e cobrança (planos.py)
 import seguranca
 import talentos  # banco de talentos: resumo da ligação, filtros, comparação e lembretes (talentos.py)
 import voz
@@ -342,7 +345,7 @@ def init_db():
             " gestor_id INTEGER REFERENCES gestores(id) ON DELETE CASCADE,"
             " criado_em TEXT DEFAULT (datetime('now')))"
         )
-    # remove a conta padrão de versões anteriores — o primeiro acesso agora
+    # remove a conta padrão de versões anteriores: o primeiro acesso agora
     # exige o cadastro real do administrador (tela de configuração inicial)
     c.execute(
         "DELETE FROM gestores WHERE login='admin' AND nome='Administrador' AND senha=?",
@@ -351,8 +354,11 @@ def init_db():
     voz.init_voz(c)
     empresas.init_empresas(c)
     seguranca.init_seguranca(c)  # trilha de auditoria
+    indicacoes.init_indicacoes(c)  # link de indicação
     agenda.init_agenda(c)  # agenda de entrevistas: tabela entrevistas_agenda e candidatos.agenda_token
     talentos.init_talentos(c)  # banco de talentos: tabela lembretes_talentos
+    onboarding.init_onboarding(c)  # onboarding: onboardings, onboarding_docs, onboarding_templates
+    planos.init_planos(c)  # planos, uso e cobrança (planos.py)
     # idiomas e marca: logo da empresa, idioma dos e-mails do gestor e aviso de testes pendentes
     for tabela, coluna, ddl in (
         ("empresas", "logo", "TEXT DEFAULT ''"),
@@ -1124,7 +1130,7 @@ def gerar_pdf_resultado(conn, cand, idioma_pdf="pt", para_candidato=False):
             pdf.cell(96, 5, nome if len(nome) <= 46 else nome[:44] + "…")
             pdf.set_font("Gab", "B", 9)
             pdf.cell(28, 5, str(item["nivel_requerido"]), align="C")
-            pdf.cell(28, 5, str(item["nivel_atual"]) if item.get("respondida", True) else "—", align="C")
+            pdf.cell(28, 5, str(item["nivel_atual"]) if item.get("respondida", True) else "-", align="C")
             g = item["gap"]
             gcor = (46, 158, 106) if g == 0 else (199, 154, 62) if g <= 2 else (176, 74, 74)
             pdf.set_text_color(*gcor)
@@ -1956,6 +1962,8 @@ class Handler(BaseHTTPRequestHandler):
         "/vagas": "vagas.html",
         "/dono": "dono.html",
         "/agendar": "agendar.html",  # agenda de entrevistas (agenda.py)
+        "/onboarding": "onboarding.html",  # onboarding do novo contratado (onboarding.py)
+        "/assinar": "assinar.html",  # assinatura pelo site (planos.py)
     }
 
     def static(self, path):
@@ -2017,6 +2025,14 @@ class Handler(BaseHTTPRequestHandler):
             return None
         # agenda de entrevistas: link do candidato (/api/agenda/<token>)
         if agenda.rotear_publico(self, method, path, conn):
+            return None
+        # onboarding do novo contratado: link próprio (/api/onboarding/<token>)
+        if onboarding.rotear_publico(self, method, path, conn):
+            return None
+        if indicacoes.rotear_publico(self, method, path, conn):
+            return None
+        # -- planos: catálogo público, assinatura e webhook do Stripe (planos.py) --
+        if planos.rotear_publico(self, method, path, conn):
             return None
         if method == "GET" and path == "/api/cargos":
             # público: só os cargos da empresa do link (?e=slug)
@@ -2179,6 +2195,8 @@ class Handler(BaseHTTPRequestHandler):
                     "Inscrição na vaga: %s" % vaga["titulo"],
                 )
                 voz.nova_candidatura(conn, novo_id, vaga["id"])
+            # link de indicação (?ref=) guardado no navegador do candidato
+            indicacoes.registrar_cadastro(conn, novo_id, novo["empresa_id"], d.get("indicacao"))
             # e-mails automáticos (só quando o SMTP estiver configurado)
             if config_get(conn, "smtp_host"):
                 variaveis = variaveis_candidato(conn, novo, self.headers.get("Host"))
@@ -2522,6 +2540,7 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/dono/") and (
             empresas.rotear_dono(self, method, path, conn) or voz.rotear_dono(self, method, path, conn)
             or seguranca.rotear_dono(self, method, path, conn)
+            or planos.rotear_dono(self, method, path, conn)  # planos e preços (planos.py)
         ):
             return None
 
@@ -2981,6 +3000,10 @@ class Handler(BaseHTTPRequestHandler):
         # -- entrada de candidatos (e-mail do Indeed e CSV) e quadro do dia --
         if seguranca.rotear_gestor(self, method, path, conn, gestor):
             return None
+        if indicacoes.rotear_gestor(self, method, path, conn, gestor):
+            return None
+        if planos.rotear_gestor(self, method, path, conn, gestor):  # plano e uso (planos.py)
+            return None
         if entrada.rotear_gestor(self, method, path, conn, gestor):
             return None
 
@@ -2988,6 +3011,8 @@ class Handler(BaseHTTPRequestHandler):
         if agenda.rotear_gestor(self, method, path, conn, gestor):
             return None
         if talentos.rotear_gestor(self, method, path, conn, gestor):  # banco de talentos (talentos.py)
+            return None
+        if onboarding.rotear_gestor(self, method, path, conn, gestor):  # onboarding (onboarding.py)
             return None
 
         # -- módulo Triagem por Voz --
@@ -4021,10 +4046,13 @@ def backup_diario():
 voz.ligar(sys.modules[__name__])
 mensagens.ligar(sys.modules[__name__])
 seguranca.ligar(sys.modules[__name__])
+indicacoes.ligar(sys.modules[__name__])
 entrada.ligar(sys.modules[__name__])
 empresas.ligar(sys.modules[__name__])
 agenda.ligar(sys.modules[__name__])
 talentos.ligar(sys.modules[__name__])
+onboarding.ligar(sys.modules[__name__])
+planos.ligar(sys.modules[__name__])
 
 
 def main():
@@ -4035,6 +4063,8 @@ def main():
     threading.Thread(target=rotina_automatica, daemon=True).start()
     threading.Thread(target=entrada.rotina_entrada, daemon=True).start()
     threading.Thread(target=agenda.rotina_agenda, daemon=True).start()  # lembretes de entrevista
+    threading.Thread(target=onboarding.rotina_onboarding, daemon=True).start()  # lembretes do onboarding
+    threading.Thread(target=planos.rotina_planos, daemon=True).start()  # fim do teste grátis (planos.py)
     if os.environ.get("VOZ_FILA_DESLIGADA") != "1":
         threading.Thread(target=voz.rotina_voz, daemon=True).start()
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)

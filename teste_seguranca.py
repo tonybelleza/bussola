@@ -18,7 +18,8 @@ from http.server import ThreadingHTTPServer
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="seg-teste-")
 for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py",
-                "agenda.py", "talentos.py", "seguranca.py"):
+                "agenda.py", "talentos.py", "seguranca.py", "planos.py", "indicacoes.py",
+                "onboarding.py", "formularios.py"):
     if os.path.exists(os.path.join(AQUI, arquivo)):
         shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))

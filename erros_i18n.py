@@ -319,6 +319,7 @@ CODIGOS = {
     "invalid_signature": {"en": "Invalid signature", "es": "Firma inválida"},
     "webhook_not_configured": {"en": "Webhook is not configured", "es": "El webhook no está configurado"},
     "not_configured": {"en": "Set up the ElevenLabs integration first", "es": "Configura primero la integración con ElevenLabs"},
+    "plan_limit": {"en": "Your plan's voice minutes for this month are used up", "es": "Se agotaron los minutos de voz de tu plan este mes"},  # planos.py
     "no_recording": {"en": "No recording available", "es": "No hay grabación disponible"},
     "in_call": {"en": "The candidate is on a call right now", "es": "El candidato está en una llamada ahora"},
     "status_changed": {"en": "The status changed. Reload the page.", "es": "El estado cambió. Recarga la página."},
@@ -407,3 +408,81 @@ ERROS["Apenas o administrador da empresa vê o histórico de acessos"] = {"en": 
 
 # banco de talentos (talentos.py)
 ERROS['Data do lembrete inválida (use AAAA-MM-DD)'] = {"en": 'Invalid reminder date (use YYYY-MM-DD)', "es": 'Fecha del recordatorio inválida (usa AAAA-MM-DD)'}
+
+# indicações (indicacoes.py)
+ERROS["Apenas o administrador da empresa configura as indicações"] = {"en": "Only the company admin can set up referrals", "es": "Solo el administrador de la empresa configura las recomendaciones"}
+ERROS["Número de dias inválido"] = {"en": "Invalid number of days", "es": "Número de días inválido"}
+ERROS["Apenas o administrador da empresa registra o pagamento do bônus"] = {"en": "Only the company admin can record the bonus payment", "es": "Solo el administrador de la empresa registra el pago del bono"}
+ERROS["Indicação não encontrada"] = {"en": "Referral not found", "es": "Recomendación no encontrada"}
+ERROS["Candidato não encontrado"] = {"en": "Candidate not found", "es": "Candidato no encontrado"}
+
+# planos, uso e cobrança (planos.py)
+ERROS["Informe seu nome"] = {"en": "Enter your name", "es": "Ingresa tu nombre"}
+ERROS["E-mail inválido"] = {"en": "Invalid email", "es": "Correo electrónico inválido"}
+ERROS["Plano inválido"] = {"en": "Invalid plan", "es": "Plan inválido"}
+ERROS["Ciclo de cobrança inválido"] = {"en": "Invalid billing cycle", "es": "Ciclo de facturación inválido"}
+ERROS["Aceite os termos de uso para continuar"] = {"en": "Accept the terms of use to continue", "es": "Acepta los términos de uso para continuar"}
+ERROS["Este e-mail já tem uma conta. Entre pelo painel do gestor."] = {"en": "This email already has an account. Sign in from the manager dashboard.", "es": "Este correo ya tiene una cuenta. Inicia sesión desde el panel del gerente."}
+ERROS["Assinatura inválida"] = {"en": "Invalid signature", "es": "Firma inválida"}
+ERROS["Stripe não configurado"] = {"en": "Stripe is not set up", "es": "Stripe no está configurado"}
+ERROS["Esta empresa ainda não tem assinatura no Stripe"] = {"en": "This company does not have a Stripe subscription yet", "es": "Esta empresa todavía no tiene una suscripción en Stripe"}
+ERROS["Apenas o administrador da empresa gerencia a assinatura"] = {"en": "Only the company admin can manage the subscription", "es": "Solo el administrador de la empresa gestiona la suscripción"}
+ERROS["Não foi possível falar com o Stripe"] = {"en": "Could not reach Stripe", "es": "No fue posible comunicarse con Stripe"}
+ERROS["Catálogo inválido"] = {"en": "Invalid plan catalog", "es": "Catálogo de planes inválido"}
+ERROS["Código de plano inválido"] = {"en": "Invalid plan code", "es": "Código de plan inválido"}
+ERROS["Códigos de plano repetidos"] = {"en": "Duplicate plan codes", "es": "Códigos de plan repetidos"}
+ERROS["Informe o nome do plano"] = {"en": "Enter the plan name", "es": "Ingresa el nombre del plan"}
+ERROS["Valor inválido no catálogo"] = {"en": "Invalid value in the plan catalog", "es": "Valor inválido en el catálogo de planes"}
+ERROS["Premissas inválidas"] = {"en": "Invalid cost assumptions", "es": "Supuestos de costo inválidos"}
+ERROS["Data inválida (use AAAA-MM-DD)"] = {"en": "Invalid date (use YYYY-MM-DD)", "es": "Fecha inválida (usa AAAA-MM-DD)"}
+
+# onboarding de novos contratados (onboarding.py)
+ERROS['A Seção 1 do I-9 ainda não foi preenchida'] = {"en": 'Form I-9 Section 1 has not been completed yet', "es": 'La Sección 1 del I-9 aún no se ha llenado'}
+ERROS['A chave de criptografia dos dados não foi encontrada ou não confere. Fale com o administrador do sistema.'] = {"en": 'The data encryption key is missing or does not match. Contact the system administrator.', "es": 'La clave de cifrado de los datos no se encontró o no coincide. Comunícate con el administrador del sistema.'}
+ERROS['Aceite o consentimento para documentos eletrônicos antes de continuar'] = {"en": 'Please accept the electronic records consent before continuing', "es": 'Acepta el consentimiento para documentos electrónicos antes de continuar'}
+ERROS['Ainda há etapas pendentes'] = {"en": 'There are still steps to complete', "es": 'Todavía hay pasos pendientes'}
+ERROS['Apenas o administrador da empresa cancela o onboarding'] = {"en": 'Only the company admin can cancel onboarding', "es": 'Solo el administrador de la empresa cancela la incorporación'}
+ERROS['Apenas o administrador da empresa configura o onboarding'] = {"en": 'Only the company admin can set up onboarding', "es": 'Solo el administrador de la empresa configura la incorporación'}
+ERROS['Apenas o administrador da empresa envia a proposta'] = {"en": 'Only the company admin can send the offer', "es": 'Solo el administrador de la empresa envía la oferta'}
+ERROS['Apenas o administrador da empresa pode apagar dados sensíveis'] = {"en": 'Only the company admin can delete sensitive data', "es": 'Solo el administrador de la empresa puede borrar datos sensibles'}
+ERROS['Apenas o administrador da empresa pode revelar dados sensíveis'] = {"en": 'Only the company admin can reveal sensitive data', "es": 'Solo el administrador de la empresa puede mostrar datos sensibles'}
+ERROS['Arquivo maior que 10 MB'] = {"en": 'File is larger than 10 MB', "es": 'El archivo supera los 10 MB'}
+ERROS['Confira os campos destacados'] = {"en": 'Please check the highlighted fields', "es": 'Revisa los campos marcados'}
+ERROS['Dado não encontrado'] = {"en": 'Data not found', "es": 'Dato no encontrado'}
+ERROS['Data de início inválida'] = {"en": 'Invalid start date', "es": 'Fecha de inicio inválida'}
+ERROS['Desenhe a sua assinatura'] = {"en": 'Please draw your signature', "es": 'Dibuja tu firma'}
+ERROS['Digite o seu nome completo'] = {"en": 'Please type your full name', "es": 'Escribe tu nombre completo'}
+ERROS['Documento não encontrado'] = {"en": 'Document not found', "es": 'Documento no encontrado'}
+ERROS['EIN inválido (9 dígitos)'] = {"en": 'Invalid EIN (9 digits)', "es": 'EIN inválido (9 dígitos)'}
+ERROS['Envie um PDF de até 8 MB'] = {"en": 'Upload a PDF up to 8 MB', "es": 'Sube un PDF de hasta 8 MB'}
+ERROS['Envie uma foto (JPG, PNG ou HEIC) ou um PDF'] = {"en": 'Upload a photo (JPG, PNG or HEIC) or a PDF', "es": 'Sube una foto (JPG, PNG o HEIC) o un PDF'}
+ERROS['Escolha ao menos uma forma de pagamento'] = {"en": 'Choose at least one payment method', "es": 'Elige al menos una forma de pago'}
+ERROS['Escreva a sua declaração pessoal'] = {"en": 'Please write your personal statement', "es": 'Escribe tu declaración personal'}
+ERROS['Escreva o texto do documento'] = {"en": 'Write the document text', "es": 'Escribe el texto del documento'}
+ERROS['Este onboarding foi cancelado'] = {"en": 'This onboarding was canceled', "es": 'Esta incorporación fue cancelada'}
+ERROS['Este onboarding já foi concluído'] = {"en": 'This onboarding is already complete', "es": 'Esta incorporación ya fue completada'}
+ERROS['Este onboarding não está mais em andamento'] = {"en": 'This onboarding is no longer in progress', "es": 'Esta incorporación ya no está en curso'}
+ERROS['Forma de pagamento inválida'] = {"en": 'Invalid payment method', "es": 'Forma de pago inválida'}
+ERROS['Formulário não encontrado'] = {"en": 'Form not found', "es": 'Formulario no encontrado'}
+ERROS['Informe o título do documento'] = {"en": 'Enter the document title', "es": 'Escribe el título del documento'}
+ERROS['Já existe um onboarding em andamento para este candidato'] = {"en": 'This candidate already has an onboarding in progress', "es": 'Este candidato ya tiene una incorporación en curso'}
+ERROS['Limite de arquivos para este documento atingido'] = {"en": 'File limit reached for this document', "es": 'Se alcanzó el límite de archivos para este documento'}
+ERROS['Link de onboarding inválido'] = {"en": 'Invalid onboarding link', "es": 'Enlace de incorporación inválido'}
+ERROS['Marque a caixa de concordância para assinar'] = {"en": 'Check the agreement box to sign', "es": 'Marca la casilla de aceptación para firmar'}
+ERROS['Não foi possível gerar o formulário. Tente de novo.'] = {"en": 'The form could not be generated. Please try again.', "es": 'No se pudo generar el formulario. Inténtalo de nuevo.'}
+ERROS['Onboarding não encontrado'] = {"en": 'Onboarding not found', "es": 'Incorporación no encontrada'}
+ERROS['Ordem das etapas inválida'] = {"en": 'Invalid step order', "es": 'Orden de pasos inválido'}
+ERROS['Os dados ainda estão no prazo de retenção'] = {"en": 'The data is still within the retention period', "es": 'Los datos aún están dentro del plazo de retención'}
+ERROS['Os dados do empregador nas configurações do onboarding estão incompletos ou inválidos'] = {"en": 'The employer details in the onboarding settings are incomplete or invalid', "es": 'Los datos del empleador en la configuración de la incorporación están incompletos o son inválidos'}
+ERROS['Os formulários fiscais ainda não estão disponíveis. Tente mais tarde.'] = {"en": 'Tax forms are not available yet. Please try again later.', "es": 'Los formularios de impuestos aún no están disponibles. Intenta más tarde.'}
+ERROS['Prazo inválido'] = {"en": 'Invalid deadline', "es": 'Fecha límite inválida'}
+ERROS['Role o documento até o fim antes de assinar'] = {"en": 'Scroll to the end of the document before signing', "es": 'Desplázate hasta el final del documento antes de firmar'}
+ERROS['Routing number inválido. Confira os 9 dígitos no seu cheque ou no app do banco.'] = {"en": 'Invalid routing number. Check the 9 digits on your check or in your bank app.', "es": 'Routing number inválido. Revisa los 9 dígitos en tu cheque o en la app del banco.'}
+ERROS['Tipo de documento inválido'] = {"en": 'Invalid document type', "es": 'Tipo de documento inválido'}
+ERROS['Tipo de vínculo inválido'] = {"en": 'Invalid employment type', "es": 'Tipo de vínculo inválido'}
+ERROS['Unidade do pagamento inválida'] = {"en": 'Invalid pay unit', "es": 'Unidad de pago inválida'}
+ERROS['Valor do pagamento inválido'] = {"en": 'Invalid pay amount', "es": 'Monto de pago inválido'}
+ERROS['Valor inválido nas configurações do onboarding'] = {"en": 'Invalid value in the onboarding settings', "es": 'Valor inválido en la configuración de la incorporación'}
+
+# cadastro público fechado (planos.py)
+ERROS["As assinaturas ainda não estão abertas. Fale com a gente."] = {"en": "Signups are not open yet. Please get in touch.", "es": "Las suscripciones aún no están abiertas. Contáctanos."}

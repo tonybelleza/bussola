@@ -28,6 +28,12 @@ try {
   if (empresaSlug) localStorage.setItem("cand_empresa", empresaSlug);
   else empresaSlug = localStorage.getItem("cand_empresa") || "";
 } catch (e) { /* armazenamento bloqueado */ }
+// link de indicação (?ref=codigo): guardado até o cadastro
+let indicacaoRef = new URLSearchParams(location.search).get("ref") || "";
+try {
+  if (indicacaoRef) localStorage.setItem("cand_ref", indicacaoRef);
+  else indicacaoRef = localStorage.getItem("cand_ref") || "";
+} catch (e) { /* armazenamento bloqueado */ }
 let vagaInfo = null;
 // função que redesenha a tela atual (usada na troca de idioma)
 let redesenhar = null;
@@ -333,6 +339,7 @@ function telaCadastro() {
           novo_cargo_area: cargoSel === "__novo__" ? valor("cad-novo-cargo-area") : "",
           vaga_id: vagaEscolhida,
           empresa: empresaSlug,
+          indicacao: indicacaoRef,
           tipo: vagaEscolhida ? "externo" : document.getElementById("cad-tipo").value,
           consentimento: document.getElementById("cad-consentimento").checked,
           idioma: idiomaCand,

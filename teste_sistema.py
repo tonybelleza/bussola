@@ -65,7 +65,8 @@ def req(caminho, corpo=None, headers=None, metodo=None):
 def main():
     pasta = tempfile.mkdtemp(prefix="rh-teste-")
     # roda o servidor com banco isolado copiando o código para a pasta temporária
-    for item in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py"):
+    for item in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py", "planos.py") + tuple(
+            f for f in ("indicacoes.py", "onboarding.py", "formularios.py") if os.path.exists(os.path.join(AQUI, f))):
         shutil.copy(os.path.join(AQUI, item), pasta)
     shutil.copytree(os.path.join(AQUI, "public"), os.path.join(pasta, "public"))
     servidor = subprocess.Popen(

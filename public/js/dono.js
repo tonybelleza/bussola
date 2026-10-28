@@ -108,7 +108,7 @@ async function desenhar() {
   app.innerHTML = `
     <div class="tabs">
       ${[["empresas", td("aba_empresas")], ["visao", td("aba_visao")], ["contas", td("aba_contas")],
-         ["integracoes", td("aba_integracoes")], ["config", td("aba_config")]]
+         ["planos", td("aba_planos")], ["integracoes", td("aba_integracoes")], ["config", td("aba_config")]]
         .map(([id, rot]) => `<button class="tab ${abaAtiva === id ? "ativa" : ""}" data-aba="${id}">${rot}</button>`).join("")}
     </div>
     <div id="conteudo"><p class="desc">${td("carregando")}</p></div>`;
@@ -119,6 +119,7 @@ async function desenhar() {
   if (abaAtiva === "empresas") await abaEmpresas(el);
   if (abaAtiva === "visao") await abaVisao(el);
   if (abaAtiva === "contas") await abaContas(el);
+  if (abaAtiva === "planos") await abaPlanos(el); // planos e preços (planos.py)
   if (abaAtiva === "integracoes") await abaIntegracoes(el);
   if (abaAtiva === "config") abaConfig(el);
 }
@@ -407,7 +408,8 @@ async function abaIntegracoes(el) {
       </div>
       <label class="field" style="max-width:360px">${td("email_teste")} <input type="email" id="int-destino" placeholder="${td("ph_email_teste")}"></label>
     </div>
-    <div class="card" id="int-voz"><p class="desc">${td("carregando_voz")}</p></div>`;
+    <div class="card" id="int-voz"><p class="desc">${td("carregando_voz")}</p></div>
+    <div class="card" id="int-stripe"></div>`;
   document.getElementById("int-salvar").addEventListener("click", async () => {
     const erro = document.getElementById("int-erro");
     erro.textContent = "";
@@ -457,6 +459,7 @@ async function abaIntegracoes(el) {
     }
   });
   await secaoVozPlataforma(document.getElementById("int-voz"));
+  await secaoStripe(document.getElementById("int-stripe")); // Stripe (planos.py)
 }
 
 
@@ -521,6 +524,365 @@ function abaConfig(el) {
     }
   });
 }
+
+// ================================================================
+// Planos e preços (planos.py): catálogo, premissas, calculadora,
+// uso por empresa e chaves do Stripe (seção em Integrações).
+// ================================================================
+let planosDados = null;
+let planosMes = "";
+
+function fmtUSD(n, casas) {
+  const v = Number(n);
+  if (n === null || n === undefined || n === "" || Number.isNaN(v)) return "";
+  const c = casas === undefined ? 2 : casas;
+  return v.toLocaleString(localeDono(), { style: "currency", currency: "USD", minimumFractionDigits: c, maximumFractionDigits: c });
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined) return "";
+  return Number(n).toLocaleString(localeDono(), { maximumFractionDigits: 1 }) + "%";
+}
+
+function textoPlanoDono(obj) {
+  if (!obj || typeof obj !== "object") return String(obj || "");
+  return obj[idiomaDono] || obj.pt || obj.en || "";
+}
+
+async function abaPlanos(el) {
+  planosDados = await api("/api/dono/planos" + (planosMes ? "?mes=" + encodeURIComponent(planosMes) : ""));
+  const d = planosDados;
+  const t = d.uso.totais;
+  el.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h2 class="icone-titulo" style="margin:0">${icone("grafico")}<span>${td("pl_resumo")}</span></h2>
+        <label class="field" style="margin:0">${td("pl_mes")} <input type="month" id="pl-mes" value="${esc(d.uso.mes)}" style="margin:0"></label>
+      </div>
+      <div class="metricas" style="margin-top:14px">
+        <div class="metrica"><div class="num">${fmtUSD(t.mrr, 0)}</div><div class="rot">${td("pl_mrr")}</div></div>
+        <div class="metrica"><div class="num">${fmtUSD(t.custo_variavel, 0)}</div><div class="rot">${td("pl_custo_var_mes")}</div></div>
+        <div class="metrica"><div class="num">${fmtUSD(t.custo_fixo, 0)}</div><div class="rot">${td("pl_custo_fixo_mes")}</div></div>
+        <div class="metrica"><div class="num">${fmtUSD(t.resultado, 0)}</div><div class="rot">${td("pl_resultado")}</div></div>
+        <div class="metrica"><div class="num">${fmtNumDono(t.pagantes)}</div><div class="rot">${td("pl_pagantes")}</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">${td("pl_assin_titulo")}</h3>
+      <p class="desc">${td("pl_assin_desc")}</p>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pl-assin" ${d.assinatura_aberta ? "checked" : ""}> ${td("pl_assin_rotulo")}</label>
+      <p class="desc"><a href="/site-novo.html" target="_blank" rel="noopener">${td("pl_assin_previa")}</a></p>
+    </div>
+    <div class="card" id="pl-uso"></div>
+    <div class="card" id="pl-calc"></div>
+    <div class="card" id="pl-catalogo"></div>`;
+  el.querySelector("#pl-mes").addEventListener("change", (ev) => { planosMes = ev.target.value; abaPlanos(el); });
+  el.querySelector("#pl-assin").addEventListener("change", async (ev) => {
+    if (ev.target.checked && !confirm(td("pl_assin_confirma"))) { ev.target.checked = false; return; }
+    try { await api("/api/dono/planos/assinatura", { method: "POST", body: { aberta: ev.target.checked } }); }
+    catch (e) { alert(e.message); ev.target.checked = !ev.target.checked; }
+  });
+  desenharUsoPlanos(el.querySelector("#pl-uso"), el);
+  desenharCalculadora(el.querySelector("#pl-calc"), el);
+  desenharCatalogo(el.querySelector("#pl-catalogo"), el);
+}
+
+function desenharUsoPlanos(box, el) {
+  const d = planosDados;
+  const corUso = { ok: "ok", near: "warn", over: "err" };
+  const opcoesPlano = (atual) => `<option value="">${td("pl_sem_plano")}</option>` +
+    d.catalogo.planos.map((p) => `<option value="${esc(p.codigo)}" ${p.codigo === atual ? "selected" : ""}>${esc(textoPlanoDono(p.nome))}</option>`).join("");
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("barras")}<span>${td("pl_uso_titulo")}</span></h2>
+    <p class="desc">${td("pl_uso_desc")}</p>
+    <div class="tabela-wrap"><table class="tabela">
+      <thead><tr><th>${td("pl_empresa")}</th><th>${td("pl_plano")}</th><th class="num">${td("pl_minutos")}</th>
+        <th class="num">${td("pl_custo_real")}</th><th class="num">${td("pl_receita")}</th><th class="num">${td("pl_margem")}</th><th></th></tr></thead>
+      <tbody>${d.uso.empresas.map((e) => `
+        <tr>
+          <td><strong>${esc(e.nome)}</strong><br><span class="badge ${STATUS_EMPRESA[e.status] || "tipo"}">${esc(rotuloStatusDono(e.status))}</span>
+            ${e.trial_fim && e.status === "teste" ? `<span style="font-size:.78rem;color:var(--muted)"> ${td("pl_teste_ate", { data: fmtDataDono(e.trial_fim + "T12:00:00") })}</span>` : ""}
+            ${e.pagamento_status === "falhou" ? `<span class="badge err">${td("pl_pag_falhou")}</span>` : ""}
+            ${e.stripe ? `<span class="badge neutral">Stripe</span>` : ""}</td>
+          <td>${esc(e.plano_nome ? textoPlanoDono(e.plano_nome) : (e.plano || td("pl_sem_plano")))}${e.plano ? `<br><span style="font-size:.78rem;color:var(--muted)">${td(e.ciclo === "anual" ? "pl_anual" : "pl_mensal")}</span>` : ""}</td>
+          <td class="num">${e.uso.ilimitado ? `${fmtNumDono(e.uso.minutos)} / ∞` : `${fmtNumDono(e.uso.minutos)} / ${fmtNumDono(e.uso.limite)}`}
+            <br><span class="badge ${corUso[e.uso.status] || "ok"}">${td("pl_st_" + e.uso.status)}</span></td>
+          <td class="num">${fmtUSD(e.custo_real)}</td>
+          <td class="num">${fmtUSD(e.receita)}</td>
+          <td class="num">${fmtUSD(e.margem)}${e.margem_pct !== null ? `<br><span style="font-size:.78rem">${fmtPct(e.margem_pct)}</span>` : ""}</td>
+          <td><button class="btn secondary small" data-pl-editar="${e.id}">${td("pl_ajustar")}</button></td>
+        </tr>
+        <tr class="oculto" id="pl-editar-${e.id}"><td colspan="7">
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
+            <label class="field" style="margin:0">${td("pl_plano")} <select data-pl-campo="plano">${opcoesPlano(e.plano)}</select></label>
+            <label class="field" style="margin:0">${td("pl_ciclo")} <select data-pl-campo="ciclo">
+              <option value="mensal" ${e.ciclo !== "anual" ? "selected" : ""}>${td("pl_mensal")}</option>
+              <option value="anual" ${e.ciclo === "anual" ? "selected" : ""}>${td("pl_anual")}</option></select></label>
+            <label class="field" style="margin:0">${td("pl_min_extra")} <input type="number" min="0" data-pl-campo="minutos_extra" value="${e.minutos_extra}"></label>
+            <label class="field" style="margin:0">${td("pl_num_extra")} <input type="number" min="0" data-pl-campo="numeros_extra" value="${e.numeros_extra}"></label>
+            <label class="field" style="margin:0">${td("pl_fim_teste")} <input type="date" data-pl-campo="trial_fim" value="${esc(e.trial_fim)}"></label>
+            <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-pl-campo="excedente_permitido" ${e.excedente_permitido ? "checked" : ""}> ${td("pl_excedente")}</label>
+            <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-pl-campo="aplicar_modulos"> ${td("pl_aplicar_modulos")}</label>
+            <button class="btn small" data-pl-salvar-empresa="${e.id}">${td("salvar")}</button>
+          </div>
+          <div class="form-erro" id="pl-erro-${e.id}"></div>
+        </td></tr>`).join("") || `<tr><td colspan="7">${td("nenhuma_empresa")}</td></tr>`}</tbody>
+    </table></div>
+    <div class="linha-acoes"><button class="btn secondary small" id="pl-rotina">${td("pl_rodar_rotina")}</button><span class="form-erro" id="pl-rotina-msg"></span></div>`;
+  box.querySelectorAll("[data-pl-editar]").forEach((b) => b.addEventListener("click", () => {
+    box.querySelector("#pl-editar-" + b.dataset.plEditar).classList.toggle("oculto");
+  }));
+  box.querySelectorAll("[data-pl-salvar-empresa]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.dataset.plSalvarEmpresa;
+    const linha = box.querySelector("#pl-editar-" + id);
+    const corpo = {};
+    linha.querySelectorAll("[data-pl-campo]").forEach((c) => {
+      corpo[c.dataset.plCampo] = c.type === "checkbox" ? c.checked : c.value;
+    });
+    const erro = box.querySelector("#pl-erro-" + id);
+    try {
+      await api("/api/dono/planos/empresa/" + id, { method: "POST", body: corpo });
+      await abaPlanos(el);
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  }));
+  box.querySelector("#pl-rotina").addEventListener("click", async () => {
+    const msg = box.querySelector("#pl-rotina-msg");
+    try {
+      const r = await api("/api/dono/planos/rotina", { method: "POST", body: {} });
+      msg.style.color = "var(--ok)";
+      msg.textContent = td("pl_rotina_ok", { avisos: fmtNumDono(r.resultado.avisos), suspensas: fmtNumDono(r.resultado.suspensas) });
+    } catch (e) {
+      msg.style.color = "var(--err)";
+      msg.textContent = e.message;
+    }
+  });
+}
+
+const CAMPOS_PREMISSAS = [
+  ["custo_min_voz", "0.001"], ["custo_min_tel", "0.001"], ["custo_numero", "0.01"], ["custo_sms", "0.0001"],
+  ["custo_a2p", "0.01"], ["horas_manutencao", "0.5"], ["valor_hora", "1"], ["empresas_pagantes", "1"], ["margem_alvo", "1"],
+];
+
+function tabelaCustos(c) {
+  return `
+    <div class="tabela-wrap"><table class="tabela">
+      <thead><tr><th>${td("pl_plano")}</th><th class="num">${td("pl_preco")}</th><th class="num">${td("pl_custo_var")}</th>
+        <th class="num">${td("pl_custo_fixo")}</th><th class="num">${td("pl_custo_total")}</th><th class="num">${td("pl_margem")}</th>
+        <th class="num">${td("pl_margem_pct")}</th><th class="num">${td("pl_equilibrio")}</th><th class="num">${td("pl_sugerido")}</th></tr></thead>
+      <tbody>${c.planos.map((p) => `
+        <tr><td><strong>${esc(textoPlanoDono(p.nome))}</strong></td>
+          <td class="num">${fmtUSD(p.preco_mensal)}</td><td class="num">${fmtUSD(p.custo_variavel)}</td>
+          <td class="num">${fmtUSD(p.custo_fixo)}</td><td class="num">${fmtUSD(p.custo_total)}</td>
+          <td class="num" style="color:${p.margem < 0 ? "var(--err)" : "inherit"}">${fmtUSD(p.margem)}</td>
+          <td class="num">${p.margem_pct === null ? "" : fmtPct(p.margem_pct)}</td>
+          <td class="num">${p.empresas_equilibrio === null ? "" : fmtNumDono(p.empresas_equilibrio)}</td>
+          <td class="num">${fmtUSD(p.preco_sugerido)}<br><span style="font-size:.78rem;color:var(--muted)">${fmtUSD(p.preco_sugerido_redondo, 0)}</span></td></tr>`).join("")}
+      </tbody></table></div>
+    <p class="desc" style="font-size:.82rem;margin-top:10px">${td("pl_addons_margem", {
+      minuto: fmtUSD(c.addons.minuto_extra.preco), mcusto: fmtUSD(c.addons.minuto_extra.custo, 3), mpct: fmtPct(c.addons.minuto_extra.margem_pct),
+      numero: fmtUSD(c.addons.numero_extra.preco), npct: fmtPct(c.addons.numero_extra.margem_pct),
+      sms: fmtUSD(c.addons.sms_extra.preco), spct: fmtPct(c.addons.sms_extra.margem_pct) })}</p>
+    <p class="desc" style="font-size:.78rem">${td("pl_calc_nota", { fixo: fmtUSD(c.custo_fixo_total, 0) })}</p>`;
+}
+
+function desenharCalculadora(box) {
+  const d = planosDados;
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("alvo")}<span>${td("pl_calc_titulo")}</span></h2>
+    <p class="desc">${td("pl_calc_desc")}</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+      ${CAMPOS_PREMISSAS.map(([k, passo]) => `<label class="field" style="margin:0">${td("pr_" + k)}
+        <input type="number" min="0" step="${passo}" data-premissa="${k}" value="${esc(d.premissas[k])}"></label>`).join("")}
+    </div>
+    <div class="linha-acoes"><button class="btn" id="pl-salvar-premissas">${td("pl_salvar_premissas")}</button><span class="form-erro" id="pl-premissas-erro"></span></div>
+    <div id="pl-tabela-custos" class="mt">${tabelaCustos(d.custos)}</div>`;
+  const ler = () => {
+    const pr = {};
+    box.querySelectorAll("[data-premissa]").forEach((i) => { pr[i.dataset.premissa] = i.value; });
+    return pr;
+  };
+  let espera = null;
+  box.querySelectorAll("[data-premissa]").forEach((i) => i.addEventListener("input", () => {
+    clearTimeout(espera);
+    espera = setTimeout(async () => {
+      try {
+        const r = await api("/api/dono/planos/calcular", { method: "POST", body: { premissas: ler() } });
+        box.querySelector("#pl-tabela-custos").innerHTML = tabelaCustos(r.custos);
+      } catch (e) { /* valor incompleto enquanto digita */ }
+    }, 350);
+  }));
+  box.querySelector("#pl-salvar-premissas").addEventListener("click", async () => {
+    const erro = box.querySelector("#pl-premissas-erro");
+    try {
+      const r = await api("/api/dono/planos/premissas", { method: "POST", body: { premissas: ler() } });
+      planosDados.premissas = r.premissas;
+      planosDados.custos = r.custos;
+      box.querySelector("#pl-tabela-custos").innerHTML = tabelaCustos(r.custos);
+      erro.style.color = "var(--ok)";
+      erro.textContent = td("pl_salvo");
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+}
+
+function htmlPlanoCatalogo(p, i) {
+  const idiomas = ["pt", "en", "es"];
+  const val = (v) => (v === null || v === undefined ? "" : esc(v));
+  return `
+    <div class="comp-item" style="margin-top:14px" data-plano-idx="${i}">
+      <div class="nome" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <strong>${esc(textoPlanoDono(p.nome) || p.codigo || td("pl_novo_plano"))}</strong>
+        <button class="btn secondary small" data-remover-plano="${i}">${td("pl_remover_plano")}</button>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px">
+        <label class="field" style="margin:0">${td("pl_codigo")} <input type="text" data-c="codigo" value="${val(p.codigo)}"></label>
+        ${idiomas.map((l) => `<label class="field" style="margin:0">${td("pl_nome")} (${l.toUpperCase()}) <input type="text" data-c="nome.${l}" value="${val((p.nome || {})[l])}"></label>`).join("")}
+        <label class="field" style="margin:0">${td("pl_preco_mensal")} <input type="number" min="0" step="1" data-c="preco_mensal" value="${val(p.preco_mensal)}"></label>
+        <label class="field" style="margin:0">${td("pl_preco_anual")} <input type="number" min="0" step="1" data-c="preco_anual" value="${val(p.preco_anual)}" placeholder="${td("pl_anual_padrao")}"></label>
+        <label class="field" style="margin:0">${td("pl_minutos_voz")} <input type="number" min="0" data-c="minutos_voz" value="${val(p.minutos_voz)}"></label>
+        <label class="field" style="margin:0">${td("pl_sms")} <input type="number" min="0" data-c="sms_mes" value="${val(p.sms_mes)}"></label>
+        <label class="field" style="margin:0">${td("pl_gestores_max")} <input type="number" min="0" data-c="gestores_max" value="${val(p.gestores_max)}" placeholder="${td("pl_ilimitado")}"></label>
+        <label class="field" style="margin:0">${td("pl_vagas_max")} <input type="number" min="0" data-c="vagas_ativas_max" value="${val(p.vagas_ativas_max)}" placeholder="${td("pl_ilimitado")}"></label>
+        <label class="field" style="margin:0">${td("pl_ordem")} <input type="number" data-c="ordem" value="${val(p.ordem)}"></label>
+        <label class="field" style="margin:0">${td("pl_modulos")} <input type="text" data-c="modulos" value="${esc((p.modulos || []).join(", "))}"></label>
+      </div>
+      <div class="linha-acoes" style="margin-top:10px">
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-c="numero_exclusivo" ${p.numero_exclusivo ? "checked" : ""}> ${td("pl_numero_exclusivo")}</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-c="destaque" ${p.destaque ? "checked" : ""}> ${td("pl_destaque")}</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-c="ativo" ${p.ativo !== false ? "checked" : ""}> ${td("pl_ativo")}</label>
+      </div>
+      <div class="grid cols-2" style="gap:10px;margin-top:10px">
+        ${idiomas.map((l) => `<label class="field" style="margin:0">${td("pl_descricao")} (${l.toUpperCase()}) <input type="text" data-c="descricao.${l}" value="${val((p.descricao || {})[l])}"></label>`).join("")}
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px">
+        ${idiomas.map((l) => `<label class="field" style="margin:0">${td("pl_recursos")} (${l.toUpperCase()}) <textarea rows="5" data-c="recursos.${l}">${esc(((p.recursos || {})[l] || []).join("\n"))}</textarea></label>`).join("")}
+      </div>
+    </div>`;
+}
+
+function lerCatalogo(box) {
+  const planosLidos = [...box.querySelectorAll("[data-plano-idx]")].map((bloco) => {
+    const p = { nome: {}, descricao: {}, recursos: {} };
+    bloco.querySelectorAll("[data-c]").forEach((c) => {
+      const [k, sub] = c.dataset.c.split(".");
+      let v = c.type === "checkbox" ? c.checked : c.value;
+      if (k === "modulos") v = String(v).split(",").map((x) => x.trim()).filter(Boolean);
+      if (k === "recursos") v = String(v).split("\n").map((x) => x.trim()).filter(Boolean);
+      if (sub) p[k][sub] = v; else p[k] = v;
+    });
+    return p;
+  });
+  return {
+    planos: planosLidos,
+    addons: {
+      minuto_extra: box.querySelector("#pl-ad-minuto").value,
+      numero_extra: box.querySelector("#pl-ad-numero").value,
+      sms_extra: box.querySelector("#pl-ad-sms").value,
+    },
+    trial: { dias: box.querySelector("#pl-tr-dias").value, minutos: box.querySelector("#pl-tr-minutos").value },
+  };
+}
+
+function desenharCatalogo(box, el, catalogo) {
+  const cat = catalogo || planosDados.catalogo;
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("camadas")}<span>${td("pl_cat_titulo")}</span></h2>
+    <p class="desc">${td("pl_cat_desc")}</p>
+    <div id="pl-lista">${cat.planos.map(htmlPlanoCatalogo).join("")}</div>
+    <div class="linha-acoes"><button class="btn secondary small" id="pl-add-plano">${td("pl_add_plano")}</button></div>
+    <h3 class="mt">${td("pl_addons")}</h3>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+      <label class="field" style="margin:0">${td("pl_minuto_extra")} <input type="number" min="0" step="0.01" id="pl-ad-minuto" value="${esc(cat.addons.minuto_extra)}"></label>
+      <label class="field" style="margin:0">${td("pl_numero_extra")} <input type="number" min="0" step="0.5" id="pl-ad-numero" value="${esc(cat.addons.numero_extra)}"></label>
+      <label class="field" style="margin:0">${td("pl_sms_extra")} <input type="number" min="0" step="0.01" id="pl-ad-sms" value="${esc(cat.addons.sms_extra)}"></label>
+      <label class="field" style="margin:0">${td("pl_trial_dias")} <input type="number" min="0" id="pl-tr-dias" value="${esc(cat.trial.dias)}"></label>
+      <label class="field" style="margin:0">${td("pl_trial_minutos")} <input type="number" min="0" id="pl-tr-minutos" value="${esc(cat.trial.minutos)}"></label>
+    </div>
+    <p class="desc" style="font-size:.78rem">${td("pl_excedente_dica")}</p>
+    <div class="form-erro" id="pl-cat-erro"></div>
+    <div class="linha-acoes">
+      <button class="btn" id="pl-salvar-cat">${td("pl_salvar_catalogo")}</button>
+      <button class="btn secondary" id="pl-restaurar">${td("pl_restaurar")}</button>
+    </div>`;
+  box.querySelector("#pl-add-plano").addEventListener("click", () => {
+    const atual = lerCatalogo(box);
+    atual.planos.push({ codigo: "", nome: {}, descricao: {}, recursos: {}, preco_mensal: "", minutos_voz: 0, sms_mes: 0,
+      modulos: ["diagnostico", "onboarding", "agenda", "entrada"], ativo: true, ordem: atual.planos.length + 1 });
+    desenharCatalogo(box, el, atual);
+  });
+  box.querySelectorAll("[data-remover-plano]").forEach((b) => b.addEventListener("click", () => {
+    if (!confirm(td("pl_confirmar_remover"))) return;
+    const atual = lerCatalogo(box);
+    atual.planos.splice(Number(b.dataset.removerPlano), 1);
+    desenharCatalogo(box, el, atual);
+  }));
+  box.querySelector("#pl-salvar-cat").addEventListener("click", async () => {
+    const erro = box.querySelector("#pl-cat-erro");
+    try {
+      await api("/api/dono/planos/catalogo", { method: "POST", body: { catalogo: lerCatalogo(box) } });
+      await abaPlanos(el);
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+  box.querySelector("#pl-restaurar").addEventListener("click", async () => {
+    if (!confirm(td("pl_confirmar_restaurar"))) return;
+    await api("/api/dono/planos/restaurar", { method: "POST", body: {} });
+    await abaPlanos(el);
+  });
+}
+
+async function secaoStripe(box) {
+  if (!box) return;
+  const [s, d] = await Promise.all([api("/api/dono/planos/stripe"), api("/api/dono/planos")]);
+  const chaves = [];
+  d.catalogo.planos.filter((p) => Number(p.preco_mensal) > 0).forEach((p) => {
+    chaves.push([p.codigo + "_mensal", textoPlanoDono(p.nome) + " · " + td("pl_mensal")]);
+    chaves.push([p.codigo + "_anual", textoPlanoDono(p.nome) + " · " + td("pl_anual")]);
+  });
+  box.innerHTML = `
+    <h2 class="icone-titulo">${icone("cadeado")}<span>${td("st_titulo")}</span></h2>
+    <p class="desc">${td("st_desc")}
+      ${s.configurado ? `<span class="badge ok">${td(s.modo_teste ? "st_modo_teste" : "st_modo_real", { final: esc(s.chave_final) })}</span>` : `<span class="badge warn">${td("nao_configurado")}</span>`}</p>
+    <div class="grid cols-2">
+      <label class="field">${td("st_chave")} <input type="password" id="st-chave" autocomplete="off" placeholder="${s.configurado ? td("ph_trocar") : "sk_live_..."}"></label>
+      <label class="field">${td("st_segredo")} <input type="password" id="st-segredo" autocomplete="off" placeholder="${s.webhook_configurado ? "••••••" : "whsec_..."}"></label>
+      <label class="field">${td("st_dono_email")} <span class="hint">${td("st_dono_email_dica")}</span><input type="email" id="st-email" value="${esc(s.dono_email)}"></label>
+    </div>
+    <p class="desc">${td("st_webhook")} <code>${esc(s.webhook_url)}</code></p>
+    <p class="desc" style="font-size:.82rem">${td("st_eventos")}</p>
+    <h3>${td("st_precos")}</h3>
+    <p class="desc" style="font-size:.82rem">${td("st_precos_dica")}</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      ${chaves.map(([k, rot]) => `<label class="field" style="margin:0">${esc(rot)} <input type="text" data-preco="${esc(k)}" value="${esc(s.precos[k] || "")}" placeholder="price_..."></label>`).join("")}
+    </div>
+    <div class="form-erro" id="st-erro"></div>
+    <button class="btn mt" id="st-salvar">${td("st_salvar")}</button>`;
+  box.querySelector("#st-salvar").addEventListener("click", async () => {
+    const corpo = { dono_email: box.querySelector("#st-email").value.trim(), precos: {} };
+    box.querySelectorAll("[data-preco]").forEach((i) => { corpo.precos[i.dataset.preco] = i.value.trim(); });
+    const k = box.querySelector("#st-chave").value.trim();
+    const sg = box.querySelector("#st-segredo").value.trim();
+    if (k) corpo.stripe_secret_key = k;
+    if (sg) corpo.stripe_webhook_secret = sg;
+    const erro = box.querySelector("#st-erro");
+    try {
+      await api("/api/dono/planos/stripe", { method: "POST", body: corpo });
+      erro.style.color = "var(--ok)";
+      erro.textContent = td("st_salvo");
+    } catch (e) {
+      erro.style.color = "var(--err)";
+      erro.textContent = e.message;
+    }
+  });
+}
+// ================================================================ fim planos e preços
 
 // ------------------------------------------------ boot
 async function iniciar() {

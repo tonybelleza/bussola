@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start your free trial · Bússola</title>
+  <meta name="description" content="Create your Bússola account and start screening applicants with Francisca, the AI phone recruiter that speaks English, Spanish and Portuguese.">
+  <meta name="theme-color" content="#070B14">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Start your free trial · Bússola">
+  <meta property="og:description" content="AI phone screening in English, Spanish and Portuguese, interviews booked automatically and digital onboarding.">
+  <meta property="og:image" content="https://rh.tonybelleza.com/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script src="js/tema.js"></script>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#form-assinar" data-t="pular">Skip to form</a>
+
+  <header class="topbar lp-top as-top">
+    <div class="inner">
+      <a class="brand lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+        <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+        <span class="sep" aria-hidden="true"></span>
+        <b>Bússola</b>
+      </a>
+      <div class="actions">
+        <div class="lp-lang" role="group" id="idiomas"></div>
+        <a class="lp-entrar" href="/gestor" data-t="entrar">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="lp-bg" aria-hidden="true"></div>
+
+  <main class="lp-wrap as-main">
+    <div class="as-grid">
+      <section class="as-form lp-glass" aria-labelledby="as-titulo">
+        <span class="lp-eyebrow" data-t="eyebrow"></span>
+        <h1 id="as-titulo" data-t="titulo"></h1>
+        <p class="sub" data-t="sub"></p>
+
+        <div class="as-erro" id="erro" role="alert" hidden></div>
+
+        <div id="upgrade" hidden>
+          <button class="btn" type="button" id="btn-checkout" style="width:100%;padding:16px;font-size:1rem;border-radius:14px" data-t="up_btn"></button>
+          <p class="as-ja"><a href="/gestor" data-t="up_voltar"></a></p>
+        </div>
+
+        <form id="form-assinar" novalidate>
+          <div class="as-campos">
+            <label class="field cheio"><span data-t="empresa"></span>
+              <input type="text" name="empresa" id="f-empresa" autocomplete="organization" maxlength="120" required>
+            </label>
+            <label class="field"><span data-t="nome"></span>
+              <input type="text" name="nome" id="f-nome" autocomplete="name" maxlength="120" required>
+            </label>
+            <label class="field"><span data-t="telefone"></span>
+              <input type="tel" name="telefone" id="f-telefone" autocomplete="tel" inputmode="tel" maxlength="30" required>
+            </label>
+            <label class="field cheio"><span data-t="email"></span>
+              <input type="email" name="email" id="f-email" autocomplete="email" inputmode="email" maxlength="160" required>
+            </label>
+            <div class="field cheio">
+              <label for="f-senha" data-t="senha"></label>
+              <div class="as-senha">
+                <input type="password" name="senha" id="f-senha" autocomplete="new-password" minlength="8" maxlength="200" required aria-describedby="dica-senha">
+                <button type="button" id="ver-senha" aria-controls="f-senha" aria-pressed="false"></button>
+              </div>
+              <span class="as-dica" id="dica-senha" data-t="senha_dica"></span>
+            </div>
+          </div>
+
+          <label class="as-aceite">
+            <input type="checkbox" id="f-aceite" required>
+            <span data-t-html="aceite"></span>
+          </label>
+
+          <button class="btn" type="submit" id="btn-enviar" data-t="enviar"></button>
+          <p class="as-ja"><span data-t="ja_tem"></span> <a href="/gestor" data-t="entrar"></a></p>
+        </form>
+      </section>
+
+      <aside class="as-resumo lp-glass" aria-labelledby="res-titulo">
+        <h2 id="res-titulo" data-t="resumo"></h2>
+        <div id="resumo-corpo"></div>
+        <div class="as-trial" id="trial"></div>
+        <p class="as-seguro" id="seguro"></p>
+      </aside>
+    </div>
+  </main>
+
+  <script src="js/assinar.js"></script>
+</body>
+</html>

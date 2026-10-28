@@ -992,6 +992,11 @@ def iniciar_ligacao(conn, candidatura_id, disparada_por, manual=False, agora=Non
     motivo = motivo_bloqueio(row, cfg, agora or _agora_utc(), manual)
     if motivo:
         raise ErroVoz(motivo)
+    # -- planos (planos.py): minutos do plano esgotados e sem excedente liberado --
+    _planos = getattr(srv, "planos", None)
+    if _planos is not None and _planos.voz_bloqueada(conn, row["empresa_id"]):
+        raise ErroVoz("plan_limit")
+    # -- fim planos --
     gw = gateway(conn)
     if gw is None:
         raise ErroVoz("not_configured")

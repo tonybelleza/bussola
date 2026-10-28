@@ -17,7 +17,8 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PASTA = tempfile.mkdtemp(prefix="msg-teste-")
-for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py"):
+for arquivo in ("server.py", "voz.py", "empresas.py", "mensagens.py", "erros_i18n.py", "entrada.py", "agenda.py", "talentos.py", "seguranca.py", "planos.py", "indicacoes.py") + tuple(
+        f for f in ("onboarding.py", "formularios.py") if os.path.exists(os.path.join(AQUI, f))):
     shutil.copy(os.path.join(AQUI, arquivo), PASTA)
 shutil.copytree(os.path.join(AQUI, "public"), os.path.join(PASTA, "public"))
 sys.path.insert(0, PASTA)
@@ -33,7 +34,7 @@ PNG_1PX = bytes.fromhex(
     "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
     "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082"
 )
-TRACOS = re.compile("[–—]")
+TRACOS = re.compile("[\u2013\u2014]")
 
 
 class Base(unittest.TestCase):

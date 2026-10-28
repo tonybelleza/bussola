@@ -1,5 +1,5 @@
 /* =====================================================================
-   Ícones minimalistas (traço fino, estilo premium) — sem emojis
+   Ícones minimalistas (traço fino, estilo premium), sem emojis
    ===================================================================== */
 
 function icone(nome, tam) {

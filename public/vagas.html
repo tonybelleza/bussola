@@ -53,6 +53,28 @@
     let todasVagas = [];
     let dadosPagina = null; // resposta de /api/vagas (empresa e página do gestor)
     let mensagemLista = ""; // chave de aviso no lugar da lista (erro, sem link)
+    // link de indicação (?ref=codigo): segue para o cadastro e mostra quem indicou
+    const refPagina = (new URLSearchParams(location.search).get("ref") || "").replace(/[^a-zA-Z0-9]/g, "");
+    const TEXTO_INDICACAO = {
+      pt: "{nome} indicou você para trabalhar com a gente. Escolha uma vaga abaixo.",
+      en: "{nome} referred you to work with us. Pick a job below.",
+      es: "{nome} te recomendó para trabajar con nosotros. Elige una vacante abajo.",
+    };
+    async function mostrarIndicacao() {
+      if (!refPagina || !empresaPagina) return;
+      try {
+        const r = await fetch("/api/indicacao?e=" + encodeURIComponent(empresaPagina) + "&ref=" + refPagina);
+        if (!r.ok) return;
+        const d = await r.json();
+        const lang = (typeof idiomaCand !== "undefined" && TEXTO_INDICACAO[idiomaCand]) ? idiomaCand : "en";
+        const div = document.createElement("div");
+        div.className = "card";
+        div.style.borderLeft = "4px solid var(--ok, #2E9E6A)";
+        div.textContent = TEXTO_INDICACAO[lang].replace("{nome}", d.primeiro_nome || "");
+        const lista = document.getElementById("lista-vagas");
+        lista.parentNode.insertBefore(div, lista);
+      } catch (e) { /* sem indicação */ }
+    }
 
     // cabeçalho: nome da empresa ou do gestor e título com o local
     function desenharCabecalho() {
@@ -97,7 +119,7 @@
             <div class="meta">${esc(v.cargo_nome)}${v.nivel ? " · " + esc(v.nivel) : ""}${v.local ? " · " + esc(v.local) : ""}${v.pais ? " · " + esc(nomePais(v.pais)) : ""}</div>
             ${v.descricao ? `<p class="desc" style="margin:8px 0 0">${esc(v.descricao)}</p>` : ""}
           </div>
-          <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}">${esc(t("v_candidatar"))}</a>
+          <a class="btn" href="/candidato?vaga=${v.id}&e=${encodeURIComponent(empresaPagina)}${refPagina ? "&ref=" + refPagina : ""}">${esc(t("v_candidatar"))}</a>
         </div>`).join("");
     }
 
@@ -132,6 +154,7 @@
       desenharFiltro();
       if (todasVagas.length) document.getElementById("filtro-paises-card").style.display = "";
       desenharVagas();
+      mostrarIndicacao();
     }).catch(() => {
       mensagemLista = "v_erro";
       desenharVagas();
