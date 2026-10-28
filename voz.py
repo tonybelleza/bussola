@@ -770,8 +770,36 @@ def nova_candidatura(conn, candidato_id, vaga_id):
         srv.registrar_evento(conn, candidato_id, "voz", "Entrou na fila da triagem por voz")
 
 
+def apagar_gravacoes(conn, candidato_id):
+    """Apaga na ElevenLabs as gravações das ligações do candidato (melhor esforço,
+    em segundo plano para não travar a tela)."""
+    ids = [r["conversation_id"] for r in conn.execute(
+        "SELECT conversation_id FROM voz_chamadas WHERE candidato_id=? AND conversation_id IS NOT NULL AND tem_audio=1",
+        (candidato_id,)).fetchall()]
+    gw = gateway(conn)
+    if not ids or gw is None or not hasattr(gw, "apagar_conversa"):
+        return 0
+    conn.execute("UPDATE voz_chamadas SET tem_audio=0 WHERE candidato_id=?", (candidato_id,))
+
+    def trabalho():
+        for cid in ids:
+            try:
+                gw.apagar_conversa(cid)
+            except Exception as exc:  # noqa: BLE001
+                sys.stderr.write("Voz: não apagou a gravação %s: %r\n" % (cid[-6:], exc))
+    if APAGAR_EM_SEGUNDO_PLANO:
+        threading.Thread(target=trabalho, daemon=True).start()
+    else:
+        trabalho()
+    return len(ids)
+
+
+APAGAR_EM_SEGUNDO_PLANO = True
+
+
 def anonimizar(conn, candidato_id):
     """LGPD: apaga telefone, transcrições e fatos da triagem por voz."""
+    apagar_gravacoes(conn, candidato_id)
     conn.execute("UPDATE candidatos SET telefone='' WHERE id=?", (candidato_id,))
     conn.execute(
         "UPDATE voz_chamadas SET transcricao='[]', fatos='', resumo='', call_sid=''"
@@ -821,6 +849,10 @@ class ElevenLabs:
             raise RuntimeError("ElevenLabs %s %s: HTTP %s %s" % (
                 metodo, caminho, exc.code, exc.read()[:300].decode("utf-8", "replace")))
         return bruto if binario else json.loads(bruto.decode("utf-8"))
+
+    def apagar_conversa(self, conversation_id):
+        """Apaga a conversa (gravação e transcrição) na ElevenLabs."""
+        self._req("DELETE", "/conversations/" + urllib.parse.quote(conversation_id))
 
     def link_assinado(self):
         """URL assinada para uma conversa pelo navegador (simulação no painel)."""

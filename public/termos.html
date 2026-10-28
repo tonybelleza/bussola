@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service (draft) · Bússola</title>
+  <meta name="description" content="Draft Terms of Service for Bússola, the AI recruiting and onboarding platform by Tony Belleza. Draft for legal review, not yet in effect.">
+  <meta name="theme-color" content="#070B14">
+  <meta name="robots" content="noindex"><!-- rascunho: tirar quando o jurídico aprovar -->
+  <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script src="js/tema.js"></script>
+  <style>
+    /* páginas legais (mesmo bloco em termos.html e privacidade.html) */
+    .lg-main { padding-top: 40px; padding-bottom: 72px; max-width: 880px; }
+    .lg-main:focus { outline: none; }
+    .lg-banner {
+      display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 16px; margin-bottom: 28px;
+      background: var(--warn-bg); color: var(--warn); border: 1px solid currentColor; font-size: .95rem;
+    }
+    .lg-banner svg { width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px; }
+    .lg-banner strong { display: block; font-weight: 600; font-size: 1.02rem; }
+    .lg-banner span { color: var(--text-2); }
+    .lg-head h1 { font-size: clamp(1.8rem, 4.4vw, 2.6rem); line-height: 1.12; letter-spacing: -.015em; margin: 16px 0 10px; }
+    .lg-meta { color: var(--text-2); font-size: .9rem; margin-bottom: 14px; }
+    .lg-head .lp-sub { margin-bottom: 8px; }
+    .lg-toc { padding: 22px 24px; margin: 28px 0 8px; }
+    .lg-toc h2 { font: 500 .76rem/1.2 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 14px; }
+    .lg-toc ol { columns: 2; column-gap: 28px; padding-left: 1.3em; font-size: .92rem; }
+    .lg-toc li { margin-bottom: 7px; break-inside: avoid; }
+    .lg-toc a { text-decoration: none; }
+    .lg-toc a:hover { text-decoration: underline; }
+    .lg-doc section { padding-top: 30px; }
+    .lg-doc h2 { font-size: clamp(1.2rem, 2.6vw, 1.45rem); line-height: 1.25; margin-bottom: 12px; scroll-margin-top: 90px; }
+    .lg-doc h3 { font-size: 1.02rem; margin: 18px 0 8px; }
+    .lg-doc p, .lg-doc li { color: var(--text-2); font-size: .98rem; line-height: 1.65; }
+    .lg-doc p { margin-bottom: 12px; }
+    .lg-doc section ul, .lg-doc section ol { padding-left: 1.3em; margin-bottom: 12px; }
+    .lg-doc section li { margin-bottom: 6px; }
+    .lg-doc strong { color: var(--text); font-weight: 560; }
+    .lg-doc a { overflow-wrap: anywhere; }
+    .lg-doc .ph { background: var(--warn-bg); color: var(--warn); padding: 1px 6px; border-radius: 6px; font-weight: 500; overflow-wrap: anywhere; }
+    .lg-tabela { overflow-x: auto; margin: 6px 0 14px; border: 1px solid var(--line); border-radius: 14px; }
+    .lg-tabela table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+    .lg-tabela th, .lg-tabela td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--text-2); }
+    .lg-tabela th { color: var(--text); font-weight: 520; background: var(--surface-2); }
+    .lg-tabela tr:last-child td { border-bottom: 0; }
+    .lg-topo { margin-top: 32px; font-size: .9rem; }
+    @media (max-width: 680px) {
+      .lg-top .actions .lp-lang { display: inline-flex; }
+      .lg-toc ol { columns: 1; }
+      .lg-main { padding-top: 24px; }
+    }
+    @media (max-width: 420px) {
+      .lg-top .lp-brand .sep, .lg-top .lp-brand b, .lg-top .lp-entrar { display: none; }
+    }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#conteudo" data-t="pular">Skip to content</a>
+
+  <header class="topbar lp-top lg-top">
+    <div class="inner">
+      <a class="brand lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+        <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+        <span class="sep" aria-hidden="true"></span>
+        <b>Bússola</b>
+      </a>
+      <div class="actions">
+        <div class="lp-lang" role="group" aria-label="Language"></div>
+        <a class="lp-entrar" href="/gestor" data-t="entrar">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="lp-bg" aria-hidden="true"></div>
+
+  <main id="conteudo" class="lp-wrap lg-main" tabindex="-1">
+
+    <!-- ============================================================ ENGLISH -->
+    <article class="lg-doc" data-doc-lang="en" lang="en" aria-labelledby="en-titulo"
+      data-title="Terms of Service (draft) · Bússola"
+      data-desc="Draft Terms of Service for Bússola, the AI recruiting and onboarding platform by Tony Belleza. Draft for legal review, not yet in effect.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Draft for legal review. Not yet in effect.</strong><span>This text is a working draft prepared for review by counsel. It does not create any obligation until a final version is published with an effective date. Highlighted items are placeholders.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="en-titulo">Terms of Service</h1>
+        <p class="lg-meta">Last updated: <span class="ph">[DATE]</span> · Effective date: <span class="ph">[DATE]</span></p>
+        <p class="lp-sub">These Terms govern the use of Bússola, a recruiting and onboarding platform created by Tony Belleza, by the companies that subscribe to it and the people they authorize to use it.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="en-toc">
+        <h2 id="en-toc">Contents</h2>
+        <ol>
+          <li><a href="#en-1">Who we are and what these Terms cover</a></li>
+          <li><a href="#en-2">Definitions</a></li>
+          <li><a href="#en-3">Accounts and users</a></li>
+          <li><a href="#en-4">Free trial</a></li>
+          <li><a href="#en-5">Plans, voice minutes, overage and add-ons</a></li>
+          <li><a href="#en-6">Billing and payment</a></li>
+          <li><a href="#en-7">Cancellation and refunds</a></li>
+          <li><a href="#en-8">Phone screening, calls and text messages</a></li>
+          <li><a href="#en-9">Hiring decisions, AI and employment law</a></li>
+          <li><a href="#en-10">Acceptable use</a></li>
+          <li><a href="#en-11">Customer Data and data ownership</a></li>
+          <li><a href="#en-12">Third party services</a></li>
+          <li><a href="#en-13">Confidentiality</a></li>
+          <li><a href="#en-14">Intellectual property</a></li>
+          <li><a href="#en-15">Service availability and changes</a></li>
+          <li><a href="#en-16">Suspension and termination</a></li>
+          <li><a href="#en-17">Disclaimers</a></li>
+          <li><a href="#en-18">Limitation of liability</a></li>
+          <li><a href="#en-19">Indemnification</a></li>
+          <li><a href="#en-20">Governing law and disputes</a></li>
+          <li><a href="#en-21">Changes to these Terms</a></li>
+          <li><a href="#en-22">General</a></li>
+          <li><a href="#en-23">Contact</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="en-1">
+        <h2 id="en-1">1. Who we are and what these Terms cover</h2>
+        <p>Bússola is a software service created and operated by Tony Belleza through <span class="ph">[LEGAL ENTITY NAME]</span>, <span class="ph">[ADDRESS]</span> ("Bússola", "we", "us"). It is available at rh.tonybelleza.com.</p>
+        <p>These Terms of Service ("Terms") form a binding agreement between us and the company or organization that creates an account ("Customer", "you"). The person who accepts these Terms on behalf of a company confirms that they have authority to bind that company. If you do not agree, do not use the Service.</p>
+        <p>How we handle personal information is described in our <a href="/privacidade.html">Privacy Policy</a>, which is part of these Terms.</p>
+      </section>
+
+      <section aria-labelledby="en-2">
+        <h2 id="en-2">2. Definitions</h2>
+        <ul>
+          <li><strong>Service</strong>: the Bússola platform, including the jobs page, candidate area, manager dashboard, assessments, AI phone screening, interview scheduling, messaging and onboarding features, and related support.</li>
+          <li><strong>Users</strong>: the managers, administrators and other people the Customer authorizes to access its account.</li>
+          <li><strong>Candidates</strong>: people who apply to the Customer's jobs, and new hires who complete onboarding through the Service.</li>
+          <li><strong>Customer Data</strong>: all information the Customer, its Users or its Candidates submit to the Service, or that the Service generates for the Customer, such as applications, resumes, test results, call recordings and transcripts, schedules and onboarding documents.</li>
+          <li><strong>Francisca</strong>: the AI voice agent that places screening calls to Candidates on behalf of the Customer.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-3">
+        <h2 id="en-3">3. Accounts and users</h2>
+        <ul>
+          <li>You must provide accurate company and contact information and keep it up to date.</li>
+          <li>Each company has its own separate account. You are responsible for everything done under your account, for choosing who becomes a User, and for removing access when someone leaves.</li>
+          <li>Keep passwords confidential and tell us promptly at <span class="ph">privacy@[company domain]</span> if you suspect unauthorized access.</li>
+          <li>The Service is intended for businesses. It is not offered to consumers for personal use, and Users must be at least 18 years old.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-4">
+        <h2 id="en-4">4. Free trial</h2>
+        <p>New accounts may start with a free trial of 14 days. The trial includes the number of voice screening minutes shown at sign up, as configured by us at that time. During the trial, voice minutes cannot exceed the included amount.</p>
+        <p>We will remind you before the trial ends. If you do not choose a paid plan, access is paused at the end of the trial. Your data stays saved for <span class="ph">[NUMBER]</span> days so you can reactivate, after which it may be deleted or anonymized as described in the Privacy Policy. We may change or end trial offers at any time for new accounts.</p>
+      </section>
+
+      <section aria-labelledby="en-5">
+        <h2 id="en-5">5. Plans, voice minutes, overage and add-ons</h2>
+        <ul>
+          <li><strong>Plans.</strong> Plans are priced mainly by the number of AI voice screening minutes included per month, together with other limits such as SMS messages, number of managers and whether a dedicated local phone number is included. Current plans and prices are shown on our pricing and sign up pages.</li>
+          <li><strong>Billing cycle.</strong> Plans may be billed monthly or annually. Included minutes and messages apply to each monthly period and do not carry over unless the plan says otherwise. <span class="ph">[CONFIRM ROLLOVER RULE]</span></li>
+          <li><strong>Overage.</strong> When the included minutes are used up, new calls stop until the next period, unless overage has been enabled for your account. With overage enabled, extra minutes are billed at the per minute rate shown on the pricing page.</li>
+          <li><strong>Add-ons.</strong> You may buy add-ons such as extra minutes, extra phone numbers or extra SMS messages at the prices shown when you buy them.</li>
+          <li><strong>Usage records.</strong> Minutes are measured by our systems and our telephony and voice providers. Our usage records are used for billing, and you may ask us to review them if you think there is an error.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-6">
+        <h2 id="en-6">6. Billing and payment</h2>
+        <ul>
+          <li>Payments are processed by Stripe. Card and bank details are entered directly with Stripe and never touch or are stored on Bússola servers.</li>
+          <li>Subscriptions renew automatically at the end of each billing period until canceled. You authorize us, through Stripe, to charge the payment method on file for recurring fees, overage and add-ons.</li>
+          <li>Prices are in US dollars and do not include taxes, which you are responsible for unless we are required to collect them.</li>
+          <li>If a payment fails, we may suspend the Service after a short grace period of a few days and a notice to you.</li>
+          <li>We may change prices with at least <span class="ph">[30]</span> days notice. Changes apply from your next billing period.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-7">
+        <h2 id="en-7">7. Cancellation and refunds</h2>
+        <p>You may cancel at any time. Cancellation takes effect at the end of the billing period already paid, and you keep access until then. Fees already paid are not refunded, including for partial months or unused minutes, except where a refund is required by law.</p>
+        <p>After cancellation, you may export your data during <span class="ph">[NUMBER]</span> days. After that, we may delete or anonymize Customer Data, except where we must keep some records by law (for example, billing records).</p>
+      </section>
+
+      <section aria-labelledby="en-8">
+        <h2 id="en-8">8. Phone screening, calls and text messages</h2>
+        <p>Francisca places outbound calls to Candidates who applied to the Customer's jobs, in English, Spanish or Portuguese. The Customer decides which roles use phone screening and configures its calling settings. Bússola places these calls only on the Customer's behalf and at its direction.</p>
+        <h3>How calls work</h3>
+        <ul>
+          <li>At the start of the call, Francisca says it is an AI assistant (not a person), states that the call is recorded and asks for consent to continue.</li>
+          <li>Calls are recorded and transcribed, and the Service extracts facts and a screening summary from the conversation for the Customer.</li>
+          <li>If a Candidate asks not to be called, the Service marks the Candidate as "do not call" and stops further calls to that Candidate.</li>
+          <li>By default, calls are placed only Monday to Saturday, from 9:00 to 19:30, in the time zone set by the Customer, with a limited number of attempts. The Customer may narrow these settings and must do so where local law requires.</li>
+        </ul>
+        <h3>Customer responsibilities</h3>
+        <ul>
+          <li>The Customer is responsible for having a lawful basis and any consent required to call and text its applicants, including consent for calls that use an artificial or prerecorded voice, and for keeping proof of that consent.</li>
+          <li>The Customer must comply with the Telephone Consumer Protection Act (TCPA), the Telemarketing Sales Rule where applicable, state calling, recording and "mini TCPA" laws, call recording consent laws, carrier rules for business text messages (such as A2P 10DLC registration) and any similar laws in other countries.</li>
+          <li>The Customer must honor do not call requests, including requests received outside the Service, and must not use the Service for marketing or sales calls.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-9">
+        <h2 id="en-9">9. Hiring decisions, AI and employment law</h2>
+        <ul>
+          <li><strong>The Customer is the employer.</strong> The Customer alone makes and is responsible for all hiring, rejection, compensation and employment decisions, and for its relationship with Candidates and employees.</li>
+          <li><strong>AI is decision support.</strong> Call scores, tiers (for example STRONG or GOOD), summaries, DISC and B.A.S.E. results and resume analyses are tools to help people review applicants. They are not automated hiring decisions. A person at the Customer must review the information and make the decision. The Customer must not reject Candidates based solely on an automated output where the law requires human review, notice or an alternative process.</li>
+          <li><strong>Non-discrimination.</strong> The Customer must comply with equal employment opportunity and anti-discrimination laws and with laws on the use of AI and automated tools in hiring that apply to it (for example, notice, bias audit or accommodation requirements). The Customer must offer reasonable accommodations to Candidates who cannot complete a phone screening or assessment.</li>
+          <li><strong>Onboarding documents and tax forms.</strong> The Service provides templates and digital versions of forms such as offer letters, W-4, W-9, I-9 and CT-W4, and collects ID documents and payment details from new hires. The Customer is responsible for reviewing all templates and its configuration with its own legal and tax advisors, for completing employer sections (such as I-9 Section 2) correctly and on time, for classifying workers correctly, and for complying with employment, immigration, wage and tax laws. Bússola does not provide legal, tax or employment advice.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-10">
+        <h2 id="en-10">10. Acceptable use</h2>
+        <p>The Customer and its Users must not:</p>
+        <ul>
+          <li>call, text or email people who did not apply to the Customer's jobs, or upload purchased, scraped or third party contact lists;</li>
+          <li>use the Service for telemarketing, debt collection, political calls or any purpose other than recruiting and onboarding the Customer's own workforce;</li>
+          <li>discriminate unlawfully against Candidates or use the Service to ask unlawful interview questions;</li>
+          <li>violate employment, privacy, consumer protection, telecommunications or tax laws;</li>
+          <li>upload content that is unlawful, misleading or infringes the rights of others, or upload malware;</li>
+          <li>access another company's data, probe or attack the Service, bypass usage limits or security controls, or resell the Service without our written permission;</li>
+          <li>reverse engineer the Service or use it to build a competing product.</li>
+        </ul>
+        <p>We may investigate suspected violations and suspend access when necessary to protect Candidates, other customers or the Service.</p>
+      </section>
+
+      <section aria-labelledby="en-11">
+        <h2 id="en-11">11. Customer Data and data ownership</h2>
+        <ul>
+          <li>The Customer owns its Customer Data and controls the personal information of its Candidates and employees. Bússola processes Customer Data only as a service provider (processor) on the Customer's behalf, to provide and support the Service and as described in the Privacy Policy.</li>
+          <li>The Customer is responsible for the accuracy and legality of Customer Data, for giving Candidates any notices required by law and for responding to their privacy requests, with our help where needed.</li>
+          <li>We do not sell Customer Data and do not use it to train general purpose AI models.</li>
+          <li>We may use aggregated or de-identified data that does not identify the Customer or any person to operate, secure and improve the Service.</li>
+          <li>A data processing addendum is available on request. <span class="ph">[ATTACH OR LINK DPA]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-12">
+        <h2 id="en-12">12. Third party services</h2>
+        <p>The Service relies on third party providers, including ElevenLabs (voice AI), Twilio (telephony and SMS), Stripe (payments), Oracle Cloud (hosting in the United States), the email (SMTP) provider configured for the Service, and, when enabled, Anthropic (resume analysis). The current list is in the Privacy Policy. These providers have their own terms, and we are not responsible for outages or changes caused by them, although we will work to limit their effect on you.</p>
+      </section>
+
+      <section aria-labelledby="en-13">
+        <h2 id="en-13">13. Confidentiality</h2>
+        <p>Each party may receive non-public information from the other, such as Customer Data, pricing, product plans or security details. The receiving party will use that information only to perform under these Terms, protect it with reasonable care and not disclose it except to employees, contractors and providers who need it and are bound by similar duties, or when required by law (with notice where allowed). These duties do not apply to information that is public, already known, independently developed or lawfully received from someone else.</p>
+      </section>
+
+      <section aria-labelledby="en-14">
+        <h2 id="en-14">14. Intellectual property</h2>
+        <p>Bússola, the Service, its software, design, content, the Francisca agent and the B.A.S.E. methodology are owned by Tony Belleza or its licensors. We grant the Customer a limited, non-exclusive, non-transferable right to use the Service during its subscription for its internal business. If you send us suggestions or feedback, we may use them without obligation to you.</p>
+      </section>
+
+      <section aria-labelledby="en-15">
+        <h2 id="en-15">15. Service availability and changes</h2>
+        <ul>
+          <li>We work to keep the Service available and secure, but we do not guarantee that it will be uninterrupted or error free. Maintenance, provider outages, carrier filtering and network problems can affect calls, messages and email delivery.</li>
+          <li>We may improve, change or remove features. If we remove a material feature you pay for, we will give reasonable notice. Features marked as new, beta or preview may change and are provided as is.</li>
+          <li>Support is provided by email at <span class="ph">[SUPPORT EMAIL]</span>. <span class="ph">[SUPPORT HOURS OR SLA, IF ANY]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-16">
+        <h2 id="en-16">16. Suspension and termination</h2>
+        <p>We may suspend or terminate access if the Customer materially breaches these Terms and does not cure the breach within <span class="ph">[10]</span> days after notice, does not pay, or uses the Service in a way that creates legal risk or harm to Candidates, other customers or the Service. We may act immediately in serious cases, such as unlawful calling or a security threat. Sections that by their nature should survive termination (such as payment, confidentiality, liability and indemnity) survive.</p>
+      </section>
+
+      <section aria-labelledby="en-17">
+        <h2 id="en-17">17. Disclaimers</h2>
+        <p>Except as expressly stated in these Terms, the Service is provided "as is" and "as available", and we disclaim all implied warranties, including merchantability, fitness for a particular purpose and non-infringement, to the extent permitted by law. We do not warrant that AI outputs, transcripts, scores or extracted facts are complete or accurate, or that any Candidate is suitable for a job.</p>
+      </section>
+
+      <section aria-labelledby="en-18">
+        <h2 id="en-18">18. Limitation of liability</h2>
+        <p>To the extent permitted by law, neither party will be liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, revenue or data. Our total liability arising out of or relating to these Terms will not exceed the fees the Customer paid us in the 12 months before the event giving rise to the claim. These limits do not apply where the law does not allow them. <span class="ph">[COUNSEL TO REVIEW CAPS AND EXCLUSIONS]</span></p>
+      </section>
+
+      <section aria-labelledby="en-19">
+        <h2 id="en-19">19. Indemnification</h2>
+        <p>The Customer will defend and indemnify Bússola, Tony Belleza and their affiliates and providers against claims, fines and costs (including reasonable attorneys' fees) arising from: calls or messages made at the Customer's direction, including claims under the TCPA or similar laws; the Customer's hiring and employment decisions; Customer Data; or the Customer's breach of these Terms or of law. <span class="ph">[COUNSEL TO CONSIDER A RECIPROCAL IP INDEMNITY FROM BÚSSOLA]</span></p>
+      </section>
+
+      <section aria-labelledby="en-20">
+        <h2 id="en-20">20. Governing law and disputes</h2>
+        <p>These Terms are governed by the laws of the State of Connecticut, USA, without regard to its conflict of law rules, and disputes will be resolved in the state or federal courts located in Connecticut. <span class="ph">[PLACEHOLDER FOR COUNSEL: CONFIRM GOVERNING LAW, VENUE AND WHETHER TO USE ARBITRATION]</span> Before filing a claim, each party agrees to try to resolve the dispute informally for 30 days after written notice.</p>
+      </section>
+
+      <section aria-labelledby="en-21">
+        <h2 id="en-21">21. Changes to these Terms</h2>
+        <p>We may update these Terms. For material changes, we will notify account administrators by email or in the dashboard at least <span class="ph">[30]</span> days before they take effect. Continued use after the effective date means acceptance. If you do not agree, you may cancel before the change takes effect.</p>
+      </section>
+
+      <section aria-labelledby="en-22">
+        <h2 id="en-22">22. General</h2>
+        <p>These Terms, the Privacy Policy and any order or plan selected in the Service are the entire agreement between the parties. If a provision is unenforceable, the rest remains in effect. Failure to enforce a provision is not a waiver. Neither party may assign these Terms without consent, except in a merger or sale of substantially all assets. Neither party is liable for delays caused by events beyond its reasonable control. Translations are provided for convenience; if there is a conflict, the English version prevails. <span class="ph">[COUNSEL TO CONFIRM, ESPECIALLY FOR BRAZILIAN USERS]</span></p>
+      </section>
+
+      <section aria-labelledby="en-23">
+        <h2 id="en-23">23. Contact</h2>
+        <p>Bússola, operated by Tony Belleza through <span class="ph">[LEGAL ENTITY NAME]</span><br>
+        <span class="ph">[ADDRESS]</span><br>
+        Email: <span class="ph">privacy@[company domain]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Back to top</a></p>
+    </article>
+
+    <!-- ============================================================ PORTUGUÊS -->
+    <article class="lg-doc" data-doc-lang="pt" lang="pt-BR" aria-labelledby="pt-titulo" hidden
+      data-title="Termos de Uso (rascunho) · Bússola"
+      data-desc="Rascunho dos Termos de Uso da Bússola, plataforma de recrutamento e onboarding com IA de Tony Belleza. Rascunho para revisão jurídica, ainda não está em vigor.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Rascunho para revisão jurídica. Ainda não está em vigor.</strong><span>Este texto é um rascunho de trabalho preparado para revisão por advogados. Ele não gera nenhuma obrigação até que uma versão final seja publicada com data de vigência. Os itens destacados são campos a preencher.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="pt-titulo">Termos de Uso</h1>
+        <p class="lg-meta">Última atualização: <span class="ph">[DATA]</span> · Data de vigência: <span class="ph">[DATA]</span></p>
+        <p class="lp-sub">Estes Termos regem o uso da Bússola, plataforma de recrutamento e onboarding criada por Tony Belleza, pelas empresas que a assinam e pelas pessoas que elas autorizam a usá-la.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="pt-toc">
+        <h2 id="pt-toc">Sumário</h2>
+        <ol>
+          <li><a href="#pt-1">Quem somos e o que estes Termos cobrem</a></li>
+          <li><a href="#pt-2">Definições</a></li>
+          <li><a href="#pt-3">Contas e usuários</a></li>
+          <li><a href="#pt-4">Teste grátis</a></li>
+          <li><a href="#pt-5">Planos, minutos de voz, excedente e adicionais</a></li>
+          <li><a href="#pt-6">Cobrança e pagamento</a></li>
+          <li><a href="#pt-7">Cancelamento e reembolsos</a></li>
+          <li><a href="#pt-8">Triagem por telefone, ligações e SMS</a></li>
+          <li><a href="#pt-9">Decisões de contratação, IA e leis trabalhistas</a></li>
+          <li><a href="#pt-10">Uso aceitável</a></li>
+          <li><a href="#pt-11">Dados do Cliente e propriedade dos dados</a></li>
+          <li><a href="#pt-12">Serviços de terceiros</a></li>
+          <li><a href="#pt-13">Confidencialidade</a></li>
+          <li><a href="#pt-14">Propriedade intelectual</a></li>
+          <li><a href="#pt-15">Disponibilidade e mudanças no Serviço</a></li>
+          <li><a href="#pt-16">Suspensão e encerramento</a></li>
+          <li><a href="#pt-17">Isenção de garantias</a></li>
+          <li><a href="#pt-18">Limitação de responsabilidade</a></li>
+          <li><a href="#pt-19">Indenização</a></li>
+          <li><a href="#pt-20">Lei aplicável e disputas</a></li>
+          <li><a href="#pt-21">Mudanças nestes Termos</a></li>
+          <li><a href="#pt-22">Disposições gerais</a></li>
+          <li><a href="#pt-23">Contato</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="pt-1">
+        <h2 id="pt-1">1. Quem somos e o que estes Termos cobrem</h2>
+        <p>A Bússola é um serviço de software criado e operado por Tony Belleza por meio de <span class="ph">[RAZÃO SOCIAL]</span>, <span class="ph">[ENDEREÇO]</span> ("Bússola", "nós"). Ele está disponível em rh.tonybelleza.com.</p>
+        <p>Estes Termos de Uso ("Termos") são um contrato vinculante entre nós e a empresa ou organização que cria uma conta ("Cliente", "você"). Quem aceita estes Termos em nome de uma empresa confirma que tem poderes para obrigá-la. Se não concordar, não use o Serviço.</p>
+        <p>A forma como tratamos dados pessoais está descrita na nossa <a href="/privacidade.html">Política de Privacidade</a>, que faz parte destes Termos.</p>
+      </section>
+
+      <section aria-labelledby="pt-2">
+        <h2 id="pt-2">2. Definições</h2>
+        <ul>
+          <li><strong>Serviço</strong>: a plataforma Bússola, incluindo página de vagas, área do candidato, painel do gestor, testes, triagem por telefone com IA, agendamento de entrevistas, mensagens e onboarding, além do suporte relacionado.</li>
+          <li><strong>Usuários</strong>: gestores, administradores e outras pessoas que o Cliente autoriza a acessar sua conta.</li>
+          <li><strong>Candidatos</strong>: pessoas que se candidatam às vagas do Cliente e novos contratados que fazem o onboarding pelo Serviço.</li>
+          <li><strong>Dados do Cliente</strong>: todas as informações que o Cliente, seus Usuários ou seus Candidatos enviam ao Serviço, ou que o Serviço gera para o Cliente, como candidaturas, currículos, resultados de testes, gravações e transcrições de ligações, agendas e documentos de onboarding.</li>
+          <li><strong>Francisca</strong>: a agente de voz com IA que faz ligações de triagem para Candidatos em nome do Cliente.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-3">
+        <h2 id="pt-3">3. Contas e usuários</h2>
+        <ul>
+          <li>Você deve informar dados corretos da empresa e de contato e mantê-los atualizados.</li>
+          <li>Cada empresa tem sua própria conta, separada das demais. Você responde por tudo o que é feito na sua conta, por escolher quem será Usuário e por remover o acesso de quem sair.</li>
+          <li>Mantenha as senhas em sigilo e avise-nos logo em <span class="ph">privacy@[domínio da empresa]</span> se suspeitar de acesso não autorizado.</li>
+          <li>O Serviço é voltado a empresas. Ele não é oferecido a consumidores para uso pessoal, e os Usuários devem ter pelo menos 18 anos.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-4">
+        <h2 id="pt-4">4. Teste grátis</h2>
+        <p>Novas contas podem começar com um teste grátis de 14 dias. O teste inclui a quantidade de minutos de triagem por voz exibida no cadastro, conforme configurada por nós naquele momento. Durante o teste, o uso de minutos não pode passar do que está incluído.</p>
+        <p>Avisaremos antes do fim do teste. Se você não escolher um plano pago, o acesso é pausado ao fim do teste. Seus dados ficam guardados por <span class="ph">[NÚMERO]</span> dias para que você possa reativar a conta; depois disso, podem ser excluídos ou anonimizados conforme a Política de Privacidade. Podemos alterar ou encerrar ofertas de teste para novas contas a qualquer momento.</p>
+      </section>
+
+      <section aria-labelledby="pt-5">
+        <h2 id="pt-5">5. Planos, minutos de voz, excedente e adicionais</h2>
+        <ul>
+          <li><strong>Planos.</strong> Os planos são definidos principalmente pela quantidade de minutos de triagem por voz com IA incluídos por mês, junto com outros limites, como mensagens SMS, número de gestores e se há um número de telefone local exclusivo. Os planos e preços atuais aparecem nas nossas páginas de preços e de assinatura.</li>
+          <li><strong>Ciclo de cobrança.</strong> Os planos podem ser cobrados por mês ou por ano. Os minutos e mensagens incluídos valem para cada período mensal e não acumulam, salvo se o plano disser o contrário. <span class="ph">[CONFIRMAR REGRA DE ACÚMULO]</span></li>
+          <li><strong>Excedente.</strong> Quando os minutos incluídos acabam, novas ligações param até o próximo período, a menos que o excedente esteja liberado para a sua conta. Com o excedente liberado, os minutos extras são cobrados pelo valor por minuto exibido na página de preços.</li>
+          <li><strong>Adicionais.</strong> Você pode comprar adicionais, como minutos extras, números de telefone extras ou SMS extras, pelos preços exibidos na compra.</li>
+          <li><strong>Registros de uso.</strong> Os minutos são medidos pelos nossos sistemas e pelos nossos provedores de telefonia e voz. Nossos registros de uso são a base da cobrança, e você pode pedir uma revisão se achar que há erro.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-6">
+        <h2 id="pt-6">6. Cobrança e pagamento</h2>
+        <ul>
+          <li>Os pagamentos são processados pela Stripe. Dados de cartão e de banco são digitados diretamente na Stripe e nunca passam nem ficam guardados nos servidores da Bússola.</li>
+          <li>As assinaturas renovam automaticamente ao fim de cada período até serem canceladas. Você nos autoriza, por meio da Stripe, a cobrar no meio de pagamento cadastrado as mensalidades, o excedente e os adicionais.</li>
+          <li>Os preços são em dólares americanos e não incluem impostos, que são de sua responsabilidade, salvo quando formos obrigados a recolhê-los.</li>
+          <li>Se um pagamento falhar, podemos suspender o Serviço depois de um curto período de tolerância de alguns dias e de um aviso a você.</li>
+          <li>Podemos mudar os preços com pelo menos <span class="ph">[30]</span> dias de aviso. As mudanças valem a partir do seu próximo período de cobrança.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-7">
+        <h2 id="pt-7">7. Cancelamento e reembolsos</h2>
+        <p>Você pode cancelar a qualquer momento. O cancelamento vale ao fim do período de cobrança já pago, e você mantém o acesso até lá. Valores já pagos não são reembolsados, inclusive por meses parciais ou minutos não usados, salvo quando a lei exigir o reembolso.</p>
+        <p>Depois do cancelamento, você pode exportar seus dados durante <span class="ph">[NÚMERO]</span> dias. Depois disso, podemos excluir ou anonimizar os Dados do Cliente, exceto registros que a lei nos obrigue a manter (por exemplo, registros de cobrança).</p>
+      </section>
+
+      <section aria-labelledby="pt-8">
+        <h2 id="pt-8">8. Triagem por telefone, ligações e SMS</h2>
+        <p>A Francisca faz ligações para Candidatos que se candidataram às vagas do Cliente, em inglês, espanhol ou português. O Cliente decide quais cargos usam a triagem por telefone e configura suas regras de ligação. A Bússola faz essas ligações apenas em nome do Cliente e sob sua orientação.</p>
+        <h3>Como as ligações funcionam</h3>
+        <ul>
+          <li>No início da ligação, a Francisca diz que é uma assistente de IA (não uma pessoa), informa que a ligação é gravada e pede consentimento para continuar.</li>
+          <li>As ligações são gravadas e transcritas, e o Serviço extrai fatos e um resumo da triagem para o Cliente.</li>
+          <li>Se o Candidato pedir para não ser chamado, o Serviço o marca como "não ligar" e interrompe novas ligações para ele.</li>
+          <li>Por padrão, as ligações acontecem só de segunda a sábado, das 9:00 às 19:30, no fuso horário definido pelo Cliente, com número limitado de tentativas. O Cliente pode restringir essas regras e deve fazê-lo quando a lei local exigir.</li>
+        </ul>
+        <h3>Responsabilidades do Cliente</h3>
+        <ul>
+          <li>O Cliente é responsável por ter base legal e qualquer consentimento exigido para ligar e enviar SMS aos seus candidatos, incluindo o consentimento para ligações com voz artificial ou pré-gravada, e por guardar a prova desse consentimento.</li>
+          <li>O Cliente deve cumprir a Telephone Consumer Protection Act (TCPA), a Telemarketing Sales Rule quando aplicável, as leis estaduais sobre ligações e gravação (as "mini TCPA"), as leis de consentimento para gravação, as regras das operadoras para SMS comerciais (como o registro A2P 10DLC) e leis semelhantes de outros países.</li>
+          <li>O Cliente deve respeitar pedidos de não ligar, inclusive os recebidos fora do Serviço, e não pode usar o Serviço para ligações de marketing ou vendas.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-9">
+        <h2 id="pt-9">9. Decisões de contratação, IA e leis trabalhistas</h2>
+        <ul>
+          <li><strong>O Cliente é o empregador.</strong> Somente o Cliente toma e responde por todas as decisões de contratação, reprovação, remuneração e emprego, e pela relação com Candidatos e funcionários.</li>
+          <li><strong>A IA apoia a decisão.</strong> Pontuações das ligações, classificações (por exemplo STRONG ou GOOD), resumos, resultados DISC e B.A.S.E. e análises de currículo são ferramentas para ajudar pessoas a avaliar candidatos. Não são decisões automatizadas de contratação. Uma pessoa do Cliente deve revisar as informações e tomar a decisão. O Cliente não pode reprovar Candidatos apenas com base em um resultado automatizado quando a lei exigir revisão humana, aviso ou processo alternativo.</li>
+          <li><strong>Não discriminação.</strong> O Cliente deve cumprir as leis de igualdade de oportunidades e antidiscriminação e as leis sobre o uso de IA e ferramentas automatizadas na contratação que se apliquem a ele (por exemplo, exigências de aviso, auditoria de viés ou adaptação). O Cliente deve oferecer adaptações razoáveis a Candidatos que não consigam fazer a triagem por telefone ou um teste.</li>
+          <li><strong>Documentos de onboarding e formulários fiscais.</strong> O Serviço oferece modelos e versões digitais de documentos como cartas de proposta, W-4, W-9, I-9 e CT-W4, e coleta documentos de identidade e dados de pagamento dos novos contratados. O Cliente é responsável por revisar todos os modelos e sua configuração com seus próprios assessores jurídicos e fiscais, por preencher corretamente e no prazo as seções do empregador (como a Seção 2 do I-9), por classificar corretamente os trabalhadores e por cumprir as leis trabalhistas, de imigração, salariais e fiscais. A Bússola não presta assessoria jurídica, fiscal ou trabalhista.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-10">
+        <h2 id="pt-10">10. Uso aceitável</h2>
+        <p>O Cliente e seus Usuários não podem:</p>
+        <ul>
+          <li>ligar, enviar SMS ou e-mail para pessoas que não se candidataram às vagas do Cliente, nem carregar listas de contatos compradas, raspadas ou de terceiros;</li>
+          <li>usar o Serviço para telemarketing, cobrança de dívidas, ligações políticas ou qualquer finalidade que não seja recrutar e fazer o onboarding da própria equipe do Cliente;</li>
+          <li>discriminar ilegalmente Candidatos ou usar o Serviço para fazer perguntas de entrevista proibidas por lei;</li>
+          <li>violar leis trabalhistas, de privacidade, de defesa do consumidor, de telecomunicações ou fiscais;</li>
+          <li>enviar conteúdo ilegal, enganoso ou que viole direitos de terceiros, ou enviar programas maliciosos;</li>
+          <li>acessar dados de outra empresa, testar ou atacar o Serviço, burlar limites de uso ou controles de segurança, ou revender o Serviço sem nossa autorização por escrito;</li>
+          <li>fazer engenharia reversa do Serviço ou usá-lo para criar um produto concorrente.</li>
+        </ul>
+        <p>Podemos investigar suspeitas de violação e suspender o acesso quando necessário para proteger Candidatos, outros clientes ou o Serviço.</p>
+      </section>
+
+      <section aria-labelledby="pt-11">
+        <h2 id="pt-11">11. Dados do Cliente e propriedade dos dados</h2>
+        <ul>
+          <li>O Cliente é dono dos Dados do Cliente e controla os dados pessoais dos seus Candidatos e funcionários. A Bússola trata os Dados do Cliente apenas como prestadora de serviço (operadora) em nome do Cliente, para fornecer e dar suporte ao Serviço, conforme a Política de Privacidade.</li>
+          <li>O Cliente responde pela exatidão e legalidade dos Dados do Cliente, por dar aos Candidatos os avisos exigidos por lei e por atender aos pedidos de privacidade deles, com nossa ajuda quando necessário.</li>
+          <li>Não vendemos Dados do Cliente e não os usamos para treinar modelos de IA de uso geral.</li>
+          <li>Podemos usar dados agregados ou desidentificados, que não identifiquem o Cliente nem nenhuma pessoa, para operar, proteger e melhorar o Serviço.</li>
+          <li>Um aditivo de tratamento de dados está disponível mediante pedido. <span class="ph">[ANEXAR OU LINKAR O DPA]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-12">
+        <h2 id="pt-12">12. Serviços de terceiros</h2>
+        <p>O Serviço usa provedores terceiros, incluindo ElevenLabs (voz com IA), Twilio (telefonia e SMS), Stripe (pagamentos), Oracle Cloud (hospedagem nos Estados Unidos), o provedor de e-mail (SMTP) configurado no Serviço e, quando ativada, a Anthropic (análise de currículos). A lista atual está na Política de Privacidade. Esses provedores têm seus próprios termos, e não respondemos por falhas ou mudanças causadas por eles, embora trabalhemos para limitar o efeito delas para você.</p>
+      </section>
+
+      <section aria-labelledby="pt-13">
+        <h2 id="pt-13">13. Confidencialidade</h2>
+        <p>Cada parte pode receber da outra informações não públicas, como Dados do Cliente, preços, planos de produto ou detalhes de segurança. Quem recebe usará essas informações apenas para cumprir estes Termos, vai protegê-las com cuidado razoável e não vai divulgá-las, exceto a funcionários, prestadores e fornecedores que precisem delas e tenham deveres semelhantes, ou quando a lei exigir (com aviso quando permitido). Esses deveres não se aplicam a informações públicas, já conhecidas, desenvolvidas de forma independente ou recebidas licitamente de terceiros.</p>
+      </section>
+
+      <section aria-labelledby="pt-14">
+        <h2 id="pt-14">14. Propriedade intelectual</h2>
+        <p>A Bússola, o Serviço, seu software, design, conteúdo, a agente Francisca e a metodologia B.A.S.E. pertencem a Tony Belleza ou a seus licenciantes. Concedemos ao Cliente um direito limitado, não exclusivo e intransferível de usar o Serviço durante a assinatura, para seu negócio interno. Se você nos enviar sugestões ou comentários, podemos usá-los sem obrigação com você.</p>
+      </section>
+
+      <section aria-labelledby="pt-15">
+        <h2 id="pt-15">15. Disponibilidade e mudanças no Serviço</h2>
+        <ul>
+          <li>Trabalhamos para manter o Serviço disponível e seguro, mas não garantimos que ele funcione sem interrupções ou erros. Manutenção, falhas de provedores, filtros das operadoras e problemas de rede podem afetar ligações, SMS e a entrega de e-mails.</li>
+          <li>Podemos melhorar, alterar ou remover funções. Se removermos uma função relevante pela qual você paga, daremos aviso razoável. Funções marcadas como novas, beta ou prévia podem mudar e são fornecidas no estado em que se encontram.</li>
+          <li>O suporte é feito por e-mail em <span class="ph">[E-MAIL DE SUPORTE]</span>. <span class="ph">[HORÁRIO DE SUPORTE OU SLA, SE HOUVER]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-16">
+        <h2 id="pt-16">16. Suspensão e encerramento</h2>
+        <p>Podemos suspender ou encerrar o acesso se o Cliente violar de forma relevante estes Termos e não corrigir a violação em <span class="ph">[10]</span> dias após o aviso, se não pagar, ou se usar o Serviço de forma que gere risco jurídico ou dano a Candidatos, outros clientes ou ao Serviço. Podemos agir imediatamente em casos graves, como ligações ilegais ou ameaça à segurança. As cláusulas que, por sua natureza, devem continuar valendo após o encerramento (como pagamento, confidencialidade, responsabilidade e indenização) continuam valendo.</p>
+      </section>
+
+      <section aria-labelledby="pt-17">
+        <h2 id="pt-17">17. Isenção de garantias</h2>
+        <p>Exceto quando expressamente previsto nestes Termos, o Serviço é fornecido "no estado em que se encontra" e "conforme disponível", e afastamos todas as garantias implícitas, incluindo comerciabilidade, adequação a uma finalidade específica e não violação, na medida permitida por lei. Não garantimos que resultados de IA, transcrições, pontuações ou fatos extraídos sejam completos ou exatos, nem que algum Candidato seja adequado para uma vaga.</p>
+      </section>
+
+      <section aria-labelledby="pt-18">
+        <h2 id="pt-18">18. Limitação de responsabilidade</h2>
+        <p>Na medida permitida por lei, nenhuma das partes responde por danos indiretos, incidentais, especiais, consequenciais ou punitivos, nem por lucros cessantes, perda de receita ou de dados. Nossa responsabilidade total decorrente destes Termos ou relacionada a eles não passará do valor que o Cliente nos pagou nos 12 meses anteriores ao fato que originou a reclamação. Esses limites não se aplicam quando a lei não os permite. <span class="ph">[ADVOGADO REVISAR LIMITES E EXCLUSÕES]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-19">
+        <h2 id="pt-19">19. Indenização</h2>
+        <p>O Cliente vai defender e indenizar a Bússola, Tony Belleza e suas afiliadas e fornecedores contra reclamações, multas e custos (incluindo honorários advocatícios razoáveis) decorrentes de: ligações ou mensagens feitas sob orientação do Cliente, incluindo reclamações com base na TCPA ou leis semelhantes; decisões de contratação e emprego do Cliente; Dados do Cliente; ou violação destes Termos ou da lei pelo Cliente. <span class="ph">[ADVOGADO AVALIAR INDENIZAÇÃO RECÍPROCA DA BÚSSOLA POR PROPRIEDADE INTELECTUAL]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-20">
+        <h2 id="pt-20">20. Lei aplicável e disputas</h2>
+        <p>Estes Termos são regidos pelas leis do Estado de Connecticut, EUA, sem considerar suas regras de conflito de leis, e as disputas serão resolvidas nos tribunais estaduais ou federais de Connecticut. <span class="ph">[CAMPO PARA O ADVOGADO: CONFIRMAR LEI APLICÁVEL, FORO E SE HAVERÁ ARBITRAGEM]</span> Antes de entrar com uma ação, cada parte concorda em tentar resolver a disputa de forma amigável por 30 dias após aviso por escrito.</p>
+      </section>
+
+      <section aria-labelledby="pt-21">
+        <h2 id="pt-21">21. Mudanças nestes Termos</h2>
+        <p>Podemos atualizar estes Termos. Em mudanças relevantes, avisaremos os administradores da conta por e-mail ou no painel com pelo menos <span class="ph">[30]</span> dias de antecedência. Continuar usando o Serviço após a data de vigência significa aceitação. Se não concordar, você pode cancelar antes que a mudança passe a valer.</p>
+      </section>
+
+      <section aria-labelledby="pt-22">
+        <h2 id="pt-22">22. Disposições gerais</h2>
+        <p>Estes Termos, a Política de Privacidade e o plano escolhido no Serviço formam o acordo completo entre as partes. Se uma cláusula for inválida, as demais continuam valendo. Deixar de exigir uma cláusula não é renúncia. Nenhuma parte pode ceder estes Termos sem consentimento, exceto em fusão ou venda de praticamente todos os ativos. Nenhuma parte responde por atrasos causados por eventos fora do seu controle razoável. As traduções são fornecidas por conveniência; em caso de conflito, prevalece a versão em inglês. <span class="ph">[ADVOGADO CONFIRMAR, EM ESPECIAL PARA USUÁRIOS NO BRASIL]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-23">
+        <h2 id="pt-23">23. Contato</h2>
+        <p>Bússola, operada por Tony Belleza por meio de <span class="ph">[RAZÃO SOCIAL]</span><br>
+        <span class="ph">[ENDEREÇO]</span><br>
+        E-mail: <span class="ph">privacy@[domínio da empresa]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Voltar ao topo</a></p>
+    </article>
+
+    <!-- ============================================================ ESPAÑOL -->
+    <article class="lg-doc" data-doc-lang="es" lang="es" aria-labelledby="es-titulo" hidden
+      data-title="Términos de Uso (borrador) · Bússola"
+      data-desc="Borrador de los Términos de Uso de Bússola, la plataforma de reclutamiento y onboarding con IA de Tony Belleza. Borrador para revisión legal, aún no está vigente.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Borrador para revisión legal. Aún no está vigente.</strong><span>Este texto es un borrador de trabajo preparado para revisión por abogados. No crea ninguna obligación hasta que se publique una versión final con fecha de vigencia. Los elementos resaltados son campos por completar.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="es-titulo">Términos de Uso</h1>
+        <p class="lg-meta">Última actualización: <span class="ph">[FECHA]</span> · Fecha de vigencia: <span class="ph">[FECHA]</span></p>
+        <p class="lp-sub">Estos Términos regulan el uso de Bússola, una plataforma de reclutamiento y onboarding creada por Tony Belleza, por parte de las empresas que se suscriben y de las personas que ellas autorizan a usarla.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="es-toc">
+        <h2 id="es-toc">Contenido</h2>
+        <ol>
+          <li><a href="#es-1">Quiénes somos y qué cubren estos Términos</a></li>
+          <li><a href="#es-2">Definiciones</a></li>
+          <li><a href="#es-3">Cuentas y usuarios</a></li>
+          <li><a href="#es-4">Prueba gratis</a></li>
+          <li><a href="#es-5">Planes, minutos de voz, excedente y complementos</a></li>
+          <li><a href="#es-6">Facturación y pago</a></li>
+          <li><a href="#es-7">Cancelación y reembolsos</a></li>
+          <li><a href="#es-8">Entrevistas telefónicas, llamadas y SMS</a></li>
+          <li><a href="#es-9">Decisiones de contratación, IA y leyes laborales</a></li>
+          <li><a href="#es-10">Uso aceptable</a></li>
+          <li><a href="#es-11">Datos del Cliente y propiedad de los datos</a></li>
+          <li><a href="#es-12">Servicios de terceros</a></li>
+          <li><a href="#es-13">Confidencialidad</a></li>
+          <li><a href="#es-14">Propiedad intelectual</a></li>
+          <li><a href="#es-15">Disponibilidad y cambios del Servicio</a></li>
+          <li><a href="#es-16">Suspensión y terminación</a></li>
+          <li><a href="#es-17">Exención de garantías</a></li>
+          <li><a href="#es-18">Limitación de responsabilidad</a></li>
+          <li><a href="#es-19">Indemnización</a></li>
+          <li><a href="#es-20">Ley aplicable y disputas</a></li>
+          <li><a href="#es-21">Cambios a estos Términos</a></li>
+          <li><a href="#es-22">Disposiciones generales</a></li>
+          <li><a href="#es-23">Contacto</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="es-1">
+        <h2 id="es-1">1. Quiénes somos y qué cubren estos Términos</h2>
+        <p>Bússola es un servicio de software creado y operado por Tony Belleza a través de <span class="ph">[RAZÓN SOCIAL]</span>, <span class="ph">[DIRECCIÓN]</span> ("Bússola", "nosotros"). Está disponible en rh.tonybelleza.com.</p>
+        <p>Estos Términos de Uso ("Términos") son un acuerdo vinculante entre nosotros y la empresa u organización que crea una cuenta ("Cliente", "usted"). Quien acepta estos Términos en nombre de una empresa confirma que tiene facultades para obligarla. Si no está de acuerdo, no use el Servicio.</p>
+        <p>La forma en que tratamos los datos personales se describe en nuestra <a href="/privacidade.html">Política de Privacidad</a>, que forma parte de estos Términos.</p>
+      </section>
+
+      <section aria-labelledby="es-2">
+        <h2 id="es-2">2. Definiciones</h2>
+        <ul>
+          <li><strong>Servicio</strong>: la plataforma Bússola, incluida la página de vacantes, el área del candidato, el panel del gestor, las evaluaciones, las entrevistas telefónicas con IA, la agenda de entrevistas, los mensajes y el onboarding, además del soporte relacionado.</li>
+          <li><strong>Usuarios</strong>: gerentes, administradores y otras personas que el Cliente autoriza a acceder a su cuenta.</li>
+          <li><strong>Candidatos</strong>: personas que se postulan a las vacantes del Cliente y nuevos empleados que completan el onboarding a través del Servicio.</li>
+          <li><strong>Datos del Cliente</strong>: toda la información que el Cliente, sus Usuarios o sus Candidatos envían al Servicio, o que el Servicio genera para el Cliente, como postulaciones, currículums, resultados de evaluaciones, grabaciones y transcripciones de llamadas, agendas y documentos de onboarding.</li>
+          <li><strong>Francisca</strong>: la agente de voz con IA que hace llamadas de entrevista a los Candidatos en nombre del Cliente.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-3">
+        <h2 id="es-3">3. Cuentas y usuarios</h2>
+        <ul>
+          <li>Debe proporcionar datos correctos de la empresa y de contacto y mantenerlos actualizados.</li>
+          <li>Cada empresa tiene su propia cuenta, separada de las demás. Usted es responsable de todo lo que se haga en su cuenta, de elegir quién será Usuario y de quitar el acceso a quien se retire.</li>
+          <li>Mantenga las contraseñas en reserva y avísenos de inmediato en <span class="ph">privacy@[dominio de la empresa]</span> si sospecha un acceso no autorizado.</li>
+          <li>El Servicio está dirigido a empresas. No se ofrece a consumidores para uso personal, y los Usuarios deben tener al menos 18 años.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-4">
+        <h2 id="es-4">4. Prueba gratis</h2>
+        <p>Las cuentas nuevas pueden comenzar con una prueba gratis de 14 días. La prueba incluye la cantidad de minutos de entrevista por voz que se muestra al registrarse, según la configuremos en ese momento. Durante la prueba, el uso de minutos no puede superar lo incluido.</p>
+        <p>Le avisaremos antes de que termine la prueba. Si no elige un plan pago, el acceso se pausa al final de la prueba. Sus datos se conservan durante <span class="ph">[NÚMERO]</span> días para que pueda reactivar la cuenta; después pueden eliminarse o anonimizarse según la Política de Privacidad. Podemos cambiar o terminar las ofertas de prueba para cuentas nuevas en cualquier momento.</p>
+      </section>
+
+      <section aria-labelledby="es-5">
+        <h2 id="es-5">5. Planes, minutos de voz, excedente y complementos</h2>
+        <ul>
+          <li><strong>Planes.</strong> Los planes se definen principalmente por la cantidad de minutos de entrevista por voz con IA incluidos al mes, junto con otros límites, como mensajes SMS, número de gerentes y si incluye un número de teléfono local exclusivo. Los planes y precios vigentes aparecen en nuestras páginas de precios y de suscripción.</li>
+          <li><strong>Ciclo de facturación.</strong> Los planes pueden facturarse mensual o anualmente. Los minutos y mensajes incluidos aplican a cada período mensual y no se acumulan, salvo que el plan indique lo contrario. <span class="ph">[CONFIRMAR REGLA DE ACUMULACIÓN]</span></li>
+          <li><strong>Excedente.</strong> Cuando se agotan los minutos incluidos, las nuevas llamadas se detienen hasta el siguiente período, a menos que el excedente esté habilitado para su cuenta. Con el excedente habilitado, los minutos adicionales se cobran a la tarifa por minuto que aparece en la página de precios.</li>
+          <li><strong>Complementos.</strong> Puede comprar complementos, como minutos adicionales, números de teléfono adicionales o SMS adicionales, a los precios que se muestran al comprarlos.</li>
+          <li><strong>Registros de uso.</strong> Los minutos se miden con nuestros sistemas y nuestros proveedores de telefonía y voz. Nuestros registros de uso son la base de la facturación, y puede pedirnos una revisión si cree que hay un error.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-6">
+        <h2 id="es-6">6. Facturación y pago</h2>
+        <ul>
+          <li>Los pagos los procesa Stripe. Los datos de tarjeta y bancarios se ingresan directamente en Stripe y nunca pasan ni se guardan en los servidores de Bússola.</li>
+          <li>Las suscripciones se renuevan automáticamente al final de cada período hasta que se cancelen. Usted nos autoriza, a través de Stripe, a cobrar al medio de pago registrado las cuotas recurrentes, el excedente y los complementos.</li>
+          <li>Los precios están en dólares estadounidenses y no incluyen impuestos, que son su responsabilidad, salvo cuando estemos obligados a cobrarlos.</li>
+          <li>Si un pago falla, podemos suspender el Servicio después de un breve período de gracia de algunos días y de un aviso.</li>
+          <li>Podemos cambiar los precios con al menos <span class="ph">[30]</span> días de aviso. Los cambios aplican desde su siguiente período de facturación.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-7">
+        <h2 id="es-7">7. Cancelación y reembolsos</h2>
+        <p>Puede cancelar en cualquier momento. La cancelación entra en vigor al final del período de facturación ya pagado, y conserva el acceso hasta entonces. Los montos ya pagados no se reembolsan, incluidos meses parciales o minutos no usados, salvo cuando la ley exija un reembolso.</p>
+        <p>Después de la cancelación, puede exportar sus datos durante <span class="ph">[NÚMERO]</span> días. Después, podemos eliminar o anonimizar los Datos del Cliente, salvo los registros que la ley nos obligue a conservar (por ejemplo, registros de facturación).</p>
+      </section>
+
+      <section aria-labelledby="es-8">
+        <h2 id="es-8">8. Entrevistas telefónicas, llamadas y SMS</h2>
+        <p>Francisca hace llamadas a los Candidatos que se postularon a las vacantes del Cliente, en inglés, español o portugués. El Cliente decide qué puestos usan la entrevista telefónica y configura sus reglas de llamada. Bússola hace estas llamadas solo en nombre del Cliente y bajo su dirección.</p>
+        <h3>Cómo funcionan las llamadas</h3>
+        <ul>
+          <li>Al inicio de la llamada, Francisca dice que es una asistente de IA (no una persona), informa que la llamada se graba y pide consentimiento para continuar.</li>
+          <li>Las llamadas se graban y se transcriben, y el Servicio extrae datos y un resumen de la entrevista para el Cliente.</li>
+          <li>Si un Candidato pide que no lo llamen, el Servicio lo marca como "no llamar" y detiene nuevas llamadas a ese Candidato.</li>
+          <li>De forma predeterminada, las llamadas se hacen solo de lunes a sábado, de 9:00 a 19:30, en la zona horaria definida por el Cliente, con un número limitado de intentos. El Cliente puede restringir estas reglas y debe hacerlo cuando la ley local lo exija.</li>
+        </ul>
+        <h3>Responsabilidades del Cliente</h3>
+        <ul>
+          <li>El Cliente es responsable de tener una base legal y cualquier consentimiento requerido para llamar y enviar SMS a sus postulantes, incluido el consentimiento para llamadas con voz artificial o pregrabada, y de conservar la prueba de ese consentimiento.</li>
+          <li>El Cliente debe cumplir la Telephone Consumer Protection Act (TCPA), la Telemarketing Sales Rule cuando aplique, las leyes estatales sobre llamadas y grabaciones (las "mini TCPA"), las leyes de consentimiento para grabar, las reglas de los operadores para SMS comerciales (como el registro A2P 10DLC) y leyes similares de otros países.</li>
+          <li>El Cliente debe respetar las solicitudes de no llamar, incluidas las recibidas fuera del Servicio, y no puede usar el Servicio para llamadas de marketing o ventas.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-9">
+        <h2 id="es-9">9. Decisiones de contratación, IA y leyes laborales</h2>
+        <ul>
+          <li><strong>El Cliente es el empleador.</strong> Solo el Cliente toma y responde por todas las decisiones de contratación, rechazo, compensación y empleo, y por su relación con Candidatos y empleados.</li>
+          <li><strong>La IA apoya la decisión.</strong> Los puntajes de las llamadas, las categorías (por ejemplo STRONG o GOOD), los resúmenes, los resultados DISC y B.A.S.E. y los análisis de currículum son herramientas para ayudar a las personas a evaluar postulantes. No son decisiones automatizadas de contratación. Una persona del Cliente debe revisar la información y tomar la decisión. El Cliente no puede rechazar Candidatos solo con base en un resultado automatizado cuando la ley exija revisión humana, aviso o un proceso alternativo.</li>
+          <li><strong>No discriminación.</strong> El Cliente debe cumplir las leyes de igualdad de oportunidades y contra la discriminación, y las leyes sobre el uso de IA y herramientas automatizadas en la contratación que le apliquen (por ejemplo, requisitos de aviso, auditoría de sesgos o ajustes razonables). El Cliente debe ofrecer ajustes razonables a los Candidatos que no puedan completar la entrevista telefónica o una evaluación.</li>
+          <li><strong>Documentos de onboarding y formularios fiscales.</strong> El Servicio ofrece plantillas y versiones digitales de documentos como cartas de oferta, W-4, W-9, I-9 y CT-W4, y recopila documentos de identidad y datos de pago de los nuevos empleados. El Cliente es responsable de revisar todas las plantillas y su configuración con sus propios asesores legales y fiscales, de completar correctamente y a tiempo las secciones del empleador (como la Sección 2 del I-9), de clasificar correctamente a los trabajadores y de cumplir las leyes laborales, migratorias, salariales y fiscales. Bússola no brinda asesoría legal, fiscal ni laboral.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-10">
+        <h2 id="es-10">10. Uso aceptable</h2>
+        <p>El Cliente y sus Usuarios no pueden:</p>
+        <ul>
+          <li>llamar, enviar SMS o correos a personas que no se postularon a las vacantes del Cliente, ni cargar listas de contactos compradas, extraídas de sitios web o de terceros;</li>
+          <li>usar el Servicio para telemercadeo, cobranza de deudas, llamadas políticas o cualquier fin distinto de reclutar y hacer el onboarding del propio personal del Cliente;</li>
+          <li>discriminar ilegalmente a Candidatos o usar el Servicio para hacer preguntas de entrevista prohibidas por la ley;</li>
+          <li>violar leyes laborales, de privacidad, de protección al consumidor, de telecomunicaciones o fiscales;</li>
+          <li>subir contenido ilegal, engañoso o que infrinja derechos de terceros, o subir software malicioso;</li>
+          <li>acceder a datos de otra empresa, probar o atacar el Servicio, eludir límites de uso o controles de seguridad, o revender el Servicio sin nuestro permiso por escrito;</li>
+          <li>aplicar ingeniería inversa al Servicio o usarlo para crear un producto competidor.</li>
+        </ul>
+        <p>Podemos investigar posibles infracciones y suspender el acceso cuando sea necesario para proteger a los Candidatos, a otros clientes o al Servicio.</p>
+      </section>
+
+      <section aria-labelledby="es-11">
+        <h2 id="es-11">11. Datos del Cliente y propiedad de los datos</h2>
+        <ul>
+          <li>El Cliente es dueño de los Datos del Cliente y controla los datos personales de sus Candidatos y empleados. Bússola trata los Datos del Cliente solo como proveedor de servicios (encargado) en nombre del Cliente, para prestar y dar soporte al Servicio, según la Política de Privacidad.</li>
+          <li>El Cliente es responsable de la exactitud y legalidad de los Datos del Cliente, de dar a los Candidatos los avisos que exige la ley y de atender sus solicitudes de privacidad, con nuestra ayuda cuando sea necesario.</li>
+          <li>No vendemos los Datos del Cliente ni los usamos para entrenar modelos de IA de uso general.</li>
+          <li>Podemos usar datos agregados o desidentificados, que no identifiquen al Cliente ni a ninguna persona, para operar, proteger y mejorar el Servicio.</li>
+          <li>Hay un anexo de tratamiento de datos disponible a solicitud. <span class="ph">[ADJUNTAR O ENLAZAR EL DPA]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-12">
+        <h2 id="es-12">12. Servicios de terceros</h2>
+        <p>El Servicio usa proveedores externos, entre ellos ElevenLabs (voz con IA), Twilio (telefonía y SMS), Stripe (pagos), Oracle Cloud (alojamiento en Estados Unidos), el proveedor de correo (SMTP) configurado en el Servicio y, cuando está activada, Anthropic (análisis de currículums). La lista actual está en la Política de Privacidad. Estos proveedores tienen sus propios términos y no somos responsables de fallas o cambios causados por ellos, aunque trabajaremos para limitar su efecto para usted.</p>
+      </section>
+
+      <section aria-labelledby="es-13">
+        <h2 id="es-13">13. Confidencialidad</h2>
+        <p>Cada parte puede recibir de la otra información no pública, como Datos del Cliente, precios, planes de producto o detalles de seguridad. Quien la recibe la usará solo para cumplir estos Términos, la protegerá con un cuidado razonable y no la divulgará, salvo a empleados, contratistas y proveedores que la necesiten y tengan deberes similares, o cuando la ley lo exija (con aviso cuando esté permitido). Estos deberes no aplican a información pública, ya conocida, desarrollada de forma independiente o recibida legalmente de terceros.</p>
+      </section>
+
+      <section aria-labelledby="es-14">
+        <h2 id="es-14">14. Propiedad intelectual</h2>
+        <p>Bússola, el Servicio, su software, diseño, contenido, la agente Francisca y la metodología B.A.S.E. pertenecen a Tony Belleza o a sus licenciantes. Otorgamos al Cliente un derecho limitado, no exclusivo e intransferible de usar el Servicio durante su suscripción, para su negocio interno. Si nos envía sugerencias o comentarios, podemos usarlos sin obligación hacia usted.</p>
+      </section>
+
+      <section aria-labelledby="es-15">
+        <h2 id="es-15">15. Disponibilidad y cambios del Servicio</h2>
+        <ul>
+          <li>Trabajamos para mantener el Servicio disponible y seguro, pero no garantizamos que funcione sin interrupciones ni errores. El mantenimiento, las fallas de proveedores, los filtros de los operadores y los problemas de red pueden afectar las llamadas, los SMS y la entrega de correos.</li>
+          <li>Podemos mejorar, cambiar o quitar funciones. Si quitamos una función relevante por la que usted paga, daremos un aviso razonable. Las funciones marcadas como nuevas, beta o vista previa pueden cambiar y se ofrecen tal como están.</li>
+          <li>El soporte se brinda por correo en <span class="ph">[CORREO DE SOPORTE]</span>. <span class="ph">[HORARIO DE SOPORTE O SLA, SI LO HAY]</span></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-16">
+        <h2 id="es-16">16. Suspensión y terminación</h2>
+        <p>Podemos suspender o terminar el acceso si el Cliente incumple de forma relevante estos Términos y no corrige el incumplimiento dentro de <span class="ph">[10]</span> días después del aviso, si no paga, o si usa el Servicio de una forma que genere riesgo legal o daño a los Candidatos, a otros clientes o al Servicio. Podemos actuar de inmediato en casos graves, como llamadas ilegales o una amenaza de seguridad. Las cláusulas que por su naturaleza deben seguir vigentes después de la terminación (como pago, confidencialidad, responsabilidad e indemnización) seguirán vigentes.</p>
+      </section>
+
+      <section aria-labelledby="es-17">
+        <h2 id="es-17">17. Exención de garantías</h2>
+        <p>Salvo lo previsto expresamente en estos Términos, el Servicio se ofrece "tal como está" y "según disponibilidad", y renunciamos a todas las garantías implícitas, incluidas las de comerciabilidad, idoneidad para un fin específico y no infracción, en la medida permitida por la ley. No garantizamos que los resultados de IA, transcripciones, puntajes o datos extraídos sean completos o exactos, ni que algún Candidato sea adecuado para un puesto.</p>
+      </section>
+
+      <section aria-labelledby="es-18">
+        <h2 id="es-18">18. Limitación de responsabilidad</h2>
+        <p>En la medida permitida por la ley, ninguna de las partes será responsable por daños indirectos, incidentales, especiales, consecuentes o punitivos, ni por lucro cesante, pérdida de ingresos o de datos. Nuestra responsabilidad total derivada de estos Términos o relacionada con ellos no superará lo que el Cliente nos pagó en los 12 meses anteriores al hecho que dio origen al reclamo. Estos límites no aplican cuando la ley no los permite. <span class="ph">[ABOGADO REVISAR LÍMITES Y EXCLUSIONES]</span></p>
+      </section>
+
+      <section aria-labelledby="es-19">
+        <h2 id="es-19">19. Indemnización</h2>
+        <p>El Cliente defenderá e indemnizará a Bússola, a Tony Belleza y a sus afiliadas y proveedores frente a reclamos, multas y costos (incluidos honorarios razonables de abogados) derivados de: llamadas o mensajes hechos bajo la dirección del Cliente, incluidos reclamos bajo la TCPA o leyes similares; decisiones de contratación y empleo del Cliente; los Datos del Cliente; o el incumplimiento de estos Términos o de la ley por parte del Cliente. <span class="ph">[ABOGADO EVALUAR UNA INDEMNIZACIÓN RECÍPROCA DE BÚSSOLA POR PROPIEDAD INTELECTUAL]</span></p>
+      </section>
+
+      <section aria-labelledby="es-20">
+        <h2 id="es-20">20. Ley aplicable y disputas</h2>
+        <p>Estos Términos se rigen por las leyes del Estado de Connecticut, EE. UU., sin considerar sus normas de conflicto de leyes, y las disputas se resolverán en los tribunales estatales o federales de Connecticut. <span class="ph">[CAMPO PARA EL ABOGADO: CONFIRMAR LEY APLICABLE, JURISDICCIÓN Y SI HABRÁ ARBITRAJE]</span> Antes de presentar un reclamo, cada parte acepta intentar resolver la disputa de manera informal durante 30 días después de un aviso por escrito.</p>
+      </section>
+
+      <section aria-labelledby="es-21">
+        <h2 id="es-21">21. Cambios a estos Términos</h2>
+        <p>Podemos actualizar estos Términos. Ante cambios relevantes, avisaremos a los administradores de la cuenta por correo o en el panel con al menos <span class="ph">[30]</span> días de anticipación. Seguir usando el Servicio después de la fecha de vigencia significa aceptación. Si no está de acuerdo, puede cancelar antes de que el cambio entre en vigor.</p>
+      </section>
+
+      <section aria-labelledby="es-22">
+        <h2 id="es-22">22. Disposiciones generales</h2>
+        <p>Estos Términos, la Política de Privacidad y el plan elegido en el Servicio forman el acuerdo completo entre las partes. Si una cláusula no es exigible, las demás siguen vigentes. No exigir una cláusula no implica renuncia. Ninguna parte puede ceder estos Términos sin consentimiento, salvo en una fusión o venta de casi todos los activos. Ninguna parte es responsable por demoras causadas por hechos fuera de su control razonable. Las traducciones se ofrecen por conveniencia; si hay conflicto, prevalece la versión en inglés. <span class="ph">[ABOGADO CONFIRMAR]</span></p>
+      </section>
+
+      <section aria-labelledby="es-23">
+        <h2 id="es-23">23. Contacto</h2>
+        <p>Bússola, operada por Tony Belleza a través de <span class="ph">[RAZÓN SOCIAL]</span><br>
+        <span class="ph">[DIRECCIÓN]</span><br>
+        Correo: <span class="ph">privacy@[dominio de la empresa]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Volver arriba</a></p>
+    </article>
+  </main>
+
+  <footer class="lp-foot">
+    <div class="lp-wrap">
+      <div class="lp-foot-grid">
+        <div>
+          <a class="lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+            <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+            <span class="sep" aria-hidden="true"></span>
+            <b>Bússola</b>
+          </a>
+          <p data-t="rod_sub">AI phone screening and onboarding for companies that hire hourly workers.</p>
+        </div>
+        <div>
+          <h4 data-t="rod_produto">Product</h4>
+          <ul>
+            <li><a href="/" data-t="rod_inicio">Home</a></li>
+            <li><a href="/assinar" data-t="rod_teste">Free trial</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_acesso">Access</h4>
+          <ul>
+            <li><a href="/vagas" data-t="rod_vagas">Jobs page</a></li>
+            <li><a href="/candidato" data-t="rod_candidato">Candidate area</a></li>
+            <li><a href="/gestor" data-t="rod_gestor">Manager login</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_legal">Legal</h4>
+          <ul>
+            <li><a href="/termos.html" aria-current="page" data-t="rod_termos">Terms of use</a></li>
+            <li><a href="/privacidade.html" data-t="rod_privacidade">Privacy</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="lp-foot-base">
+        <span data-t="rod_copy">© Tony Belleza. Bússola, B.A.S.E. methodology curated by Tony Belleza.</span>
+        <span><a href="https://tonybelleza.com" target="_blank" rel="noopener">tonybelleza.com</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/legal.js"></script>
+</body>
+</html>

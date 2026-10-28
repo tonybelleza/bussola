@@ -1,7 +1,8 @@
 /* =====================================================================
    Plano e uso (planos.py): cartão em Configurações e aviso no topo do
    painel quando a empresa está perto ou acima do limite de minutos de
-   voz, ou quando o teste grátis está terminando.
+   voz, ou quando o teste grátis está terminando. O cartão também mostra
+   gestores ativos e vagas ativas contra o limite do plano.
    Ganchos no gestor.js: secaoPlano(el) e planoBanner(app).
    Textos: tp(chave) em pt, en e es, no idioma do painel (idiomaGestor).
    ===================================================================== */
@@ -39,6 +40,13 @@ const I18N_PLANO = {
     ver_planos: "Ver planos",
     fechar: "Fechar",
     plan_limit: "Os minutos de voz do plano acabaram neste mês.",
+    gestores_titulo: "Gestores ativos",
+    gestores_uso: "{usados} de {maximo} gestores",
+    gestores_ilimitado: "{usados} gestores (sem limite)",
+    vagas_titulo: "Vagas ativas",
+    vagas_uso: "{usados} de {maximo} vagas ativas",
+    vagas_ilimitado: "{usados} vagas ativas (sem limite)",
+    limite_atingido: "Limite do plano atingido",
   },
   en: {
     titulo: "Plan and usage",
@@ -72,6 +80,13 @@ const I18N_PLANO = {
     ver_planos: "See plans",
     fechar: "Close",
     plan_limit: "Your plan's voice minutes for this month are used up.",
+    gestores_titulo: "Active managers",
+    gestores_uso: "{usados} of {maximo} managers",
+    gestores_ilimitado: "{usados} managers (no limit)",
+    vagas_titulo: "Active jobs",
+    vagas_uso: "{usados} of {maximo} active jobs",
+    vagas_ilimitado: "{usados} active jobs (no limit)",
+    limite_atingido: "Plan limit reached",
   },
   es: {
     titulo: "Plan y uso",
@@ -105,6 +120,13 @@ const I18N_PLANO = {
     ver_planos: "Ver planes",
     fechar: "Cerrar",
     plan_limit: "Se agotaron los minutos de voz de tu plan este mes.",
+    gestores_titulo: "Gerentes activos",
+    gestores_uso: "{usados} de {maximo} gerentes",
+    gestores_ilimitado: "{usados} gerentes (sin límite)",
+    vagas_titulo: "Vacantes activas",
+    vagas_uso: "{usados} de {maximo} vacantes activas",
+    vagas_ilimitado: "{usados} vacantes activas (sin límite)",
+    limite_atingido: "Límite del plan alcanzado",
   },
 };
 
@@ -147,6 +169,19 @@ function planoBarra(u) {
   const cor = u.status === "over" ? "var(--err)" : u.status === "near" ? "var(--warn)" : "var(--accent-grad)";
   return `<div style="height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin:8px 0 6px">
       <div style="height:100%;width:${pct}%;background:${cor};border-radius:999px"></div></div>`;
+}
+
+// linha "x de y gestores" / "x de y vagas ativas" no cartão do plano
+function planoLinhaLimite(lim, prefixo) {
+  if (!lim) return "";
+  const texto = lim.maximo === null || lim.maximo === undefined
+    ? tp(prefixo + "_ilimitado", { usados: planoNum(lim.usados) })
+    : tp(prefixo + "_uso", { usados: planoNum(lim.usados), maximo: planoNum(lim.maximo) });
+  const cheio = lim.maximo !== null && lim.maximo !== undefined && lim.usados >= lim.maximo;
+  return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <strong>${tp(prefixo + "_titulo")}</strong>
+      <span>${esc(texto)}${cheio ? ` <span class="badge warn">${tp("limite_atingido")}</span>` : ""}</span>
+    </div>`;
 }
 
 async function planoAbrirPortal(botao) {
@@ -205,6 +240,8 @@ async function secaoPlano(el) {
       ${planoBarra(u)}
       ${u.minutos_extra ? `<p class="desc" style="font-size:.82rem">${tp("extras", { n: planoNum(u.minutos_extra) })}</p>` : ""}
       ${u.ilimitado ? "" : `<p class="desc" style="font-size:.82rem">${tp(u.excedente_permitido ? "excedente_on" : "excedente_off")}</p>`}
+      ${planoLinhaLimite(r.gestores, "gestores")}
+      ${planoLinhaLimite(r.vagas, "vagas")}
       ${acoes.length ? `<div class="linha-acoes" style="margin-top:12px">${acoes.join("")}</div>`
         : (r.admin ? "" : `<p class="desc" style="font-size:.82rem">${tp("so_admin")}</p>`)}
     </div>`;

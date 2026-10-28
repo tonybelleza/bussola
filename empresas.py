@@ -307,6 +307,11 @@ def rotear_dono(h, method, path, conn):
         if not e:
             return _resp(h, 404, {"erro": "Empresa não encontrada"})
         d = h._body()
+        # limite de gestores do plano (planos.py); o dono libera mais com gestores_extra
+        permitido, _, maximo = srv.planos.limite_gestores(conn, e["id"])
+        if not permitido:
+            msg = srv.planos.erro_limite_gestores(conn, e["id"], maximo, h.headers.get("X-Idioma"))
+            return _resp(h, 403, {"erro": msg, "codigo": "plan_limit_gestores"})
         erro = _criar_gestor(conn, e["id"], d, is_admin=1 if d.get("admin") else 0)
         if erro:
             return _resp(h, 400, {"erro": erro})

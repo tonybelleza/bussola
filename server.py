@@ -1677,6 +1677,7 @@ def anonimizar_candidato(conn, cand, autor="sistema"):
     )
     conn.execute("DELETE FROM eventos WHERE candidato_id=?", (cand["id"],))
     voz.anonimizar(conn, cand["id"])
+    onboarding.apagar_arquivos_candidato(conn, cand["id"])
     registrar_evento(conn, cand["id"], "sistema",
                      "Dados pessoais anonimizados (LGPD)", autor)
 
@@ -3168,6 +3169,13 @@ class Handler(BaseHTTPRequestHandler):
                 ).fetchone()
                 if not alvo:
                     return self._json(404, {"erro": "Conta não encontrada"})
+                if not alvo["aprovado"]:
+                    # limite de gestores do plano (planos.py): pendentes não contam até aqui
+                    permitido, _, maximo = planos.limite_gestores(conn, gestor["empresa_id"])
+                    if not permitido:
+                        return self._json(403, {"erro": planos.erro_limite_gestores(conn, gestor["empresa_id"], maximo,
+                                                self.headers.get("X-Idioma")),
+                                                "codigo": "plan_limit_gestores"})
                 conn.execute("UPDATE gestores SET aprovado=1 WHERE id=?", (alvo["id"],))
                 conn.commit()
                 if (alvo["email"] or "").strip() and config_get(conn, "smtp_host"):
@@ -3213,6 +3221,12 @@ class Handler(BaseHTTPRequestHandler):
                         "SELECT 1 FROM gestores WHERE lower(login)=?", (login,)
                     ).fetchone():
                         return self._json(400, {"erro": "Já existe um gestor com este login"})
+                    # limite de gestores do plano (planos.py)
+                    permitido, _, maximo = planos.limite_gestores(conn, gestor["empresa_id"])
+                    if not permitido:
+                        return self._json(403, {"erro": planos.erro_limite_gestores(conn, gestor["empresa_id"], maximo,
+                                                self.headers.get("X-Idioma")),
+                                                "codigo": "plan_limit_gestores"})
                     conn.execute(
                         "INSERT INTO gestores (login, senha, nome, email, local, is_admin, empresa_id)"
                         " VALUES (?,?,?,?,?,?,?)",
@@ -3274,12 +3288,22 @@ class Handler(BaseHTTPRequestHandler):
                 (d.get("cargo_id"), gestor["empresa_id"]),
             ).fetchone():
                 return self._json(400, {"erro": "Cargo não encontrado"})
+            vaga_atual = None
             if d.get("id"):
-                if not conn.execute(
-                    "SELECT 1 FROM vagas WHERE id=? AND empresa_id=?",
+                vaga_atual = conn.execute(
+                    "SELECT status FROM vagas WHERE id=? AND empresa_id=?",
                     (d["id"], gestor["empresa_id"]),
-                ).fetchone():
+                ).fetchone()
+                if not vaga_atual:
                     return self._json(404, {"erro": "Vaga não encontrada"})
+            if status == "aberta" and (vaga_atual is None or vaga_atual["status"] != "aberta"):
+                # limite de vagas ativas do plano (planos.py)
+                permitido, _, maximo = planos.limite_vagas(conn, gestor["empresa_id"])
+                if not permitido:
+                    return self._json(403, {"erro": planos.erro_limite_vagas(conn, gestor["empresa_id"], maximo,
+                                                self.headers.get("X-Idioma")),
+                                            "codigo": "plan_limit_vagas"})
+            if d.get("id"):
                 conn.execute(
                     "UPDATE vagas SET titulo=?, cargo_id=?, local=?, pais=?, descricao=?,"
                     " status=? WHERE id=?",
@@ -3879,6 +3903,7 @@ class Handler(BaseHTTPRequestHandler):
                     resumo["perguntas_entrevista"] = []
                 return self._json(200, resumo)
             if method == "DELETE":
+                onboarding.apagar_arquivos_candidato(conn, cand_row["id"])  # arquivos cifrados do onboarding
                 conn.execute("DELETE FROM candidatos WHERE id=?", (cand_row["id"],))
                 conn.commit()
                 return self._json(200, {"ok": True})

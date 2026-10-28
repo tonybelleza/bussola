@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy (draft) · Bússola</title>
+  <meta name="description" content="Draft Privacy Policy for Bússola, the AI recruiting and onboarding platform by Tony Belleza. Draft for legal review, not yet in effect.">
+  <meta name="theme-color" content="#070B14">
+  <meta name="robots" content="noindex"><!-- rascunho: tirar quando o jurídico aprovar -->
+  <link rel="icon" type="image/svg+xml" href="img/logo-symbol-white.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script src="js/tema.js"></script>
+  <style>
+    /* páginas legais (mesmo bloco em termos.html e privacidade.html) */
+    .lg-main { padding-top: 40px; padding-bottom: 72px; max-width: 880px; }
+    .lg-main:focus { outline: none; }
+    .lg-banner {
+      display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 16px; margin-bottom: 28px;
+      background: var(--warn-bg); color: var(--warn); border: 1px solid currentColor; font-size: .95rem;
+    }
+    .lg-banner svg { width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px; }
+    .lg-banner strong { display: block; font-weight: 600; font-size: 1.02rem; }
+    .lg-banner span { color: var(--text-2); }
+    .lg-head h1 { font-size: clamp(1.8rem, 4.4vw, 2.6rem); line-height: 1.12; letter-spacing: -.015em; margin: 16px 0 10px; }
+    .lg-meta { color: var(--text-2); font-size: .9rem; margin-bottom: 14px; }
+    .lg-head .lp-sub { margin-bottom: 8px; }
+    .lg-toc { padding: 22px 24px; margin: 28px 0 8px; }
+    .lg-toc h2 { font: 500 .76rem/1.2 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 14px; }
+    .lg-toc ol { columns: 2; column-gap: 28px; padding-left: 1.3em; font-size: .92rem; }
+    .lg-toc li { margin-bottom: 7px; break-inside: avoid; }
+    .lg-toc a { text-decoration: none; }
+    .lg-toc a:hover { text-decoration: underline; }
+    .lg-doc section { padding-top: 30px; }
+    .lg-doc h2 { font-size: clamp(1.2rem, 2.6vw, 1.45rem); line-height: 1.25; margin-bottom: 12px; scroll-margin-top: 90px; }
+    .lg-doc h3 { font-size: 1.02rem; margin: 18px 0 8px; }
+    .lg-doc p, .lg-doc li { color: var(--text-2); font-size: .98rem; line-height: 1.65; }
+    .lg-doc p { margin-bottom: 12px; }
+    .lg-doc section ul, .lg-doc section ol { padding-left: 1.3em; margin-bottom: 12px; }
+    .lg-doc section li { margin-bottom: 6px; }
+    .lg-doc strong { color: var(--text); font-weight: 560; }
+    .lg-doc a { overflow-wrap: anywhere; }
+    .lg-doc .ph { background: var(--warn-bg); color: var(--warn); padding: 1px 6px; border-radius: 6px; font-weight: 500; overflow-wrap: anywhere; }
+    .lg-tabela { overflow-x: auto; margin: 6px 0 14px; border: 1px solid var(--line); border-radius: 14px; }
+    .lg-tabela table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+    .lg-tabela th, .lg-tabela td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--text-2); }
+    .lg-tabela th { color: var(--text); font-weight: 520; background: var(--surface-2); }
+    .lg-tabela tr:last-child td { border-bottom: 0; }
+    .lg-topo { margin-top: 32px; font-size: .9rem; }
+    @media (max-width: 680px) {
+      .lg-top .actions .lp-lang { display: inline-flex; }
+      .lg-toc ol { columns: 1; }
+      .lg-main { padding-top: 24px; }
+    }
+    @media (max-width: 420px) {
+      .lg-top .lp-brand .sep, .lg-top .lp-brand b, .lg-top .lp-entrar { display: none; }
+    }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#conteudo" data-t="pular">Skip to content</a>
+
+  <header class="topbar lp-top lg-top">
+    <div class="inner">
+      <a class="brand lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+        <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+        <span class="sep" aria-hidden="true"></span>
+        <b>Bússola</b>
+      </a>
+      <div class="actions">
+        <div class="lp-lang" role="group" aria-label="Language"></div>
+        <a class="lp-entrar" href="/gestor" data-t="entrar">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="lp-bg" aria-hidden="true"></div>
+
+  <main id="conteudo" class="lp-wrap lg-main" tabindex="-1">
+
+    <!-- ============================================================ ENGLISH -->
+    <article class="lg-doc" data-doc-lang="en" lang="en" aria-labelledby="en-titulo"
+      data-title="Privacy Policy (draft) · Bússola"
+      data-desc="Draft Privacy Policy for Bússola, the AI recruiting and onboarding platform by Tony Belleza. Draft for legal review, not yet in effect.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Draft for legal review. Not yet in effect.</strong><span>This text is a working draft prepared for review by counsel. It does not create any obligation until a final version is published with an effective date. Highlighted items are placeholders.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="en-titulo">Privacy Policy</h1>
+        <p class="lg-meta">Last updated: <span class="ph">[DATE]</span> · Effective date: <span class="ph">[DATE]</span></p>
+        <p class="lp-sub">This policy explains what personal information Bússola handles, why, who we share it with and the choices and rights people have, including candidates who receive a screening call from Francisca.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="en-toc">
+        <h2 id="en-toc">Contents</h2>
+        <ol>
+          <li><a href="#en-1">Who we are and our role</a></li>
+          <li><a href="#en-2">Information we handle</a></li>
+          <li><a href="#en-3">AI phone screening calls</a></li>
+          <li><a href="#en-4">How we use information</a></li>
+          <li><a href="#en-5">AI and automated decisions</a></li>
+          <li><a href="#en-6">Legal bases</a></li>
+          <li><a href="#en-7">Service providers (subprocessors)</a></li>
+          <li><a href="#en-8">Other sharing and no sale</a></li>
+          <li><a href="#en-9">Cookies and local storage</a></li>
+          <li><a href="#en-10">Retention and anonymization</a></li>
+          <li><a href="#en-11">Security</a></li>
+          <li><a href="#en-12">Your rights and choices</a></li>
+          <li><a href="#en-13">International transfers</a></li>
+          <li><a href="#en-14">Children</a></li>
+          <li><a href="#en-15">Changes to this policy</a></li>
+          <li><a href="#en-16">Contact</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="en-1">
+        <h2 id="en-1">1. Who we are and our role</h2>
+        <p>Bússola is a recruiting and onboarding platform created by Tony Belleza and operated through <span class="ph">[LEGAL ENTITY NAME]</span>, <span class="ph">[ADDRESS]</span> ("Bússola", "we", "us"). It is a multi-tenant service: each subscribing company (a "Customer") has its own separate account and data.</p>
+        <ul>
+          <li><strong>Candidate and employee data.</strong> When you apply for a job, take an assessment, receive a screening call or complete onboarding with a company that uses Bússola, that company is responsible for your information (the "controller" or "business"). We process it only on the Customer's behalf and under its instructions, as a service provider or processor ("operador" under Brazil's LGPD). If you have questions about how a company uses your data, please contact that company first. We will help it respond.</li>
+          <li><strong>Customer account and website data.</strong> For information about our Customers' account holders and visitors to our own website, Bússola is the controller.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-2">
+        <h2 id="en-2">2. Information we handle</h2>
+        <h3>Customer accounts</h3>
+        <ul>
+          <li>Company name, the name, email and phone number of administrators and managers, login credentials (passwords are stored only as secure hashes) and account settings.</li>
+          <li>Plan, usage (such as voice minutes and messages) and billing status. Payment card details are collected directly by Stripe and never reach our servers.</li>
+        </ul>
+        <h3>Candidates (on behalf of Customers)</h3>
+        <ul>
+          <li><strong>Profile and application:</strong> name, email, phone number, location, preferred language, work history, availability, the job applied to and answers to application questions.</li>
+          <li><strong>Resume:</strong> the file you upload and, if the Customer enables it, an AI analysis of it.</li>
+          <li><strong>Assessments:</strong> answers to and results of the DISC profile and the B.A.S.E. methodology tests.</li>
+          <li><strong>Screening calls:</strong> call recordings, transcripts, facts extracted from the conversation (such as availability, experience, preferred callback time and whether you agreed to the recording), a summary and score, call status and attempt history.</li>
+          <li><strong>Scheduling and communications:</strong> interview times you choose, and emails and text messages sent to you through the Service.</li>
+          <li><strong>Pipeline notes:</strong> the stage of your application and notes, tags or evaluations added by the Customer's team.</li>
+        </ul>
+        <h3>New hires in onboarding (on behalf of Customers)</h3>
+        <ul>
+          <li>Personal details such as full legal name, address, date of birth and emergency contact.</li>
+          <li>Tax and employment eligibility forms, such as W-4, W-9, I-9 and CT-W4 (Connecticut), which can include Social Security or taxpayer numbers and immigration document numbers.</li>
+          <li>Photos or scans of identity documents and other documents the employer requests.</li>
+          <li>Payment preferences for wages, such as direct deposit bank details.</li>
+          <li>Electronic signatures on offer letters and documents, with a certificate page that records the time and technical details of the signature.</li>
+        </ul>
+        <h3>Technical information</h3>
+        <ul>
+          <li>Server logs and an access history (audit log) that records which user viewed or changed which record, when, and from which IP address.</li>
+          <li>Small items stored in your browser, described in section 9.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-3">
+        <h2 id="en-3">3. AI phone screening calls</h2>
+        <p>If a Customer turns on phone screening for a job, Francisca, an AI voice agent, may call candidates who applied to that job, in English, Spanish or Portuguese.</p>
+        <ul>
+          <li>Francisca says at the start that it is an AI assistant, not a person, says that the call is recorded and asks for your consent to continue. You may end the call at any time.</li>
+          <li>The call is recorded and transcribed. The recording, transcript, extracted facts and summary are made available to the Customer to review your application.</li>
+          <li>You can ask Francisca, or the company, not to call you again. Your record is then marked "do not call" and no more screening calls are placed.</li>
+          <li>By default, calls are made only Monday to Saturday, between 9:00 and 19:30 in the time zone set by the Customer, with a limited number of attempts. If we miss you, we may leave a short voicemail.</li>
+          <li>The Customer is responsible for having the lawful basis and consent needed to call and text you and for complying with the TCPA and state laws.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-4">
+        <h2 id="en-4">4. How we use information</h2>
+        <ul>
+          <li>To provide the Service to Customers: receiving applications, running assessments and screening calls, scheduling interviews, sending messages and handling onboarding.</li>
+          <li>To create and manage Customer accounts, process payments and send service notices, such as trial reminders.</li>
+          <li>To secure the Service, prevent abuse, keep the access history and troubleshoot problems.</li>
+          <li>To comply with law and respond to lawful requests.</li>
+          <li>To improve the Service using aggregated or de-identified information.</li>
+        </ul>
+        <p>We do not use candidate or employee data for advertising, and we do not use Customer Data to train general purpose AI models.</p>
+      </section>
+
+      <section aria-labelledby="en-5">
+        <h2 id="en-5">5. AI and automated decisions</h2>
+        <p>Bússola uses AI to hold screening conversations, extract facts, summarize calls, suggest a score or tier and, when enabled, analyze resumes. These outputs support people at the hiring company. They are not automated hiring decisions: the Customer's team reviews the information and decides. If you believe an AI output about you is wrong, or you need an accommodation to complete a screening or assessment, contact the company you applied to. You may also contact us and we will forward your request.</p>
+      </section>
+
+      <section aria-labelledby="en-6">
+        <h2 id="en-6">6. Legal bases</h2>
+        <p>Where a law requires a legal basis (for example, Brazil's LGPD), the Customer, as controller, determines the basis for processing candidate and employee data, which may include taking steps before an employment contract, compliance with legal obligations (such as tax and employment eligibility forms), legitimate interests or consent. For our own account and website data, we rely on performance of our contract with the Customer, legitimate interests in running and securing the Service, compliance with legal obligations and, where required, consent. <span class="ph">[COUNSEL TO CONFIRM]</span></p>
+      </section>
+
+      <section aria-labelledby="en-7">
+        <h2 id="en-7">7. Service providers (subprocessors)</h2>
+        <p>We share information with providers that help us run the Service, under contracts that limit their use of it.</p>
+        <div class="lg-tabela" role="region" aria-label="Subprocessors" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Provider</th><th scope="col">Purpose</th><th scope="col">Data involved</th></tr></thead>
+            <tbody>
+              <tr><td>ElevenLabs</td><td>Voice AI agent for screening calls</td><td>Call audio, transcripts, candidate name, job and call variables</td></tr>
+              <tr><td>Twilio</td><td>Telephony and SMS</td><td>Phone numbers, call metadata, text message content</td></tr>
+              <tr><td>Anthropic (optional)</td><td>Resume analysis, only when the Customer enables it</td><td>Resume content and related application answers</td></tr>
+              <tr><td>Stripe</td><td>Subscription payments</td><td>Billing contact and payment details (entered directly with Stripe)</td></tr>
+              <tr><td>Oracle Cloud</td><td>Hosting and storage, United States</td><td>All data stored in the Service</td></tr>
+              <tr><td>Email provider (SMTP) configured for the Service</td><td>Sending email notifications</td><td>Name, email address and message content</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span class="ph">[ADD EMAIL PROVIDER NAME AND ANY OTHER PROVIDERS BEFORE PUBLISHING]</span></p>
+      </section>
+
+      <section aria-labelledby="en-8">
+        <h2 id="en-8">8. Other sharing and no sale</h2>
+        <ul>
+          <li><strong>With the Customer:</strong> candidate and employee data is available to the company you applied to or work for, and to the Users it authorizes.</li>
+          <li><strong>Legal reasons:</strong> when required by law, to respond to valid legal process, or to protect rights, safety and the Service.</li>
+          <li><strong>Business transfers:</strong> in a merger, acquisition or sale of assets, subject to this policy.</li>
+        </ul>
+        <p><strong>We do not sell personal information</strong> and do not share it for cross-context behavioral advertising, as those terms are defined in US state privacy laws.</p>
+      </section>
+
+      <section aria-labelledby="en-9">
+        <h2 id="en-9">9. Cookies and local storage</h2>
+        <p>We do not use advertising or third party tracking cookies. The Service uses your browser's local storage only for:</p>
+        <ul>
+          <li>keeping you signed in (a session token);</li>
+          <li>remembering your language;</li>
+          <li>remembering your light or dark theme.</li>
+        </ul>
+        <p>You can clear these at any time in your browser settings. If you do, you will need to sign in again. Stripe may set its own cookies on its checkout pages, governed by Stripe's privacy policy.</p>
+      </section>
+
+      <section aria-labelledby="en-10">
+        <h2 id="en-10">10. Retention and anonymization</h2>
+        <ul>
+          <li>Customer Data is kept while the Customer's account is active and as configured by the Customer, unless a longer period is required by law.</li>
+          <li>The Service has retention settings that automatically anonymize candidate records after a set number of months, and a per company setting to clean up completed onboarding files after a set number of days. Customers can also anonymize an individual candidate at any time.</li>
+          <li>Anonymization removes identifying details (such as name, email, phone and resume) and call transcripts, extracted facts and summaries, keeping only statistics that do not identify the person. We also ask our voice provider to delete the call recordings.</li>
+          <li>Employers may be legally required to keep some records, such as Form I-9, for a minimum period. The Customer is responsible for setting retention to meet those obligations.</li>
+          <li>After an account is closed, we delete or anonymize Customer Data within <span class="ph">[NUMBER]</span> days, except backups, which expire within <span class="ph">[NUMBER]</span> days, and records we must keep by law.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="en-11">
+        <h2 id="en-11">11. Security</h2>
+        <ul>
+          <li>Each company's data is logically separated from other companies' data.</li>
+          <li>Sensitive onboarding fields (such as Social Security and document numbers, dates of birth and bank details) and onboarding files are encrypted at rest.</li>
+          <li>Connections use HTTPS encryption in transit, and passwords are stored only as secure hashes.</li>
+          <li>Access is role based, and an access history records who viewed or changed records.</li>
+          <li>We keep regular backups and limit access by our own staff to what is needed to run and support the Service.</li>
+        </ul>
+        <p>No system is completely secure. If we learn of a security incident affecting personal information, we will notify the affected Customers and, where required, authorities and individuals.</p>
+      </section>
+
+      <section aria-labelledby="en-12">
+        <h2 id="en-12">12. Your rights and choices</h2>
+        <h3>Candidates and employees</h3>
+        <p>You may ask to access, correct or delete your information, or to stop receiving calls. Because the company you applied to controls your data, it is best to contact that company directly. You may also write to us and we will forward your request and help the company respond. To stop screening calls, tell Francisca during a call or contact the company.</p>
+        <h3>US state privacy rights</h3>
+        <p>Depending on where you live (for example California, Colorado, Connecticut, Virginia and other states with comprehensive privacy laws), and where those laws apply, you may have the right to know what personal information is collected and how it is used, to access and get a copy of it, to correct it, to delete it, to opt out of the sale or sharing of personal information and of certain profiling, and to limit the use of sensitive personal information. We do not sell or share personal information for targeted advertising. We will not discriminate against you for exercising your rights. You may use an authorized agent, and we may need to verify your identity. If we deny your request, you may appeal by replying to our decision. <span class="ph">[COUNSEL TO CONFIRM WHICH LAWS APPLY AND RESPONSE TIMES]</span></p>
+        <h3>Brazil (LGPD)</h3>
+        <p>If you are in Brazil, under article 18 of the LGPD you have the right to confirmation that your data is processed, access, correction, anonymization, blocking or deletion of unnecessary or excessive data, portability, information about the entities your data is shared with, information about the option not to consent and its consequences, withdrawal of consent, and review of decisions made solely by automated processing. You may also file a complaint with the ANPD (Autoridade Nacional de Proteção de Dados).</p>
+        <h3>How to make a request</h3>
+        <p>Email <span class="ph">privacy@[company domain]</span>. We will respond within the time required by applicable law.</p>
+      </section>
+
+      <section aria-labelledby="en-13">
+        <h2 id="en-13">13. International transfers</h2>
+        <p>The Service is hosted in the United States, and some of our providers may process data in other countries. If you use the Service from outside the United States, including from Brazil, your information will be transferred to and processed in the United States. Where required, we use appropriate safeguards for these transfers, such as contractual clauses. <span class="ph">[COUNSEL TO CONFIRM TRANSFER MECHANISM UNDER LGPD]</span></p>
+      </section>
+
+      <section aria-labelledby="en-14">
+        <h2 id="en-14">14. Children</h2>
+        <p>The Service is not directed to children and is not intended for anyone under 16. We do not knowingly collect personal information from children under 16. If you believe a child has provided information through the Service, contact us and we will help the Customer delete it.</p>
+      </section>
+
+      <section aria-labelledby="en-15">
+        <h2 id="en-15">15. Changes to this policy</h2>
+        <p>We may update this policy. We will change the "last updated" date and, for material changes, notify Customers by email or in the dashboard before the changes take effect.</p>
+      </section>
+
+      <section aria-labelledby="en-16">
+        <h2 id="en-16">16. Contact</h2>
+        <p>Bússola, operated by Tony Belleza through <span class="ph">[LEGAL ENTITY NAME]</span><br>
+        <span class="ph">[ADDRESS]</span><br>
+        Privacy contact: <span class="ph">privacy@[company domain]</span><br>
+        Data protection officer for Brazil (LGPD "encarregado"): <span class="ph">[NAME AND EMAIL]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Back to top</a></p>
+    </article>
+
+    <!-- ============================================================ PORTUGUÊS -->
+    <article class="lg-doc" data-doc-lang="pt" lang="pt-BR" aria-labelledby="pt-titulo" hidden
+      data-title="Política de Privacidade (rascunho) · Bússola"
+      data-desc="Rascunho da Política de Privacidade da Bússola, plataforma de recrutamento e onboarding com IA de Tony Belleza. Rascunho para revisão jurídica, ainda não está em vigor.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Rascunho para revisão jurídica. Ainda não está em vigor.</strong><span>Este texto é um rascunho de trabalho preparado para revisão por advogados. Ele não gera nenhuma obrigação até que uma versão final seja publicada com data de vigência. Os itens destacados são campos a preencher.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="pt-titulo">Política de Privacidade</h1>
+        <p class="lg-meta">Última atualização: <span class="ph">[DATA]</span> · Data de vigência: <span class="ph">[DATA]</span></p>
+        <p class="lp-sub">Esta política explica quais dados pessoais a Bússola trata, por quê, com quem compartilhamos e quais escolhas e direitos as pessoas têm, inclusive candidatos que recebem uma ligação de triagem da Francisca.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="pt-toc">
+        <h2 id="pt-toc">Sumário</h2>
+        <ol>
+          <li><a href="#pt-1">Quem somos e nosso papel</a></li>
+          <li><a href="#pt-2">Dados que tratamos</a></li>
+          <li><a href="#pt-3">Ligações de triagem com IA</a></li>
+          <li><a href="#pt-4">Como usamos os dados</a></li>
+          <li><a href="#pt-5">IA e decisões automatizadas</a></li>
+          <li><a href="#pt-6">Bases legais</a></li>
+          <li><a href="#pt-7">Fornecedores (suboperadores)</a></li>
+          <li><a href="#pt-8">Outros compartilhamentos e nenhuma venda</a></li>
+          <li><a href="#pt-9">Cookies e armazenamento local</a></li>
+          <li><a href="#pt-10">Retenção e anonimização</a></li>
+          <li><a href="#pt-11">Segurança</a></li>
+          <li><a href="#pt-12">Seus direitos e escolhas</a></li>
+          <li><a href="#pt-13">Transferências internacionais</a></li>
+          <li><a href="#pt-14">Crianças e adolescentes</a></li>
+          <li><a href="#pt-15">Mudanças nesta política</a></li>
+          <li><a href="#pt-16">Contato</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="pt-1">
+        <h2 id="pt-1">1. Quem somos e nosso papel</h2>
+        <p>A Bússola é uma plataforma de recrutamento e onboarding criada por Tony Belleza e operada por meio de <span class="ph">[RAZÃO SOCIAL]</span>, <span class="ph">[ENDEREÇO]</span> ("Bússola", "nós"). É um serviço multiempresa: cada empresa assinante (um "Cliente") tem sua própria conta e seus próprios dados, separados dos demais.</p>
+        <ul>
+          <li><strong>Dados de candidatos e funcionários.</strong> Quando você se candidata a uma vaga, faz um teste, recebe uma ligação de triagem ou faz o onboarding com uma empresa que usa a Bússola, essa empresa é a responsável pelos seus dados (a "controladora"). Nós tratamos esses dados apenas em nome do Cliente e conforme suas instruções, como operadora (prestadora de serviço). Se tiver dúvidas sobre como uma empresa usa seus dados, fale primeiro com ela. Nós a ajudaremos a responder.</li>
+          <li><strong>Dados da conta do Cliente e do site.</strong> Para os dados dos titulares das contas dos nossos Clientes e dos visitantes do nosso próprio site, a Bússola é a controladora.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-2">
+        <h2 id="pt-2">2. Dados que tratamos</h2>
+        <h3>Contas de Clientes</h3>
+        <ul>
+          <li>Nome da empresa, nome, e-mail e telefone de administradores e gestores, credenciais de acesso (as senhas são guardadas apenas como hash seguro) e configurações da conta.</li>
+          <li>Plano, uso (como minutos de voz e mensagens) e situação de pagamento. Os dados de cartão são coletados diretamente pela Stripe e nunca chegam aos nossos servidores.</li>
+        </ul>
+        <h3>Candidatos (em nome dos Clientes)</h3>
+        <ul>
+          <li><strong>Perfil e candidatura:</strong> nome, e-mail, telefone, localização, idioma preferido, histórico profissional, disponibilidade, a vaga escolhida e as respostas às perguntas da candidatura.</li>
+          <li><strong>Currículo:</strong> o arquivo que você envia e, se o Cliente ativar, uma análise dele feita por IA.</li>
+          <li><strong>Testes:</strong> respostas e resultados do perfil DISC e dos testes da metodologia B.A.S.E.</li>
+          <li><strong>Ligações de triagem:</strong> gravações, transcrições, fatos extraídos da conversa (como disponibilidade, experiência, melhor horário para retorno e se você aceitou a gravação), um resumo e uma pontuação, a situação da ligação e o histórico de tentativas.</li>
+          <li><strong>Agenda e comunicações:</strong> horários de entrevista que você escolhe e e-mails e SMS enviados a você pelo Serviço.</li>
+          <li><strong>Anotações do processo:</strong> a etapa da sua candidatura e anotações, etiquetas ou avaliações feitas pela equipe do Cliente.</li>
+        </ul>
+        <h3>Novos contratados no onboarding (em nome dos Clientes)</h3>
+        <ul>
+          <li>Dados pessoais como nome completo, endereço, data de nascimento e contato de emergência.</li>
+          <li>Formulários fiscais e de elegibilidade para trabalho, como W-4, W-9, I-9 e CT-W4 (Connecticut), que podem incluir número do Social Security ou de contribuinte e números de documentos de imigração.</li>
+          <li>Fotos ou cópias de documentos de identidade e outros documentos pedidos pelo empregador.</li>
+          <li>Forma de recebimento do salário, como dados bancários para depósito direto.</li>
+          <li>Assinaturas eletrônicas em cartas de proposta e documentos, com uma página de certificado que registra o horário e os detalhes técnicos da assinatura.</li>
+        </ul>
+        <h3>Dados técnicos</h3>
+        <ul>
+          <li>Registros do servidor e um histórico de acessos (trilha de auditoria) que registra qual usuário viu ou alterou qual registro, quando e de qual endereço IP.</li>
+          <li>Pequenos itens guardados no seu navegador, descritos na seção 9.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-3">
+        <h2 id="pt-3">3. Ligações de triagem com IA</h2>
+        <p>Se um Cliente ativar a triagem por telefone para uma vaga, a Francisca, uma agente de voz com IA, pode ligar para os candidatos dessa vaga, em inglês, espanhol ou português.</p>
+        <ul>
+          <li>Logo no início, a Francisca diz que é uma assistente de IA, não uma pessoa, informa que a ligação é gravada e pede seu consentimento para continuar. Você pode encerrar a ligação a qualquer momento.</li>
+          <li>A ligação é gravada e transcrita. A gravação, a transcrição, os fatos extraídos e o resumo ficam disponíveis para o Cliente avaliar sua candidatura.</li>
+          <li>Você pode pedir à Francisca, ou à empresa, que não ligue mais. Seu cadastro é então marcado como "não ligar" e nenhuma nova ligação de triagem é feita.</li>
+          <li>Por padrão, as ligações acontecem só de segunda a sábado, entre 9:00 e 19:30 no fuso horário definido pelo Cliente, com número limitado de tentativas. Se não conseguirmos falar com você, podemos deixar um breve recado na caixa postal.</li>
+          <li>O Cliente é responsável por ter a base legal e o consentimento necessários para ligar e enviar SMS a você e por cumprir a TCPA e as leis estaduais.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-4">
+        <h2 id="pt-4">4. Como usamos os dados</h2>
+        <ul>
+          <li>Para prestar o Serviço aos Clientes: receber candidaturas, aplicar testes e ligações de triagem, agendar entrevistas, enviar mensagens e conduzir o onboarding.</li>
+          <li>Para criar e gerenciar contas de Clientes, processar pagamentos e enviar avisos do serviço, como lembretes do fim do teste.</li>
+          <li>Para proteger o Serviço, evitar abusos, manter o histórico de acessos e resolver problemas.</li>
+          <li>Para cumprir a lei e responder a pedidos legítimos de autoridades.</li>
+          <li>Para melhorar o Serviço com dados agregados ou desidentificados.</li>
+        </ul>
+        <p>Não usamos dados de candidatos ou funcionários para publicidade e não usamos Dados do Cliente para treinar modelos de IA de uso geral.</p>
+      </section>
+
+      <section aria-labelledby="pt-5">
+        <h2 id="pt-5">5. IA e decisões automatizadas</h2>
+        <p>A Bússola usa IA para conduzir conversas de triagem, extrair fatos, resumir ligações, sugerir uma pontuação ou classificação e, quando ativada, analisar currículos. Esses resultados apoiam as pessoas da empresa contratante. Não são decisões automatizadas de contratação: a equipe do Cliente revisa as informações e decide. Se achar que um resultado de IA sobre você está errado, ou se precisar de adaptação para fazer uma triagem ou teste, fale com a empresa à qual se candidatou. Você também pode falar conosco e encaminharemos seu pedido.</p>
+      </section>
+
+      <section aria-labelledby="pt-6">
+        <h2 id="pt-6">6. Bases legais</h2>
+        <p>Quando a lei exige uma base legal (como a LGPD), o Cliente, como controlador, define a base para tratar os dados de candidatos e funcionários, que pode incluir procedimentos preliminares a um contrato de trabalho, cumprimento de obrigação legal (como formulários fiscais e de elegibilidade para trabalho), legítimo interesse ou consentimento. Para os dados da nossa própria conta e do site, usamos a execução do contrato com o Cliente, o legítimo interesse em operar e proteger o Serviço, o cumprimento de obrigações legais e, quando exigido, o consentimento. <span class="ph">[ADVOGADO CONFIRMAR]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-7">
+        <h2 id="pt-7">7. Fornecedores (suboperadores)</h2>
+        <p>Compartilhamos dados com fornecedores que nos ajudam a operar o Serviço, com contratos que limitam o uso que fazem deles.</p>
+        <div class="lg-tabela" role="region" aria-label="Suboperadores" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Fornecedor</th><th scope="col">Finalidade</th><th scope="col">Dados envolvidos</th></tr></thead>
+            <tbody>
+              <tr><td>ElevenLabs</td><td>Agente de voz com IA para as ligações de triagem</td><td>Áudio das ligações, transcrições, nome do candidato, vaga e variáveis da ligação</td></tr>
+              <tr><td>Twilio</td><td>Telefonia e SMS</td><td>Números de telefone, metadados das ligações, conteúdo dos SMS</td></tr>
+              <tr><td>Anthropic (opcional)</td><td>Análise de currículos, só quando o Cliente ativa</td><td>Conteúdo do currículo e respostas relacionadas da candidatura</td></tr>
+              <tr><td>Stripe</td><td>Pagamento das assinaturas</td><td>Contato de cobrança e dados de pagamento (digitados diretamente na Stripe)</td></tr>
+              <tr><td>Oracle Cloud</td><td>Hospedagem e armazenamento, Estados Unidos</td><td>Todos os dados guardados no Serviço</td></tr>
+              <tr><td>Provedor de e-mail (SMTP) configurado no Serviço</td><td>Envio de notificações por e-mail</td><td>Nome, e-mail e conteúdo da mensagem</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span class="ph">[INCLUIR O NOME DO PROVEDOR DE E-MAIL E OUTROS FORNECEDORES ANTES DE PUBLICAR]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-8">
+        <h2 id="pt-8">8. Outros compartilhamentos e nenhuma venda</h2>
+        <ul>
+          <li><strong>Com o Cliente:</strong> os dados de candidatos e funcionários ficam disponíveis para a empresa à qual você se candidatou ou para a qual trabalha, e para os Usuários que ela autoriza.</li>
+          <li><strong>Motivos legais:</strong> quando a lei exigir, para atender a ordens legais válidas, ou para proteger direitos, a segurança e o Serviço.</li>
+          <li><strong>Operações societárias:</strong> em fusão, aquisição ou venda de ativos, sujeitos a esta política.</li>
+        </ul>
+        <p><strong>Não vendemos dados pessoais</strong> e não os compartilhamos para publicidade comportamental, nos termos definidos pelas leis estaduais de privacidade dos EUA.</p>
+      </section>
+
+      <section aria-labelledby="pt-9">
+        <h2 id="pt-9">9. Cookies e armazenamento local</h2>
+        <p>Não usamos cookies de publicidade nem de rastreamento de terceiros. O Serviço usa o armazenamento local do seu navegador apenas para:</p>
+        <ul>
+          <li>manter você conectado (um token de sessão);</li>
+          <li>lembrar o seu idioma;</li>
+          <li>lembrar o tema claro ou escuro.</li>
+        </ul>
+        <p>Você pode apagar esses itens a qualquer momento nas configurações do navegador. Se fizer isso, precisará entrar de novo. A Stripe pode usar seus próprios cookies nas páginas de pagamento dela, regidos pela política de privacidade da Stripe.</p>
+      </section>
+
+      <section aria-labelledby="pt-10">
+        <h2 id="pt-10">10. Retenção e anonimização</h2>
+        <ul>
+          <li>Os Dados do Cliente são guardados enquanto a conta do Cliente estiver ativa e conforme a configuração do Cliente, salvo quando a lei exigir prazo maior.</li>
+          <li>O Serviço tem configurações de retenção que anonimizam automaticamente os cadastros de candidatos após um número definido de meses, e uma configuração por empresa para limpar os arquivos de onboarding concluídos após um número definido de dias. O Cliente também pode anonimizar um candidato a qualquer momento.</li>
+          <li>A anonimização remove dados que identificam a pessoa (como nome, e-mail, telefone e currículo) e as transcrições, fatos extraídos e resumos das ligações, mantendo apenas estatísticas que não a identificam. Também pedimos ao nosso fornecedor de voz que apague as gravações das ligações.</li>
+          <li>Empregadores podem ser obrigados por lei a guardar alguns registros, como o formulário I-9, por um prazo mínimo. O Cliente é responsável por ajustar a retenção para cumprir essas obrigações.</li>
+          <li>Depois que uma conta é encerrada, excluímos ou anonimizamos os Dados do Cliente em até <span class="ph">[NÚMERO]</span> dias, exceto cópias de segurança, que expiram em até <span class="ph">[NÚMERO]</span> dias, e registros que a lei nos obriga a manter.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="pt-11">
+        <h2 id="pt-11">11. Segurança</h2>
+        <ul>
+          <li>Os dados de cada empresa ficam logicamente separados dos dados das demais.</li>
+          <li>Campos sensíveis do onboarding (como números de Social Security e de documentos, datas de nascimento e dados bancários) e os arquivos do onboarding ficam cifrados em repouso.</li>
+          <li>As conexões usam criptografia HTTPS em trânsito, e as senhas são guardadas apenas como hash seguro.</li>
+          <li>O acesso é por perfil, e um histórico de acessos registra quem viu ou alterou cada registro.</li>
+          <li>Fazemos cópias de segurança regulares e limitamos o acesso da nossa equipe ao necessário para operar e dar suporte ao Serviço.</li>
+        </ul>
+        <p>Nenhum sistema é totalmente seguro. Se soubermos de um incidente de segurança que afete dados pessoais, avisaremos os Clientes afetados e, quando exigido, as autoridades e os titulares.</p>
+      </section>
+
+      <section aria-labelledby="pt-12">
+        <h2 id="pt-12">12. Seus direitos e escolhas</h2>
+        <h3>Candidatos e funcionários</h3>
+        <p>Você pode pedir acesso, correção ou exclusão dos seus dados, ou pedir para não receber mais ligações. Como a empresa à qual você se candidatou controla seus dados, o ideal é falar diretamente com ela. Você também pode nos escrever e encaminharemos o pedido e ajudaremos a empresa a responder. Para parar as ligações de triagem, diga isso à Francisca durante uma ligação ou fale com a empresa.</p>
+        <h3>Direitos nas leis estaduais dos EUA</h3>
+        <p>Dependendo de onde você mora (por exemplo Califórnia, Colorado, Connecticut, Virgínia e outros estados com leis amplas de privacidade), e quando essas leis se aplicarem, você pode ter direito a saber quais dados pessoais são coletados e como são usados, a acessá-los e obter uma cópia, a corrigi-los, a excluí-los, a recusar a venda ou o compartilhamento de dados pessoais e certos tipos de perfilamento, e a limitar o uso de dados pessoais sensíveis. Não vendemos nem compartilhamos dados pessoais para publicidade direcionada. Você não será discriminado por exercer seus direitos. Você pode usar um representante autorizado, e podemos precisar confirmar sua identidade. Se negarmos seu pedido, você pode recorrer respondendo à nossa decisão. <span class="ph">[ADVOGADO CONFIRMAR QUAIS LEIS SE APLICAM E OS PRAZOS DE RESPOSTA]</span></p>
+        <h3>Brasil (LGPD)</h3>
+        <p>Se você está no Brasil, pelo artigo 18 da LGPD você tem direito a confirmação da existência de tratamento, acesso aos dados, correção, anonimização, bloqueio ou eliminação de dados desnecessários ou excessivos, portabilidade, informação sobre as entidades com as quais seus dados são compartilhados, informação sobre a possibilidade de não consentir e suas consequências, revogação do consentimento e revisão de decisões tomadas unicamente com base em tratamento automatizado. Você também pode apresentar reclamação à ANPD (Autoridade Nacional de Proteção de Dados).</p>
+        <h3>Como fazer um pedido</h3>
+        <p>Envie um e-mail para <span class="ph">privacy@[domínio da empresa]</span>. Responderemos no prazo exigido pela lei aplicável.</p>
+      </section>
+
+      <section aria-labelledby="pt-13">
+        <h2 id="pt-13">13. Transferências internacionais</h2>
+        <p>O Serviço é hospedado nos Estados Unidos, e alguns dos nossos fornecedores podem tratar dados em outros países. Se você usa o Serviço de fora dos Estados Unidos, inclusive do Brasil, seus dados serão transferidos e tratados nos Estados Unidos. Quando exigido, usamos salvaguardas adequadas para essas transferências, como cláusulas contratuais. <span class="ph">[ADVOGADO CONFIRMAR O MECANISMO DE TRANSFERÊNCIA PELA LGPD]</span></p>
+      </section>
+
+      <section aria-labelledby="pt-14">
+        <h2 id="pt-14">14. Crianças e adolescentes</h2>
+        <p>O Serviço não é voltado a crianças e não se destina a menores de 16 anos. Não coletamos intencionalmente dados pessoais de menores de 16 anos. Se você acredita que um menor forneceu dados pelo Serviço, fale conosco e ajudaremos o Cliente a excluí-los.</p>
+      </section>
+
+      <section aria-labelledby="pt-15">
+        <h2 id="pt-15">15. Mudanças nesta política</h2>
+        <p>Podemos atualizar esta política. Vamos mudar a data de "última atualização" e, em mudanças relevantes, avisar os Clientes por e-mail ou no painel antes que passem a valer.</p>
+      </section>
+
+      <section aria-labelledby="pt-16">
+        <h2 id="pt-16">16. Contato</h2>
+        <p>Bússola, operada por Tony Belleza por meio de <span class="ph">[RAZÃO SOCIAL]</span><br>
+        <span class="ph">[ENDEREÇO]</span><br>
+        Contato de privacidade: <span class="ph">privacy@[domínio da empresa]</span><br>
+        Encarregado pelo tratamento de dados (LGPD): <span class="ph">[NOME E E-MAIL]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Voltar ao topo</a></p>
+    </article>
+
+    <!-- ============================================================ ESPAÑOL -->
+    <article class="lg-doc" data-doc-lang="es" lang="es" aria-labelledby="es-titulo" hidden
+      data-title="Política de Privacidad (borrador) · Bússola"
+      data-desc="Borrador de la Política de Privacidad de Bússola, la plataforma de reclutamiento y onboarding con IA de Tony Belleza. Borrador para revisión legal, aún no está vigente.">
+      <div class="lg-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <div><strong>Borrador para revisión legal. Aún no está vigente.</strong><span>Este texto es un borrador de trabajo preparado para revisión por abogados. No crea ninguna obligación hasta que se publique una versión final con fecha de vigencia. Los elementos resaltados son campos por completar.</span></div>
+      </div>
+
+      <header class="lg-head">
+        <span class="lp-eyebrow">Legal</span>
+        <h1 id="es-titulo">Política de Privacidad</h1>
+        <p class="lg-meta">Última actualización: <span class="ph">[FECHA]</span> · Fecha de vigencia: <span class="ph">[FECHA]</span></p>
+        <p class="lp-sub">Esta política explica qué datos personales trata Bússola, por qué, con quién los compartimos y qué opciones y derechos tienen las personas, incluidos los candidatos que reciben una llamada de entrevista de Francisca.</p>
+      </header>
+
+      <nav class="lg-toc lp-glass" aria-labelledby="es-toc">
+        <h2 id="es-toc">Contenido</h2>
+        <ol>
+          <li><a href="#es-1">Quiénes somos y nuestro papel</a></li>
+          <li><a href="#es-2">Datos que tratamos</a></li>
+          <li><a href="#es-3">Llamadas de entrevista con IA</a></li>
+          <li><a href="#es-4">Cómo usamos los datos</a></li>
+          <li><a href="#es-5">IA y decisiones automatizadas</a></li>
+          <li><a href="#es-6">Bases legales</a></li>
+          <li><a href="#es-7">Proveedores (subencargados)</a></li>
+          <li><a href="#es-8">Otras divulgaciones y ninguna venta</a></li>
+          <li><a href="#es-9">Cookies y almacenamiento local</a></li>
+          <li><a href="#es-10">Conservación y anonimización</a></li>
+          <li><a href="#es-11">Seguridad</a></li>
+          <li><a href="#es-12">Sus derechos y opciones</a></li>
+          <li><a href="#es-13">Transferencias internacionales</a></li>
+          <li><a href="#es-14">Menores de edad</a></li>
+          <li><a href="#es-15">Cambios a esta política</a></li>
+          <li><a href="#es-16">Contacto</a></li>
+        </ol>
+      </nav>
+
+      <section aria-labelledby="es-1">
+        <h2 id="es-1">1. Quiénes somos y nuestro papel</h2>
+        <p>Bússola es una plataforma de reclutamiento y onboarding creada por Tony Belleza y operada a través de <span class="ph">[RAZÓN SOCIAL]</span>, <span class="ph">[DIRECCIÓN]</span> ("Bússola", "nosotros"). Es un servicio multiempresa: cada empresa suscriptora (un "Cliente") tiene su propia cuenta y sus propios datos, separados de los demás.</p>
+        <ul>
+          <li><strong>Datos de candidatos y empleados.</strong> Cuando usted se postula a una vacante, hace una evaluación, recibe una llamada de entrevista o completa el onboarding con una empresa que usa Bússola, esa empresa es responsable de sus datos (el "responsable"). Nosotros los tratamos solo en nombre del Cliente y según sus instrucciones, como proveedor de servicios o encargado. Si tiene preguntas sobre cómo una empresa usa sus datos, comuníquese primero con ella. Nosotros le ayudaremos a responder.</li>
+          <li><strong>Datos de la cuenta del Cliente y del sitio.</strong> Para los datos de los titulares de las cuentas de nuestros Clientes y de los visitantes de nuestro propio sitio, Bússola es el responsable.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-2">
+        <h2 id="es-2">2. Datos que tratamos</h2>
+        <h3>Cuentas de Clientes</h3>
+        <ul>
+          <li>Nombre de la empresa, nombre, correo y teléfono de administradores y gerentes, credenciales de acceso (las contraseñas se guardan solo como hash seguro) y configuración de la cuenta.</li>
+          <li>Plan, uso (como minutos de voz y mensajes) y estado de pago. Los datos de tarjeta los recopila directamente Stripe y nunca llegan a nuestros servidores.</li>
+        </ul>
+        <h3>Candidatos (en nombre de los Clientes)</h3>
+        <ul>
+          <li><strong>Perfil y postulación:</strong> nombre, correo, teléfono, ubicación, idioma preferido, historial laboral, disponibilidad, la vacante elegida y las respuestas a las preguntas de la postulación.</li>
+          <li><strong>Currículum:</strong> el archivo que usted sube y, si el Cliente lo activa, un análisis hecho con IA.</li>
+          <li><strong>Evaluaciones:</strong> respuestas y resultados del perfil DISC y de las pruebas de la metodología B.A.S.E.</li>
+          <li><strong>Llamadas de entrevista:</strong> grabaciones, transcripciones, datos extraídos de la conversación (como disponibilidad, experiencia, mejor horario para devolver la llamada y si aceptó la grabación), un resumen y un puntaje, el estado de la llamada y el historial de intentos.</li>
+          <li><strong>Agenda y comunicaciones:</strong> los horarios de entrevista que usted elige y los correos y SMS que le enviamos a través del Servicio.</li>
+          <li><strong>Notas del proceso:</strong> la etapa de su postulación y las notas, etiquetas o evaluaciones del equipo del Cliente.</li>
+        </ul>
+        <h3>Nuevos empleados en onboarding (en nombre de los Clientes)</h3>
+        <ul>
+          <li>Datos personales como nombre legal completo, dirección, fecha de nacimiento y contacto de emergencia.</li>
+          <li>Formularios fiscales y de elegibilidad para trabajar, como W-4, W-9, I-9 y CT-W4 (Connecticut), que pueden incluir el número de Seguro Social o de contribuyente y números de documentos migratorios.</li>
+          <li>Fotos o copias de documentos de identidad y otros documentos que pida el empleador.</li>
+          <li>Forma de pago del salario, como datos bancarios para depósito directo.</li>
+          <li>Firmas electrónicas en cartas de oferta y documentos, con una página de certificado que registra la hora y los detalles técnicos de la firma.</li>
+        </ul>
+        <h3>Datos técnicos</h3>
+        <ul>
+          <li>Registros del servidor y un historial de accesos (registro de auditoría) que indica qué usuario vio o cambió qué registro, cuándo y desde qué dirección IP.</li>
+          <li>Pequeños elementos guardados en su navegador, descritos en la sección 9.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-3">
+        <h2 id="es-3">3. Llamadas de entrevista con IA</h2>
+        <p>Si un Cliente activa la entrevista telefónica para una vacante, Francisca, una agente de voz con IA, puede llamar a los candidatos de esa vacante, en inglés, español o portugués.</p>
+        <ul>
+          <li>Al inicio, Francisca dice que es una asistente de IA, no una persona, informa que la llamada se graba y pide su consentimiento para continuar. Puede terminar la llamada en cualquier momento.</li>
+          <li>La llamada se graba y se transcribe. La grabación, la transcripción, los datos extraídos y el resumen quedan disponibles para que el Cliente evalúe su postulación.</li>
+          <li>Puede pedirle a Francisca, o a la empresa, que no lo vuelvan a llamar. Su registro queda marcado como "no llamar" y no se hacen más llamadas de entrevista.</li>
+          <li>De forma predeterminada, las llamadas se hacen solo de lunes a sábado, entre las 9:00 y las 19:30 en la zona horaria definida por el Cliente, con un número limitado de intentos. Si no logramos comunicarnos, podemos dejar un breve mensaje de voz.</li>
+          <li>El Cliente es responsable de tener la base legal y el consentimiento necesarios para llamarle y enviarle SMS, y de cumplir la TCPA y las leyes estatales.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-4">
+        <h2 id="es-4">4. Cómo usamos los datos</h2>
+        <ul>
+          <li>Para prestar el Servicio a los Clientes: recibir postulaciones, aplicar evaluaciones y llamadas de entrevista, agendar entrevistas, enviar mensajes y gestionar el onboarding.</li>
+          <li>Para crear y administrar cuentas de Clientes, procesar pagos y enviar avisos del servicio, como recordatorios del fin de la prueba.</li>
+          <li>Para proteger el Servicio, prevenir abusos, mantener el historial de accesos y resolver problemas.</li>
+          <li>Para cumplir la ley y responder a solicitudes legítimas de autoridades.</li>
+          <li>Para mejorar el Servicio con datos agregados o desidentificados.</li>
+        </ul>
+        <p>No usamos datos de candidatos o empleados para publicidad y no usamos los Datos del Cliente para entrenar modelos de IA de uso general.</p>
+      </section>
+
+      <section aria-labelledby="es-5">
+        <h2 id="es-5">5. IA y decisiones automatizadas</h2>
+        <p>Bússola usa IA para conducir conversaciones de entrevista, extraer datos, resumir llamadas, sugerir un puntaje o categoría y, cuando está activado, analizar currículums. Estos resultados apoyan a las personas de la empresa que contrata. No son decisiones automatizadas de contratación: el equipo del Cliente revisa la información y decide. Si cree que un resultado de IA sobre usted es incorrecto, o necesita un ajuste razonable para completar una entrevista o evaluación, comuníquese con la empresa a la que se postuló. También puede escribirnos y enviaremos su solicitud.</p>
+      </section>
+
+      <section aria-labelledby="es-6">
+        <h2 id="es-6">6. Bases legales</h2>
+        <p>Cuando la ley exige una base legal (por ejemplo, la LGPD de Brasil), el Cliente, como responsable, define la base para tratar los datos de candidatos y empleados, que puede incluir medidas previas a un contrato de trabajo, el cumplimiento de obligaciones legales (como formularios fiscales y de elegibilidad para trabajar), el interés legítimo o el consentimiento. Para los datos de nuestra propia cuenta y sitio, nos basamos en la ejecución del contrato con el Cliente, el interés legítimo en operar y proteger el Servicio, el cumplimiento de obligaciones legales y, cuando se requiere, el consentimiento. <span class="ph">[ABOGADO CONFIRMAR]</span></p>
+      </section>
+
+      <section aria-labelledby="es-7">
+        <h2 id="es-7">7. Proveedores (subencargados)</h2>
+        <p>Compartimos datos con proveedores que nos ayudan a operar el Servicio, con contratos que limitan el uso que hacen de ellos.</p>
+        <div class="lg-tabela" role="region" aria-label="Subencargados" tabindex="0">
+          <table>
+            <thead><tr><th scope="col">Proveedor</th><th scope="col">Finalidad</th><th scope="col">Datos involucrados</th></tr></thead>
+            <tbody>
+              <tr><td>ElevenLabs</td><td>Agente de voz con IA para las llamadas de entrevista</td><td>Audio de las llamadas, transcripciones, nombre del candidato, vacante y variables de la llamada</td></tr>
+              <tr><td>Twilio</td><td>Telefonía y SMS</td><td>Números de teléfono, metadatos de las llamadas, contenido de los SMS</td></tr>
+              <tr><td>Anthropic (opcional)</td><td>Análisis de currículums, solo cuando el Cliente lo activa</td><td>Contenido del currículum y respuestas relacionadas de la postulación</td></tr>
+              <tr><td>Stripe</td><td>Pago de las suscripciones</td><td>Contacto de facturación y datos de pago (ingresados directamente en Stripe)</td></tr>
+              <tr><td>Oracle Cloud</td><td>Alojamiento y almacenamiento, Estados Unidos</td><td>Todos los datos guardados en el Servicio</td></tr>
+              <tr><td>Proveedor de correo (SMTP) configurado en el Servicio</td><td>Envío de notificaciones por correo</td><td>Nombre, correo y contenido del mensaje</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span class="ph">[AGREGAR EL NOMBRE DEL PROVEEDOR DE CORREO Y OTROS PROVEEDORES ANTES DE PUBLICAR]</span></p>
+      </section>
+
+      <section aria-labelledby="es-8">
+        <h2 id="es-8">8. Otras divulgaciones y ninguna venta</h2>
+        <ul>
+          <li><strong>Con el Cliente:</strong> los datos de candidatos y empleados están disponibles para la empresa a la que usted se postuló o para la que trabaja, y para los Usuarios que ella autoriza.</li>
+          <li><strong>Motivos legales:</strong> cuando la ley lo exija, para responder a procesos legales válidos, o para proteger derechos, la seguridad y el Servicio.</li>
+          <li><strong>Transacciones empresariales:</strong> en una fusión, adquisición o venta de activos, sujetas a esta política.</li>
+        </ul>
+        <p><strong>No vendemos datos personales</strong> ni los compartimos para publicidad conductual, según se definen esos términos en las leyes estatales de privacidad de EE. UU.</p>
+      </section>
+
+      <section aria-labelledby="es-9">
+        <h2 id="es-9">9. Cookies y almacenamiento local</h2>
+        <p>No usamos cookies de publicidad ni de rastreo de terceros. El Servicio usa el almacenamiento local de su navegador solo para:</p>
+        <ul>
+          <li>mantener su sesión iniciada (un token de sesión);</li>
+          <li>recordar su idioma;</li>
+          <li>recordar su tema claro u oscuro.</li>
+        </ul>
+        <p>Puede borrar estos elementos en cualquier momento desde la configuración del navegador. Si lo hace, deberá iniciar sesión de nuevo. Stripe puede usar sus propias cookies en sus páginas de pago, reguladas por la política de privacidad de Stripe.</p>
+      </section>
+
+      <section aria-labelledby="es-10">
+        <h2 id="es-10">10. Conservación y anonimización</h2>
+        <ul>
+          <li>Los Datos del Cliente se conservan mientras la cuenta del Cliente esté activa y según la configuración del Cliente, salvo que la ley exija un plazo mayor.</li>
+          <li>El Servicio tiene ajustes de conservación que anonimizan automáticamente los registros de candidatos después de un número definido de meses, y un ajuste por empresa para limpiar los archivos de onboarding completados después de un número definido de días. El Cliente también puede anonimizar a un candidato en cualquier momento.</li>
+          <li>La anonimización elimina los datos que identifican a la persona (como nombre, correo, teléfono y currículum) y las transcripciones, datos extraídos y resúmenes de las llamadas, y conserva solo estadísticas que no la identifican. También pedimos a nuestro proveedor de voz que elimine las grabaciones de las llamadas.</li>
+          <li>Los empleadores pueden estar obligados por ley a conservar algunos registros, como el formulario I-9, por un plazo mínimo. El Cliente es responsable de ajustar la conservación para cumplir esas obligaciones.</li>
+          <li>Después de cerrar una cuenta, eliminamos o anonimizamos los Datos del Cliente dentro de <span class="ph">[NÚMERO]</span> días, salvo las copias de seguridad, que vencen dentro de <span class="ph">[NÚMERO]</span> días, y los registros que la ley nos obliga a conservar.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="es-11">
+        <h2 id="es-11">11. Seguridad</h2>
+        <ul>
+          <li>Los datos de cada empresa están separados lógicamente de los de las demás.</li>
+          <li>Los campos sensibles del onboarding (como números de Seguro Social y de documentos, fechas de nacimiento y datos bancarios) y los archivos del onboarding se cifran en reposo.</li>
+          <li>Las conexiones usan cifrado HTTPS en tránsito, y las contraseñas se guardan solo como hash seguro.</li>
+          <li>El acceso es por rol, y un historial de accesos registra quién vio o cambió cada registro.</li>
+          <li>Hacemos copias de seguridad periódicas y limitamos el acceso de nuestro equipo a lo necesario para operar y dar soporte al Servicio.</li>
+        </ul>
+        <p>Ningún sistema es totalmente seguro. Si nos enteramos de un incidente de seguridad que afecte datos personales, avisaremos a los Clientes afectados y, cuando se requiera, a las autoridades y a las personas.</p>
+      </section>
+
+      <section aria-labelledby="es-12">
+        <h2 id="es-12">12. Sus derechos y opciones</h2>
+        <h3>Candidatos y empleados</h3>
+        <p>Puede pedir acceso, corrección o eliminación de sus datos, o dejar de recibir llamadas. Como la empresa a la que se postuló controla sus datos, lo mejor es comunicarse directamente con ella. También puede escribirnos y enviaremos su solicitud y ayudaremos a la empresa a responder. Para detener las llamadas de entrevista, dígaselo a Francisca durante una llamada o comuníquese con la empresa.</p>
+        <h3>Derechos en las leyes estatales de EE. UU.</h3>
+        <p>Según dónde viva (por ejemplo California, Colorado, Connecticut, Virginia y otros estados con leyes integrales de privacidad), y cuando esas leyes apliquen, puede tener derecho a saber qué datos personales se recopilan y cómo se usan, a acceder a ellos y obtener una copia, a corregirlos, a eliminarlos, a oponerse a la venta o al intercambio de datos personales y a ciertos tipos de perfilamiento, y a limitar el uso de datos personales sensibles. No vendemos ni compartimos datos personales para publicidad dirigida. No será discriminado por ejercer sus derechos. Puede usar un agente autorizado, y es posible que necesitemos verificar su identidad. Si negamos su solicitud, puede apelar respondiendo a nuestra decisión. <span class="ph">[ABOGADO CONFIRMAR QUÉ LEYES APLICAN Y LOS PLAZOS DE RESPUESTA]</span></p>
+        <h3>Brasil (LGPD)</h3>
+        <p>Si está en Brasil, según el artículo 18 de la LGPD tiene derecho a la confirmación de la existencia del tratamiento, al acceso, a la corrección, a la anonimización, bloqueo o eliminación de datos innecesarios o excesivos, a la portabilidad, a información sobre las entidades con las que se comparten sus datos, a información sobre la posibilidad de no consentir y sus consecuencias, a revocar el consentimiento y a la revisión de decisiones tomadas únicamente con base en tratamiento automatizado. También puede presentar una queja ante la ANPD (Autoridade Nacional de Proteção de Dados).</p>
+        <h3>Cómo hacer una solicitud</h3>
+        <p>Escriba a <span class="ph">privacy@[dominio de la empresa]</span>. Responderemos dentro del plazo que exija la ley aplicable.</p>
+      </section>
+
+      <section aria-labelledby="es-13">
+        <h2 id="es-13">13. Transferencias internacionales</h2>
+        <p>El Servicio está alojado en Estados Unidos, y algunos de nuestros proveedores pueden tratar datos en otros países. Si usa el Servicio desde fuera de Estados Unidos, incluido Brasil, sus datos se transferirán y tratarán en Estados Unidos. Cuando se requiera, usamos salvaguardas adecuadas para estas transferencias, como cláusulas contractuales. <span class="ph">[ABOGADO CONFIRMAR EL MECANISMO DE TRANSFERENCIA SEGÚN LA LGPD]</span></p>
+      </section>
+
+      <section aria-labelledby="es-14">
+        <h2 id="es-14">14. Menores de edad</h2>
+        <p>El Servicio no está dirigido a menores y no está destinado a personas menores de 16 años. No recopilamos a sabiendas datos personales de menores de 16 años. Si cree que un menor proporcionó datos a través del Servicio, comuníquese con nosotros y ayudaremos al Cliente a eliminarlos.</p>
+      </section>
+
+      <section aria-labelledby="es-15">
+        <h2 id="es-15">15. Cambios a esta política</h2>
+        <p>Podemos actualizar esta política. Cambiaremos la fecha de "última actualización" y, ante cambios relevantes, avisaremos a los Clientes por correo o en el panel antes de que entren en vigor.</p>
+      </section>
+
+      <section aria-labelledby="es-16">
+        <h2 id="es-16">16. Contacto</h2>
+        <p>Bússola, operada por Tony Belleza a través de <span class="ph">[RAZÓN SOCIAL]</span><br>
+        <span class="ph">[DIRECCIÓN]</span><br>
+        Contacto de privacidad: <span class="ph">privacy@[dominio de la empresa]</span><br>
+        Encargado de protección de datos para Brasil (LGPD): <span class="ph">[NOMBRE Y CORREO]</span></p>
+      </section>
+
+      <p class="lg-topo"><a href="#conteudo">Volver arriba</a></p>
+    </article>
+  </main>
+
+  <footer class="lp-foot">
+    <div class="lp-wrap">
+      <div class="lp-foot-grid">
+        <div>
+          <a class="lp-brand" href="/" aria-label="Bússola, Tony Belleza">
+            <img src="img/logo-white.svg" alt="Tony Belleza" width="110" height="26">
+            <span class="sep" aria-hidden="true"></span>
+            <b>Bússola</b>
+          </a>
+          <p data-t="rod_sub">AI phone screening and onboarding for companies that hire hourly workers.</p>
+        </div>
+        <div>
+          <h4 data-t="rod_produto">Product</h4>
+          <ul>
+            <li><a href="/" data-t="rod_inicio">Home</a></li>
+            <li><a href="/assinar" data-t="rod_teste">Free trial</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_acesso">Access</h4>
+          <ul>
+            <li><a href="/vagas" data-t="rod_vagas">Jobs page</a></li>
+            <li><a href="/candidato" data-t="rod_candidato">Candidate area</a></li>
+            <li><a href="/gestor" data-t="rod_gestor">Manager login</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-t="rod_legal">Legal</h4>
+          <ul>
+            <li><a href="/termos.html" data-t="rod_termos">Terms of use</a></li>
+            <li><a href="/privacidade.html" aria-current="page" data-t="rod_privacidade">Privacy</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="lp-foot-base">
+        <span data-t="rod_copy">© Tony Belleza. Bússola, B.A.S.E. methodology curated by Tony Belleza.</span>
+        <span><a href="https://tonybelleza.com" target="_blank" rel="noopener">tonybelleza.com</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/legal.js"></script>
+</body>
+</html>

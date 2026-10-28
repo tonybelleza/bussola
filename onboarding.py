@@ -227,7 +227,21 @@ def _agora():
 
 
 def _hoje():
-    return _agora().date()
+    """Data de hoje no fuso da plataforma (Connecticut), para {{data}} e prazos."""
+    try:
+        from zoneinfo import ZoneInfo
+        return _agora().astimezone(ZoneInfo("America/New_York")).date()
+    except Exception:  # noqa: BLE001
+        return _agora().date()
+
+
+def apagar_arquivos_candidato(conn, candidato_id):
+    """Remove do disco os PDFs e documentos cifrados dos onboardings do candidato
+    (chamado ao excluir ou anonimizar o candidato)."""
+    import shutil
+    for r in conn.execute("SELECT id FROM onboardings WHERE candidato_id=?", (candidato_id,)).fetchall():
+        shutil.rmtree(os.path.join(srv.UPLOAD_DIR, "onboarding", str(int(r["id"]))), ignore_errors=True)
+    conn.execute("UPDATE onboardings SET sensiveis='' WHERE candidato_id=?", (candidato_id,))
 
 
 def _iso_utc(dt=None):

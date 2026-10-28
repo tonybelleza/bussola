@@ -704,6 +704,150 @@ class TestIsolamento(Base):
         self.assertEqual((p["client_reference_id"], p["metadata"]["plano"]), (str(self.eb), "voz1000"))
 
 
+class TestLimitesDoPlano(Base):
+    """gestores_max e vagas_ativas_max do plano: contagem, 403 com mensagem, extras do dono."""
+
+    def limitar_vagas(self, codigo, maximo):
+        cat = planos.catalogo(self.conn)
+        for p in cat["planos"]:
+            if p["codigo"] == codigo:
+                p["vagas_ativas_max"] = maximo
+        server.config_set(self.conn, "planos_catalogo", json.dumps(cat))
+        self.conn.commit()
+
+    def novo_gestor(self, login, quem="tony", idioma=None):
+        return self.req("POST", "/api/gestor/gestores", {"nome": login.title(), "login": login, "senha": "segredo123"},
+                        gestor=quem, idioma=idioma)
+
+    def salvar_vaga(self, status="aberta", vid=None, quem="tony", idioma=None):
+        d = {"titulo": "Vaga", "cargo_id": self.cargo, "status": status}
+        if vid:
+            d["id"] = vid
+        return self.req("POST", "/api/gestor/vaga", d, gestor=quem, idioma=idioma)
+
+    def test_contagem_e_empresa_sem_plano(self):
+        self.assertEqual(planos.limite_gestores(self.conn, self.ea), (True, 2, 5))   # voz100: até 5
+        self.conn.execute("INSERT INTO gestores (nome, login, senha, aprovado, empresa_id) VALUES ('P','pend','x',0,?)",
+                          (self.ea,))
+        self.assertEqual(planos.limite_gestores(self.conn, self.ea), (True, 2, 5))   # pendente não conta
+        self.assertEqual(planos.limite_vagas(self.conn, self.ea), (True, 1, None))  # catálogo padrão: sem limite
+        for codigo in ("", "contrato_antigo"):
+            self.conn.execute("UPDATE empresas SET plano=? WHERE id=?", (codigo, self.ea))
+            self.assertEqual(planos.limite_gestores(self.conn, self.ea), (True, 2, None))
+            self.assertEqual(planos.limite_vagas(self.conn, self.ea), (True, 1, None))
+        self.conn.commit()
+        for i in range(6):
+            self.assertEqual(self.novo_gestor("livre%d" % i)[0], 200)
+        self.limitar_vagas("voz100", 1)
+        self.assertEqual(self.salvar_vaga()[0], 200)   # sem plano do catálogo: nada é limitado
+
+    def test_admin_cria_gestor_ate_o_limite(self):
+        for i in range(3):
+            st, d = self.novo_gestor("g%d" % i)
+            self.assertEqual(st, 200, d)
+        st, d = self.novo_gestor("g3")
+        self.assertEqual(st, 403)
+        self.assertIn("Voz 100", d["erro"])
+        self.assertIn("5 gestores", d["erro"])
+        self.assertIn("upgrade", d["erro"])
+        self.assertIsNone(self.conn.execute("SELECT 1 FROM gestores WHERE login='g3'").fetchone())
+        st, d = self.novo_gestor("g3", idioma="en")
+        self.assertEqual(st, 403)
+        self.assertEqual(d["erro"], "The Voice 100 plan allows up to 5 active managers. Upgrade your plan to add more managers.")
+        st, d = self.novo_gestor("g3", idioma="es")
+        self.assertIn("plan Voz 100 permite hasta 5 gerentes activos", d["erro"])
+        self.assertIsNone(TRACOS.search(d["erro"]))
+        # editar um gestor existente continua liberado no limite
+        gid = self.conn.execute("SELECT id FROM gestores WHERE login='g0'").fetchone()[0]
+        st, d = self.req("POST", "/api/gestor/gestores", {"id": gid, "nome": "G Zero"}, gestor="tony")
+        self.assertEqual(st, 200, d)
+        # a outra empresa (mesmo plano, 1 gestor) não é afetada
+        self.assertEqual(self.novo_gestor("outro", quem="intruso")[0], 200)
+
+    def test_aprovacao_de_solicitacao_respeita_o_limite(self):
+        for i in range(3):
+            self.assertEqual(self.novo_gestor("g%d" % i)[0], 200)
+        st, d = self.req("POST", "/api/gestor/solicitar-acesso",
+                         {"empresa": self.slug_a, "nome": "Pedro", "login": "pedro", "email": "p@x.com", "senha": "segredo1"})
+        self.assertEqual(st, 200, d)  # a solicitação fica pendente e não conta
+        pid = self.conn.execute("SELECT id FROM gestores WHERE login='pedro'").fetchone()[0]
+        st, d = self.req("POST", "/api/gestor/gestores/%d/aprovar" % pid, {}, gestor="tony")
+        self.assertEqual(st, 403)
+        self.assertIn("Voz 100", d["erro"])
+        self.assertEqual(self.conn.execute("SELECT aprovado FROM gestores WHERE id=?", (pid,)).fetchone()[0], 0)
+        # o dono libera um gestor extra
+        st, d = self.req("POST", "/api/dono/planos/empresa/%d" % self.ea, {"gestores_extra": 1}, dono=True)
+        self.assertEqual(st, 200, d)
+        self.assertEqual(d["gestores"], {"permitido": True, "usados": 5, "maximo": 6})
+        self.assertEqual(self.req("POST", "/api/gestor/gestores/%d/aprovar" % pid, {}, gestor="tony")[0], 200)
+        # aprovar de novo quem já está aprovado não esbarra no limite
+        self.assertEqual(self.req("POST", "/api/gestor/gestores/%d/aprovar" % pid, {}, gestor="tony")[0], 200)
+
+    def test_dono_cria_gestor_e_troca_o_plano(self):
+        for i in range(3):
+            self.assertEqual(self.novo_gestor("g%d" % i)[0], 200)
+        novo = {"nome": "Ana", "login": "ana", "senha": "segredo123"}
+        st, d = self.req("POST", "/api/dono/empresa/%d/gestor" % self.ea, novo, dono=True)
+        self.assertEqual(st, 403)
+        self.assertIn("Voz 100", d["erro"])
+        st, d = self.req("POST", "/api/dono/planos/empresa/%d" % self.ea, {"plano": "voz1000"}, dono=True)
+        self.assertEqual(st, 200, d)
+        self.assertEqual(d["gestores"]["maximo"], None)
+        self.assertEqual(self.req("POST", "/api/dono/empresa/%d/gestor" % self.ea, novo, dono=True)[0], 200)
+        # empresa nova criada pelo dono sempre recebe o primeiro administrador
+        st, d = self.req("POST", "/api/dono/empresas",
+                         {"nome": "Nova", "admin": {"nome": "Adm", "login": "adm", "senha": "segredo123"}}, dono=True)
+        self.assertEqual(st, 200, d)
+
+    def test_vagas_ativas(self):
+        self.limitar_vagas("voz100", 2)
+        self.assertEqual(planos.limite_vagas(self.conn, self.ea), (True, 1, 2))
+        self.assertEqual(self.salvar_vaga()[0], 200)
+        st, d = self.salvar_vaga()
+        self.assertEqual(st, 403)
+        self.assertIn("Voz 100", d["erro"])
+        self.assertIn("2 vagas ativas", d["erro"])
+        st, d = self.salvar_vaga(idioma="en")
+        self.assertEqual(d["erro"], "The Voice 100 plan allows up to 2 active jobs. "
+                                    "Upgrade your plan or close a job to open another one.")
+        # pausada pode ser criada; reabrir no limite é recusado
+        st, d = self.salvar_vaga("pausada")
+        self.assertEqual(st, 200, d)
+        pausada = self.conn.execute("SELECT id FROM vagas WHERE status='pausada'").fetchone()[0]
+        self.assertEqual(self.salvar_vaga("aberta", pausada)[0], 403)
+        self.assertEqual(self.conn.execute("SELECT status FROM vagas WHERE id=?", (pausada,)).fetchone()[0], "pausada")
+        # editar uma vaga que já está aberta continua liberado
+        self.assertEqual(self.salvar_vaga("aberta", self.vaga_id_aberta())[0], 200)
+        # encerrar uma libera a vaga
+        self.assertEqual(self.salvar_vaga("encerrada", self.vaga_id_aberta())[0], 200)
+        self.assertEqual(self.salvar_vaga("aberta", pausada)[0], 200)
+        self.assertEqual(self.salvar_vaga()[0], 403)
+        # o dono libera vagas extras
+        st, d = self.req("POST", "/api/dono/planos/empresa/%d" % self.ea, {"vagas_extra": 1}, dono=True)
+        self.assertEqual(d["vagas"], {"permitido": True, "usados": 2, "maximo": 3})
+        self.assertEqual(self.salvar_vaga()[0], 200)
+        self.assertEqual(self.req("POST", "/api/dono/planos/empresa/%d" % self.ea, {"vagas_extra": "x"},
+                                  dono=True)[0], 400)
+
+    def vaga_id_aberta(self):
+        return self.conn.execute("SELECT id FROM vagas WHERE empresa_id=? AND status='aberta' ORDER BY id LIMIT 1",
+                                 (self.ea,)).fetchone()[0]
+
+    def test_cartao_do_plano_mostra_os_limites(self):
+        self.limitar_vagas("voz100", 4)
+        d = self.req("GET", "/api/gestor/plano", gestor="carine")[1]
+        self.assertEqual(d["gestores"], {"permitido": True, "usados": 2, "maximo": 5})
+        self.assertEqual(d["vagas"], {"permitido": True, "usados": 1, "maximo": 4})
+        self.conn.execute("UPDATE empresas SET plano='' WHERE id=?", (self.ea,))
+        self.conn.commit()
+        d = self.req("GET", "/api/gestor/plano", gestor="carine")[1]
+        self.assertEqual((d["gestores"]["maximo"], d["vagas"]["maximo"]), (None, None))
+        with open(os.path.join(AQUI, "public", "js", "gestor-plano.js"), encoding="utf-8") as f:
+            js = f.read()
+        for chave in ("gestores_uso", "vagas_uso"):
+            self.assertEqual(js.count(chave + ":"), 3, chave)   # pt, en e es
+
+
 class TestArquivos(unittest.TestCase):
     def test_sem_travessoes(self):
         for arq in ("planos.py", "indicacoes.py", "teste_planos.py", "public/js/gestor-plano.js", "public/js/dono.js",

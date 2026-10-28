@@ -486,3 +486,15 @@ ERROS['Valor inválido nas configurações do onboarding'] = {"en": 'Invalid val
 
 # cadastro público fechado (planos.py)
 ERROS["As assinaturas ainda não estão abertas. Fale com a gente."] = {"en": "Signups are not open yet. Please get in touch.", "es": "Las suscripciones aún no están abiertas. Contáctanos."}
+
+# limites de gestores e vagas ativas do plano (planos.py: erro_limite_gestores, erro_limite_vagas)
+PADROES.append((
+    r"^O plano (?P<plano>.+) permite até (?P<n>\d+) gestores ativos\. Faça upgrade do plano para adicionar mais gestores\.$",
+    {"en": "The {plano} plan allows up to {n} active managers. Upgrade your plan to add more managers.",
+     "es": "El plan {plano} permite hasta {n} gerentes activos. Mejora tu plan para agregar más gerentes."}))
+PADROES.append((
+    r"^O plano (?P<plano>.+) permite até (?P<n>\d+) vagas ativas\. Faça upgrade do plano ou encerre uma vaga para abrir outra\.$",
+    {"en": "The {plano} plan allows up to {n} active jobs. Upgrade your plan or close a job to open another one.",
+     "es": "El plan {plano} permite hasta {n} vacantes activas. Mejora tu plan o cierra una vacante para abrir otra."}))
+for _regex, _modelos in PADROES[-2:]:
+    _COMPILADOS.append((re.compile(_regex, re.S), _modelos))

@@ -10,13 +10,18 @@ Planos, medição de uso e cobrança da Bússola (SaaS).
   soma de ceil(duracao/60) das ligações dos candidatos da empresa.
 - Limite do plano: voz.iniciar_ligacao consulta voz_bloqueada() e recusa com
   o código "plan_limit" quando a empresa passou do limite sem excedente.
+- Gestores e vagas ativas: limite_gestores() e limite_vagas() devolvem
+  (permitido, usado, maximo); o server.py e o empresas.py consultam antes de
+  criar ou aprovar um gestor e antes de abrir uma vaga, e respondem 403 com
+  erro_limite_gestores() ou erro_limite_vagas(). O dono libera mais com
+  gestores_extra e vagas_extra (ou trocando o plano da empresa).
 - Assinatura pelo site (POST /api/assinar), catálogo público (GET /api/planos),
   Stripe (Checkout, webhook assinado e portal de cobrança) via urllib.
 - Rotina diária: avisa o fim do teste (3 dias e 1 dia antes) e suspende o
   teste vencido sem pagamento depois de 3 dias de tolerância.
 
 Empresas sem plano do catálogo (contratos antigos, cobrança manual) não têm
-limite de minutos.
+limite de minutos, de gestores nem de vagas ativas.
 """
 import copy
 import hashlib
@@ -175,6 +180,8 @@ COLUNAS_EMPRESA = (
     ("pagamento_status", "TEXT DEFAULT ''"),
     ("pago_ate", "TEXT DEFAULT ''"),
     ("suspender_em", "TEXT DEFAULT ''"),
+    ("gestores_extra", "INTEGER DEFAULT 0"),   # gestores além do plano, liberados pelo dono
+    ("vagas_extra", "INTEGER DEFAULT 0"),      # vagas ativas além do plano, liberadas pelo dono
 )
 
 
@@ -558,6 +565,60 @@ def voz_bloqueada(conn, empresa_id, agora=None):
     return not u["excedente_permitido"]
 
 
+def _limite_recurso(conn, empresa_id, campo_max, campo_extra, sql_uso):
+    """(permitido, usado, maximo) para um recurso contado do plano. maximo None =
+    sem limite (empresa sem plano do catálogo, ou plano com o campo vazio)."""
+    e = _empresa(conn, empresa_id)
+    if not e:
+        return True, 0, None
+    usado = int(conn.execute(sql_uso, (e["id"],)).fetchone()[0] or 0)
+    p = plano(conn, _row_get(e, "plano", ""))
+    if not p or p.get(campo_max) is None:
+        return True, usado, None
+    maximo = max(int(p.get(campo_max) or 0) + int(_row_get(e, campo_extra, 0) or 0), 0)
+    return usado < maximo, usado, maximo
+
+
+def limite_gestores(conn, empresa_id):
+    """Gestores aprovados da empresa contra gestores_max do plano (mais gestores_extra).
+    Contas pendentes de aprovação não contam."""
+    return _limite_recurso(conn, empresa_id, "gestores_max", "gestores_extra",
+                           "SELECT COUNT(*) FROM gestores WHERE empresa_id=? AND aprovado=1")
+
+
+def limite_vagas(conn, empresa_id):
+    """Vagas com status 'aberta' contra vagas_ativas_max do plano (mais vagas_extra)."""
+    return _limite_recurso(conn, empresa_id, "vagas_ativas_max", "vagas_extra",
+                           "SELECT COUNT(*) FROM vagas WHERE empresa_id=? AND status='aberta'")
+
+
+def _erro_limite(conn, empresa_id, modelo, maximo, lang=None):
+    """Monta a mensagem em português com o nome do plano; com lang en ou es, traduz pelo
+    erros_i18n e troca o nome do plano pelo nome naquele idioma."""
+    e = _empresa(conn, empresa_id)
+    p = plano(conn, _row_get(e, "plano", "")) if e else None
+    nome_pt = _texto(p["nome"], "pt") if p else ""
+    texto = modelo % (nome_pt, maximo)
+    idioma = str(lang or "").strip().lower()[:2]
+    if p and idioma in ("en", "es"):
+        texto = srv.erros_i18n.traduzir(texto, idioma)
+        if nome_pt:
+            texto = texto.replace(nome_pt, _texto(p["nome"], idioma), 1)
+    return texto
+
+
+def erro_limite_gestores(conn, empresa_id, maximo, lang=None):
+    """Mensagem do 403 de limite de gestores (em pt; en e es vêm do erros_i18n)."""
+    return _erro_limite(conn, empresa_id, "O plano %s permite até %d gestores ativos. "
+                        "Faça upgrade do plano para adicionar mais gestores.", maximo, lang)
+
+
+def erro_limite_vagas(conn, empresa_id, maximo, lang=None):
+    """Mensagem do 403 de limite de vagas ativas (em pt; en e es vêm do erros_i18n)."""
+    return _erro_limite(conn, empresa_id, "O plano %s permite até %d vagas ativas. "
+                        "Faça upgrade do plano ou encerre uma vaga para abrir outra.", maximo, lang)
+
+
 def receita_mensal(cat, e, u=None):
     """MRR da empresa: plano (anual / 12) mais excedente cobrado. Só empresas ativas."""
     if _row_get(e, "status") != "ativa":
@@ -597,6 +658,8 @@ def painel_uso(conn, mes=None, agora=None):
             "stripe": bool(_row_get(e, "stripe_subscription", "")),
             "minutos_extra": int(_row_get(e, "minutos_extra", 0) or 0),
             "numeros_extra": int(_row_get(e, "numeros_extra", 0) or 0),
+            "gestores_extra": int(_row_get(e, "gestores_extra", 0) or 0),
+            "vagas_extra": int(_row_get(e, "vagas_extra", 0) or 0),
             "excedente_permitido": bool(_row_get(e, "excedente_permitido", 0)),
             "uso": u, "custo_real": _r2(custo), "receita": _r2(receita), "margem": _r2(receita - custo),
             "margem_pct": _r2(100.0 * (receita - custo) / receita) if receita > 0 else None,
@@ -1174,6 +1237,8 @@ def info_gestor(conn, gestor, lang, h=None):
         "dias_teste": (fim - hoje_ny()).days if fim and em_teste(e) else None,
         "renovacao": _row_get(e, "pago_ate", ""), "pagamento_status": _row_get(e, "pagamento_status", ""),
         "uso": u, "admin": admin,
+        "gestores": dict(zip(("permitido", "usados", "maximo"), limite_gestores(conn, e))),
+        "vagas": dict(zip(("permitido", "usados", "maximo"), limite_vagas(conn, e))),
         "upgrade_url": ("/assinar?plano=%s&e=%s" % (urllib.parse.quote(prox["codigo"]), urllib.parse.quote(e["slug"])))
         if (admin and prox) else "",
         "upgrade_plano": _texto(prox["nome"], lang) if prox else "",
@@ -1325,7 +1390,7 @@ def rotear_dono(h, method, path, conn):
             if d.get("ciclo") not in CICLOS:
                 return _resp(h, 400, {"erro": "Ciclo de cobrança inválido"})
             campos["ciclo"] = d["ciclo"]
-        for chave in ("minutos_extra", "numeros_extra"):
+        for chave in ("minutos_extra", "numeros_extra", "gestores_extra", "vagas_extra"):
             if chave in d:
                 v = _num(d.get(chave))
                 if v is None:
@@ -1341,5 +1406,9 @@ def rotear_dono(h, method, path, conn):
             campos["trial_avisos"] = ""
         _atualizar(conn, e["id"], campos)
         conn.commit()
-        return _resp(h, 200, {"ok": True, "uso": uso(conn, e["id"])})
+        return _resp(h, 200, {
+            "ok": True, "uso": uso(conn, e["id"]),
+            "gestores": dict(zip(("permitido", "usados", "maximo"), limite_gestores(conn, e["id"]))),
+            "vagas": dict(zip(("permitido", "usados", "maximo"), limite_vagas(conn, e["id"]))),
+        })
     return _resp(h, 404, {"erro": "Rota não encontrada"})

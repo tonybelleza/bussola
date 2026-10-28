@@ -82,6 +82,9 @@ class FalsoElevenLabs:
         self.conversas = {}
         self.falhar = False
 
+    def apagar_conversa(self, conversation_id):
+        self.apagadas = getattr(self, "apagadas", []) + [conversation_id]
+
     def link_assinado(self):
         return "wss://exemplo/assinado"
 
@@ -544,6 +547,17 @@ class TestFluxo(unittest.TestCase):
         self.assertEqual(voz.reconciliar(self.conn), 1)
         ca = self.candidatura(a)
         self.assertEqual((ca["voz_status"], ca["voz_score"]), ("callback", None))
+
+    def test_anonimizar_apaga_gravacao_na_elevenlabs(self):
+        voz.APAGAR_EM_SEGUNDO_PLANO = False
+        a = self.candidato()
+        voz.tick(self.conn, self.TERCA_10H)
+        self.conn.execute("UPDATE voz_chamadas SET tem_audio=1")
+        self.conn.commit()
+        voz.anonimizar(self.conn, a)
+        self.assertEqual(self.falso.apagadas, ["conv_1"])
+        self.assertEqual(self.conn.execute("SELECT tem_audio FROM voz_chamadas").fetchone()[0], 0)
+        voz.APAGAR_EM_SEGUNDO_PLANO = True
 
     def test_anonimizar_apaga_dados_da_voz(self):
         a = self.candidato()
