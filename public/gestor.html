@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n-g="titulo_pagina">Bússola · Painel do Gestor</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#101B37">
+  <link rel="apple-touch-icon" href="/img/app/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bússola">
   <script src="js/tema.js"></script>
 </head>
 <body>
@@ -45,5 +50,8 @@
   <script src="js/gestor-plano.js"></script>
   <script src="js/render.js"></script>
   <script src="js/gestor.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  </script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+{
+  "name": "Bússola · Painel do Gestor",
+  "short_name": "Bússola",
+  "description": "Recrutamento, triagem por voz e onboarding.",
+  "start_url": "/gestor",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101B37",
+  "theme_color": "#101B37",
+  "icons": [
+    {"src": "/img/app/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/img/app/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

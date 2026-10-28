@@ -1152,13 +1152,21 @@ function abaCandidatos(el) {
   if (typeof talentosLigarAba === "function") talentosLigarAba(el, aplicar); // filtros de voz e comparação (gestor-talentos.js)
 }
 
+Object.assign(I18N_GESTOR.pt, { csv_voz_tier: "Triagem por voz", csv_voz_nota: "Nota da ligação", csv_voz_cidade: "Cidade (ligação)", csv_voz_carro: "Carro próprio", csv_voz_carteira: "Carteira", csv_voz_dias: "Dias úteis disponíveis", csv_voz_exp: "Experiência (ligação)" });
+Object.assign(I18N_GESTOR.en, { csv_voz_tier: "Phone screening", csv_voz_nota: "Call score", csv_voz_cidade: "Town (call)", csv_voz_carro: "Own car", csv_voz_carteira: "License", csv_voz_dias: "Weekdays available", csv_voz_exp: "Experience (call)" });
+Object.assign(I18N_GESTOR.es, { csv_voz_tier: "Evaluación por voz", csv_voz_nota: "Puntaje de la llamada", csv_voz_cidade: "Ciudad (llamada)", csv_voz_carro: "Carro propio", csv_voz_carteira: "Licencia", csv_voz_dias: "Días entre semana", csv_voz_exp: "Experiencia (llamada)" });
+
 function exportarCandidatosCsv() {
   const celula = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   const linhas = [[
     tg("nome"), tg("email"), tg("telefone"), tg("local"), tg("cargo_interesse"), tg("csv_disc"),
     tg("csv_base"), tg("csv_aderencia"), tg("csv_match"),
     tg("status"), "LinkedIn", "Instagram", tg("csv_cadastro"),
+    tg("csv_voz_tier"), tg("csv_voz_nota"), tg("csv_voz_cidade"), tg("csv_voz_carro"), tg("csv_voz_carteira"),
+    tg("csv_voz_dias"), tg("csv_voz_exp"),
   ]];
+  // dados da ligação vêm do módulo de talentos (gestor-talentos.js), quando carregados
+  const vozDe = (id) => (typeof talVoz !== "undefined" && talVoz && talVoz[id]) || {};
   candidatos.forEach((c) => {
     const disc = c.testes.disc ? c.testes.disc.payload.dominante + " " + DISC_PERFIS[c.testes.disc.payload.dominante].nome : "";
     const base = c.testes.base ? BASE_PERFIS[c.testes.base.payload.dominante].nome : "";
@@ -1172,6 +1180,9 @@ function exportarCandidatosCsv() {
         : "",
       c.candidato.linkedin, c.candidato.instagram,
       (c.candidato.criado_em || "").slice(0, 10),
+      vozDe(c.candidato.id).tier || "", vozDe(c.candidato.id).score ?? "", vozDe(c.candidato.id).city || "",
+      vozDe(c.candidato.id).own_car || "", vozDe(c.candidato.id).license || "",
+      vozDe(c.candidato.id).weekdays_available ?? "", vozDe(c.candidato.id).experience_level || "",
     ]);
   });
   const csv = "﻿" + linhas.map((l) => l.map(celula).join(";")).join("\r\n");
